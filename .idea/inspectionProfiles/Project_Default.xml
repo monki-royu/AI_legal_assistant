@@ -1,0 +1,20 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="case.renmingfenleiqi.name_class_dataset" />
+          <option value="case.renmingfenleiqi.total_iter_num" />
+          <option value="case.renmingfenleiqi.total_loss" />
+          <option value="case.renmingfenleiqi.tatal_acc_num" />
+          <option value="case.renmingfenleiqi.tatal_iter_num" />
+          <option value="case.renmingfenleiqi.total_acc_num" />
+          <option value="case.renmingfenleiqi.total_acc_list" />
+          <option value="case.renmingfenleiqi.end_time" />
+          <option value="requests.packages.urllib3" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
