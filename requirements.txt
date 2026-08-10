@@ -1,0 +1,37 @@
+# Web 框架和界面
+streamlit>=1.32.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+fastapi>=0.110.0
+uvicorn>=0.27.0
+playwright>=1.40.0
+
+# 数据处理和分析
+pandas>=2.2.0
+numpy>=1.26.0
+openpyxl>=3.1.0  # 用于 Excel 文件处理
+
+# 图数据库
+neo4j>=5.17.0
+
+# AI 和语言模型
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-openai>=0.0.5
+openai>=1.12.0
+faiss-cpu>=1.7.4  # 用于向量检索
+langgraph>=0.2.0
+sentence-transformers>=2.3.0
+
+# 工具和进度条
+tqdm>=4.66.0
+python-dotenv>=1.0.0  # 用于环境变量管理
+
+# 类型提示
+typing-extensions>=4.9.0
+
+# 云服务/SDK
+volcengine>=1.0.0
+
+# 数据建模
+pydantic>=2.0.0
