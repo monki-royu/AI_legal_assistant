@@ -1,0 +1,344 @@
+# contract_review.yaml
+# 合同审核数值校验规则（商业视角）
+# 依据：《企业内部控制应用指引第16号——合同管理》第五条、第六条、第七条
+# 立场：本企业立场，保障经济利益、商业公平、条款可执行,聚焦"商业可行性、经济性、可执行性"
+# 全局约束：不得降级或覆盖合规审查（compliance_review.yaml）的违规结论
+
+version: "2.0"
+metadata:
+  owner: "财务部+业务部"
+  last_updated: "2024-XX-XX"
+  applicable_scope: "集团全部合同"
+  legal_basis_doc: "《企业内部控制应用指引第16号——合同管理》"
+
+# ==================== 维度一：金额准确性（指引第六条"避免出现重大疏漏"） ====================
+amount_accuracy:
+  - rule_id: "CR-AMT-001"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "contract_total_amount"
+    check_type: "arithmetic"
+    expression: "unit_price * quantity == subtotal AND sum(subtotals) == total"
+    severity: "high"
+    message: "金额计算错误：单价×数量≠小计 或 各小计之和≠合计"
+    suggestion: "重新核算各项金额，确保算术一致性"
+    benchmark_source: "财务审核'五道关'之金额关"
+
+  - rule_id: "CR-AMT-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "amount_capitalization"
+    check_type: "consistency"
+    expression: "uppercase_amount == numeric_amount"
+    severity: "medium"
+    message: "大小写金额不一致"
+    suggestion: "以大写金额为准修正小写，确保两者完全对应"
+
+  - rule_id: "CR-AMT-003"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "attachment_consistency"
+    check_type: "cross_reference"
+    expression: "contract_amount == quotation_amount == budget_amount"
+    severity: "high"
+    message: "合同正文金额与附件（报价单/预算表/谈判纪要）不一致"
+    suggestion: "逐项核对正文、附件、前期文件金额，消除差异"
+
+  - rule_id: "CR-AMT-004"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "framework_cap"
+    check_type: "budget_within"
+    severity: "high"
+    message: "框架合同未设置金额上限，或框架总额超出年度预算额度"
+    suggestion: "补充金额上限条款，并核验是否在预算额度内"
+    benchmark_source: "企业预算管理制度"
+
+# ==================== 维度二：税务计算（经济性审查） ====================
+tax_calculation:
+  - rule_id: "CR-TAX-001"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "price_with_tax"
+    check_type: "formula"
+    expression: "tax_exclusive_amount * (1 + tax_rate) == tax_inclusive_amount"
+    severity: "high"
+    message: "价税计算错误：不含税金额×(1+税率)≠价税合计"
+    suggestion: "重新核算价税分离四要素（不含税金额、税率、税额、价税合计）"
+
+  - rule_id: "CR-TAX-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "tax_rate"
+    check_type: "enum_in"
+    valid_values: [0.06, 0.09, 0.13, 0.03, 0.01]
+    severity: "high"
+    message: "税率不适用：当前行业/业务类型不允许该税率"
+    suggestion: "依据现行税收政策核验适用税率（建筑业9%、现代服务业6%等）"
+    benchmark_source: "国家税务总局最新税率表"
+
+  - rule_id: "CR-TAX-003"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "cross_border_tax"
+    check_type: "policy_compliance"
+    severity: "medium"
+    message: "跨境/免税税务处理未明确，可能存在税务风险"
+    suggestion: "明确跨境交易税务处理方式，必要时咨询税务顾问"
+
+# ==================== 维度三：付款条款（商业可行性与资金安排） ====================
+payment_terms:
+  - rule_id: "CR-PAY-001"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "payment_ratios"
+    check_type: "sum_equals"
+    target: 1.0
+    tolerance: 0.0001
+    severity: "high"
+    message: "各期付款比例之和≠100%"
+    suggestion: "调整各期比例，确保合计为100%"
+
+  - rule_id: "CR-PAY-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "payment_amounts"
+    check_type: "formula"
+    expression: "total_amount * payment_ratio == payment_amount"
+    severity: "high"
+    message: "分期付款金额≠总金额×对应比例"
+    suggestion: "按总金额与各期比例重新核算每期应付金额"
+
+  - rule_id: "CR-PAY-003"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "payment_node_feasibility"
+    check_type: "business_feasibility"
+    severity: "medium"
+    message: "付款节点与交付/验收节点未挂钩，或付款期限过短无法完成内部审批"
+    suggestion: "将付款节点与交付验收挂钩，预留至少5个工作日内部审批时间"
+    benchmark_source: "企业财务审批流程时限规定"
+
+  - rule_id: "CR-PAY-004"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "prepayment_ratio"
+    check_type: "policy_threshold"
+    operator: "<="
+    threshold: 0.30
+    severity: "medium"
+    message: "预付款比例超过企业信用政策上限（30%）"
+    suggestion: "谈判降低预付款比例，或要求对方提供等额保函"
+    benchmark_source: "企业信用管理制度"
+
+# ==================== 维度四：违约金与赔偿（商业合理性与保护力度） ====================
+# 注意：违约金30%上限的"违规判定"在 compliance_review.yaml（hybrid规则）
+# 此处仅从"商业保护力度"角度审查
+penalty_commercial:
+  - rule_id: "CR-PEN-001"
+    rule_type: "hybrid"
+    primary_reviewer: "both"
+    field: "penalty_ratio"
+    check_type: "commercial_reasonableness"
+    operator: "<="
+    threshold: 0.30
+    severity: "high"
+    message: "违约金约定过高（超过实际损失30%），条款面临被司法酌减风险，反而导致实际保护不足"
+    suggestion: "建议约定为实际损失的30%以内，或改为'按日万分之五计算'，既符合司法实践又具备持续威慑力"
+    legal_basis: "《民法典》第585条 + 最高人民法院民法典工作会议纪要第十一条"
+    compliance_ref: "合规审查结论见 compliance_review.yaml CMP-PEN-001（违规判定）"
+
+  - rule_id: "CR-PEN-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "daily_penalty_rate"
+    check_type: "annualized_compare"
+    benchmark: "market_financing_cost"
+    severity: "high"
+    message: "日违约金折算年化利率远超市场融资成本，可能被认定为惩罚性过高"
+    suggestion: "调整为日万分之五以下，或与LPR挂钩，贴近市场融资成本"
+    benchmark_source: "同期LPR利率"
+
+  - rule_id: "CR-PEN-003"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "penalty_parity"
+    check_type: "parity_check"
+    severity: "medium"
+    message: "双方违约责任不对等（如延迟付款与延迟交货的计息标准不一致）"
+    suggestion: "对齐双方违约金计算标准，确保责任对等"
+
+  - rule_id: "CR-PEN-004"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "penalty_base_clarity"
+    check_type: "base_clarity"
+    severity: "medium"
+    message: "违约金计算基数不明确（如'合同造价'在履约中无法确定）"
+    suggestion: "将基数明确为签约时确定的数值（如'合同签约价款'），避免履约争议"
+
+# ==================== 维度五：质保金/履约保证金（商业惯例视角） ====================
+# 注意：履约保证金≤10%、质保金≤3%、禁止重复预留等"监管强制"规则
+# 已归入 compliance_review.yaml 的 regulatory_red_line
+# 此处仅保留"商业惯例"和"资金占用"视角的规则
+retention_deposit_commercial:
+  - rule_id: "CR-RET-001"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "retention_ratio"
+    check_type: "range"
+    min: 0.05
+    max: 0.10
+    severity: "medium"
+    message: "质保金比例偏离行业商业惯例（5%-10%）"
+    suggestion: "参考行业惯例调整质保金比例；过高占用我方资金，过低则保障不足"
+    benchmark_source: "行业示范合同文本/同类合同历史数据"
+
+  - rule_id: "CR-RET-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "retention_refund_timing"
+    check_type: "clarity_check"
+    severity: "low"
+    message: "质保金退还时间节点或支付路径不明确"
+    suggestion: "明确约定退还条件（如'验收合格后X个工作日'）、退还比例、支付路径"
+
+  - rule_id: "CR-RET-003"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "performance_deposit_cash_flow"
+    check_type: "cash_flow_impact"
+    severity: "medium"
+    message: "履约保证金现金占用过大，影响我方资金周转"
+    suggestion: "谈判降低保证金比例，或要求对方接受银行保函/保险保函替代现金"
+    benchmark_source: "企业资金管理制度"
+    compliance_ref: "履约保证金监管上限（10%）见 compliance_review.yaml CMP-CON-001"
+
+# ==================== 维度六：量价逻辑（经济性审查） ====================
+pricing_logic:
+  - rule_id: "CR-PRC-001"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "unit_price_market_compare"
+    check_type: "market_deviation"
+    tolerance: 0.20
+    severity: "medium"
+    message: "采购单价偏离市场公允价/历史采购价超过20%"
+    suggestion: "与至少3家供应商比价，或说明价格合理性"
+    benchmark_source: "市场公允价/历史采购数据库"
+
+  - rule_id: "CR-PRC-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "gross_margin"
+    check_type: "profitability_check"
+    severity: "high"
+    message: "销售合同毛利率低于公司盈利目标"
+    suggestion: "重新议价或评估是否承接该业务"
+    benchmark_source: "企业盈利目标/产品定价政策"
+
+  - rule_id: "CR-PRC-003"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "incidental_cost_allocation"
+    check_type: "clarity_check"
+    severity: "low"
+    message: "运输、保险、装卸等附带费用承担主体不明确"
+    suggestion: "明确约定各项附带费用的承担方，避免履约争议"
+
+# ==================== 维度七：期限与时效（可执行性审查） ====================
+time_logic:
+  - rule_id: "CR-TIME-001"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "timeline_order"
+    check_type: "temporal_order"
+    expression: "effective_date <= delivery_date <= acceptance_date <= payment_date <= warranty_end_date"
+    severity: "high"
+    message: "时间节点时序颠倒（如付款日在验收日之前）"
+    suggestion: "按'生效→交付→验收→付款→质保期满'逻辑重排时间节点"
+
+  - rule_id: "CR-TIME-002"
+    rule_type: "commercial_benchmark"
+    primary_reviewer: "contract"
+    field: "vague_duration"
+    check_type: "concretization"
+    severity: "medium"
+    message: "存在'合理期限''尽快'等模糊表述，无法量化执行"
+    suggestion: "将模糊表述改为具体天数/日期（如'收到通知后5个工作日内'）"
+
+# ==================== 维度八：行业商业基准（按 contract_type 动态加载） ====================
+industry_commercial_benchmarks:
+  construction:
+    - rule_id: "CR-IND-CON-001"
+      rule_type: "commercial_benchmark"
+      primary_reviewer: "contract"
+      field: "construction_period"
+      check_type: "benchmark_compare"
+      benchmark: "同类工程平均工期"
+      tolerance: "±30%"
+      severity: "low"
+      message: "工期偏离同类工程行业基准较大，存在履约风险"
+      suggestion: "评估工期合理性，必要时调整或增加赶工条款"
+      benchmark_source: "工程造价管理部门发布的工期定额"
+
+    - rule_id: "CR-IND-CON-002"
+      rule_type: "commercial_benchmark"
+      primary_reviewer: "contract"
+      field: "measurement_standard"
+      check_type: "standard_alignment"
+      benchmark: "GB/T 50500《建设工程工程量清单计价规范》"
+      severity: "medium"
+      message: "工程量计量口径与国标GB/T 50500不一致"
+      suggestion: "统一采用国标计量规范，避免结算争议"
+      benchmark_source: "GB/T 50500"
+
+  government_procurement:
+    - rule_id: "CR-IND-GP-001"
+      rule_type: "commercial_benchmark"
+      primary_reviewer: "contract"
+      field: "pricing_reasonableness"
+      check_type: "market_compare"
+      tolerance: 0.15
+      severity: "medium"
+      message: "政府采购定价偏离市场公允价超过15%"
+      suggestion: "提供价格合理性说明或重新议价"
+      benchmark_source: "政府采购价格数据库"
+
+  finance_lending:
+    - rule_id: "CR-IND-FIN-001"
+      rule_type: "commercial_benchmark"
+      primary_reviewer: "contract"
+      field: "fee_management_rate"
+      check_type: "market_compare"
+      benchmark: "同业平均手续费率"
+      tolerance: 0.20
+      severity: "medium"
+      message: "手续费/管理费率偏离同业市场水平"
+      suggestion: "参考同业水平调整费率，或说明差异化理由"
+      benchmark_source: "行业协会发布的费率指引"
+
+  medical_procurement:
+    - rule_id: "CR-IND-MED-001"
+      rule_type: "commercial_benchmark"
+      primary_reviewer: "contract"
+      field: "drug_pricing"
+      check_type: "market_compare"
+      benchmark: "集采中标价/医院历史采购价"
+      tolerance: 0.10
+      severity: "medium"
+      message: "药品定价偏离集采中标价/历史采购价"
+      suggestion: "优先采用集采价格，或提供价格合理性说明"
+      benchmark_source: "国家药品集采中标价格目录"
+      compliance_ref: "药品零差率政策见 compliance_review.yaml CMP-MED-001"
+
+    - rule_id: "CR-IND-MED-002"
+      rule_type: "commercial_benchmark"
+      primary_reviewer: "contract"
+      field: "supply_cycle"
+      check_type: "benchmark_compare"
+      benchmark: "同类产品平均供货周期"
+      tolerance: "±20%"
+      severity: "low"
+      message: "供货周期偏离行业基准，可能影响临床使用"
+      suggestion: "评估供货周期合理性，必要时约定迟延供货违约责任"
