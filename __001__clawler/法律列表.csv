@@ -1,0 +1,13 @@
+﻿序号,法律名称,代码/版本,是否已下载,来源,文件路径
+1,中华人民共和国民法典,20200528,是,全国人大网备用,E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国民法典.txt
+2,中华人民共和国刑法,20201226,是,全国人大网备用,E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国刑法.txt
+3,中华人民共和国劳动法,20181229,是,全国人大网备用,E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国劳动法.txt
+4,中华人民共和国劳动合同法,20120928,是,LLM生成骨架(兜底4),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国劳动合同法.txt
+5,中华人民共和国民事诉讼法,20230901,是,LLM生成骨架(兜底4),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国民事诉讼法.txt
+6,中华人民共和国公司法,20231229,是,LLM生成骨架(兜底4),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国公司法.txt
+7,中华人民共和国政府采购法,20140831,是,LLM生成骨架(兜底4),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国政府采购法.txt
+8,中华人民共和国招标投标法,20170823,是,LLM生成骨架(兜底4),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国招标投标法.txt
+9,中华人民共和国个人信息保护法,20210820,是,LLM生成骨架(兜底4),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国个人信息保护法.txt
+10,中华人民共和国数据安全法,20210610,是,内置离线骨架(补全),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国数据安全法.txt
+11,中华人民共和国反垄断法,20220624,是,内置离线骨架(补全),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国反垄断法.txt
+12,中华人民共和国网络安全法,20161107,是,内置离线骨架(补全),E:\to_github_project\AI_legal_assistant\__001__clawler\法律法规\中华人民共和国网络安全法.txt

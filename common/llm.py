@@ -1,14 +1,26 @@
-from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from common.config import Config
+# 📜 代码文字逻辑解析
+# 本文件是项目的"大模型客户端工厂"，负责把 Config 中读取到的 API Key、Base URL 和
+# 模型名实例化为一个 LangChain 标准的 ChatOpenAI 对象 my_llm，并暴露给项目所有需要
+# 调用大模型的模块（如多智能体节点、RAG 检索后答案生成、Cypher 生成等）统一使用。
+# 核心逻辑：模块加载时先 import LangChain 的消息类型 HumanMessage 和 ChatOpenAI 类，
+# 然后构造 Config 实例 conf 拿到配置，再用 conf 的三个属性实例化 my_llm。这样后续
+# 业务代码只需 `from common.llm import my_llm` 即可拿到一个配置好的 LLM 客户端，
+# 不必在每个文件里重复读取配置或重复实例化。函数关系：本模块依赖 common.config.Config，
+# 自身作为下游被 LangGraph 各节点、RAG 流程、知识图谱问答流程等 import；模块底部
+# __main__ 块为本地自测代码，演示了"构造消息列表 → 调用 invoke → 打印响应"的最小
+# 调用闭环，并通过大段注释解释了 Message 与 Context 在内存与显存上的差异。
 
-conf = Config()
+from langchain_core.messages import HumanMessage           # 从 langchain_core 导入 HumanMessage，表示"用户发言"这一类消息，用于构造对话上下文；与 SystemMessage/ AIMessage 一起组成 messages 列表
+from langchain_openai import ChatOpenAI                    # 从 langchain_openai 导入 ChatOpenAI，这是 LangChain 封装的 OpenAI 兼容聊天客户端，支持任何 OpenAI API 协议的服务（DeepSeek、通义、智谱等）
+from common.config import Config                           # 导入项目配置类 Config，用于读取 MODEL_API_KEY / MODEL_BASE_URL / MODEL_NAME
+
+conf = Config()                                            # 实例化 Config，把 .env 中的大模型相关配置加载到 conf 属性上，供下方 ChatOpenAI 使用
 
 # ============ 配置llm区域 ============
-my_llm = ChatOpenAI(
-    api_key=conf.MODEL_API_KEY,
-    base_url=conf.MODEL_BASE_URL,
-    model=conf.MODEL_NAME
+my_llm = ChatOpenAI(                                       # 创建全局共享的 ChatOpenAI 客户端实例 my_llm；模块级单例，避免每个调用方都重复构造造成连接浪费
+    api_key=conf.MODEL_API_KEY,                            # 鉴权密钥：从 conf 读取 API Key，ChatOpenAI 会把它放进 HTTP 请求头 Authorization: Bearer <key>
+    base_url=conf.MODEL_BASE_URL,                          # 服务地址：指定 OpenAI 兼容 API 的基础 URL，决定请求打到 DeepSeek/通义/本地 vllm 等哪个推理后端
+    model=conf.MODEL_NAME                                  # 模型名：指定具体调用的模型标识（如 deepseek-chat），服务端据此路由到对应权重
 )
 
 if __name__ == '__main__':
@@ -36,9 +48,9 @@ if __name__ == '__main__':
     # Context越长，这个缓存占用的显存就越庞大。
     # 激活值（Activations）：在模型进行前向推理时，神经网络每一层产生的中间计算结果都需要占用内存。
     messages = [
-        HumanMessage(content="用一句话介绍一下你自己")
+        HumanMessage(content="用一句话介绍一下你自己")       # 构造一个仅含单条用户消息的列表，content 是发送给模型的实际问题；列表形式是为了与多轮对话接口保持一致
     ]
 
     # 调用模型
-    response = my_llm.invoke(messages)
-    print(response.content)
+    response = my_llm.invoke(messages)                     # 同步调用 ChatOpenAI.invoke，把 messages 列表整体作为 Context 发给模型，返回一个 AIMessage 对象（含 content/usage 等字段）
+    print(response.content)                                # 打印响应正文字段 content，即模型生成的回答文本；调试时用于肉眼确认 LLM 通路是否打通

@@ -1,0 +1,35 @@
+# ==================== Streamlit 正式部署配置 ====================
+# 法智引擎 - AI法律助理 前端部署配置
+
+[server]
+port = 8501
+headless = true
+enableCORS = false
+enableXsrfProtection = false
+maxUploadSize = 200
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+serverAddress = "0.0.0.0"
+serverPort = 8501
+
+[theme]
+# 科技感深蓝 + 红底主题
+base = "dark"
+primaryColor = "#1976D2"
+backgroundColor = "#450a0a"
+secondaryBackgroundColor = "#7f1d1d"
+textColor = "#ffffff"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = false
+
+[runner]
+magicEnabled = true
+
+[logger]
+level = "info"
+messageFormat = "%(asctime)s %(message)s"

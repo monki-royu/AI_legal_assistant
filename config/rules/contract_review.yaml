@@ -233,7 +233,7 @@ pricing_logic:
     field: "gross_margin"
     check_type: "profitability_check"
     severity: "high"
-    message: "销售合同毛利率低于公司盈利目标"
+    message: "销售合同毛利率低于企业盈利目标"
     suggestion: "重新议价或评估是否承接该业务"
     benchmark_source: "企业盈利目标/产品定价政策"
 
