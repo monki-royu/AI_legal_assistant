@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>法智引擎 — LangGraph 多智能体架构</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <nav class="topnav">
+    <div class="brand">⚖️ 法智引擎</div>
+    <a href="#sec-index" class="nav-index active">🏠 首页</a>
+    <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+    <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
+    <a href="03_retrieval.html" class="nav-retrieval">🔍 检索智能体</a>
+    <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
+    <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
+    <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
+    <span class="spacer"></span>
+    <span class="stat">LangGraph · Neo4j · FAISS · bge-m3</span>
+  </nav>
+
+  <section id="sec-index" class="hero">
+    <h1>⚖️ 法智引擎</h1>
+    <p class="sub">LangGraph 多智能体 · 法律垂直领域 AI 助理</p>
+    <div class="motto">
+      设计铁律：AI 做前置审查 / 辅助生成 / 风险提示<br>
+      律师做最终决策 / 签章交付<br>
+      依据《律师法》第 13、28 条 · 合规边界清晰
+    </div>
+
+    <div class="grid">
+      <a class="card card-arch" href="01_architecture.html">
+        <div class="num">OVERVIEW · 全局视角</div>
+        <h2>🏛️ 架构总流程图</h2>
+        <p>7 层分层：START → 小红书前置过滤(L2) → 意图路由(L3, 5路分支) → 合同/合规/检索/问答/其他 5大智能体链路 → 🔄5节点检索(复用) → 甲乙方识别 → 🏢企查查资信查询(MCP) → 四路风险聚合 → 最终交付。节点式交互图见 <a href="节点式流程图.html"
+            style="color:inherit;text-decoration:underline;">节点式流程图.html</a>。</p>
+        <span class="tag">入口 · 路由 · 企查查MCP · 四路聚合</span>
+      </a>
+      <a class="card card-contract" href="02_contract_review.html">
+        <div class="num">AGENT 01 · 合同审核</div>
+        <h2>📋 合同审核智能体</h2>
+        <p><strong>16节点完整链路</strong>：文档提取 → 合同分类 → 条款切分 → 数值抽取 → 合同审核AI → 合规审查 → 数值校验 → 🔄5阶段检索(N09a-e) → 甲乙方识别 → 🏢企查查资信查询 → 四路风险聚合(条款+合规+数值+资信) → 最终交付。</p>
+        <span class="tag">16节点 · 企查查MCP · 四路风险聚合</span>
+      </a>
+      <a class="card card-retrieval" href="03_retrieval.html">
+        <div class="num">AGENT 02 · 检索核心</div>
+        <h2>🔍 检索智能体</h2>
+        <p><strong>横向按需挂载 + 纵向逐级降级</strong>双层策略：<br>
+        ① <strong>横向全局规划</strong>：根据合同类型在基础层4路通用检索并行同时，动态挂载行业增强层特定数据源（如建设工程→住建部标准）。<br>
+        ② <strong>纵向逐级降级</strong>：L1 FAISS向量+知识图谱高精度匹配 → 不足则降级 L2 本地法规txt关键词兜底 → 极端情况 L3 LLM伪检索防死循环。<br>
+        最终 RRF 融合排序 → 结果输出。被合同审核/合规审查/法律检索三条链路🔄复用。</p>
+        <span class="tag">横向4路+行业挂载 · 纵向3级降级 · RRF融合</span>
+      </a>
+      <a class="card card-compliance" href="04_compliance.html">
+        <div class="num">AGENT 03 · 合规审查</div>
+        <h2>🛡️ 合规审查智能体</h2>
+        <p>精简链路：文档提取 → 合规审查(刚性不降级) → 数值校验 → 🔄5阶段检索 → 甲乙方识别 → 🏢企查查资信查询 → 四路风险聚合 → 最终交付。合规结论刚性不被商业条款审核降级。</p>
+        <span class="tag">精简链路 · 合规刚性 · 企查查MCP</span>
+      </a>
+      <a class="card card-qa" href="05_legal_qa.html">
+        <div class="num">AGENT 04 · 法律问答</div>
+        <h2>💬 法律问答智能体</h2>
+        <p>Text-to-Cypher链路：用户提问 → 实体抽取 → Neo4j匹配 → Cypher生成/校验(≤3次重试环) / 执行 → 答案生成。Neo4j/Cypher超限失败降级至LLM直答，保证可用性。</p>
+        <span class="tag">知识图谱 · Cypher重试 · 降级兜底</span>
+      </a>
+      <a class="card card-xhs" href="06_xiaohongshu.html">
+        <div class="num">AGENT 05 · 小红书发布</div>
+        <h2>📱 小红书发布智能体</h2>
+        <p>入口前置(Intent Filter)：START后第一节点即小红书识别 → 文案生成 → 图片生成 → 质量检查(不通过→直接结束) → 自动发布 → Markdown报告。独立链路，不经过主意图路由。</p>
+        <span class="tag">前置过滤 · 文案图片 · 自动发布</span>
+      </a>
+    </div>
+
+    <div class="design-bar">
+      <div class="design-item"><strong>🧱 模块解耦</strong>5节点检索链路被合同审核/合规审查/法律检索三条链路🔄复用</div>
+      <div class="design-item"><strong>🔒 确定性门禁</strong>数值校验用 Python 代码(7条规则)，不依赖 LLM</div>
+      <div class="design-item"><strong>🔄 弹性重试</strong>Cypher 校验失败自动重试≤3次；企查查MCP三级兜底(MCP→AppKey→Mock)</div>
+      <div class="design-item"><strong>🏢 企查查MCP</strong>资信查询对接真实 Bearer Token，工商/股东/失信/被执行/异常/处罚6维度</div>
+      <div class="design-item"><strong>📊 四路风险聚合</strong>条款/合规/数值/资信 四路合并，合规critical/high级不降级</div>
+    </div>
+
+    <div class="scroll-hint">↓ 点击上方卡片进入对应流程图 ↓</div>
+  </section>
+
+  <footer>
+    <div class="foot-nav">
+      <a href="00_index.html">🏠 首页</a>·
+      <a href="01_architecture.html">🏛️ 总架构</a>·
+      <a href="02_contract_review.html">📋 合同审核</a>·
+      <a href="03_retrieval.html">🔍 检索</a>·
+      <a href="04_compliance.html">🛡️ 合规</a>·
+      <a href="05_legal_qa.html">💬 法律问答</a>·
+      <a href="06_xiaohongshu.html">📱 小红书</a>·
+      <a href="节点式流程图.html">🧩 节点式流程</a>
+    </div>
+    <p>法智引擎 · LangGraph 多智能体架构 v4.0 · 设计铁律：AI 辅助 · 人工兜底</p>
+    <p style="margin-top:6px;">依据《律师法》第 13/28 条 · LangGraph + FAISS + Neo4j + 企查查 MCP + bge-m3</p>
+  </footer>
+
+</body>
+
+</html>

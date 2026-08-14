@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>合同审核智能体 · 法智引擎</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <nav class="topnav">
+    <div class="brand">⚖️ 法智引擎</div>
+    <a href="00_index.html" class="nav-index">🏠 首页</a>
+    <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+    <a href="02_contract_review.html" class="nav-contract active">📋 合同审核</a>
+    <a href="03_retrieval.html" class="nav-retrieval">🔍 检索智能体</a>
+    <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
+    <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
+    <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
+    <span class="spacer"></span>
+    <span class="stat">LangGraph · Neo4j · 企查查MCP · bge-m3</span>
+  </nav>
+
+  <div class="page-wrap">
+
+    <div class="page-head">
+      <div class="crumb">AGENT 01 · 合同审核</div>
+      <h1>📋 合同审核智能体</h1>
+      <p class="desc">
+        <strong>完整 16 节点串联流程</strong>：小红书意图前置过滤 → 意图路由 →
+        文档提取 → 合同分类 → 条款切分 → 数值抽取 → 合同审核AI → 合规审查 →
+        数值校验 → 5阶段检索链路 → 甲乙方识别 → 企查查资信查询 →
+        四路风险聚合 → 最终交付。每步节点均对应 LangGraph 图中注册的实际节点函数。
+      </p>
+    </div>
+
+    <div class="flow">
+
+      <!-- ===== 前置过滤 ===== -->
+      <div class="stage-label">前置过滤 · START 入口</div>
+
+      <div class="node t-xhs">
+        <div class="node-head">
+          <span class="ico">📱</span>
+          <span class="idx">N00</span>
+          <h3>小红书意图识别 (xiaohongshu_publish_intent_node)</h3>
+        </div>
+        <p>所有请求的<strong>第一站</strong>。LLM 判断用户是否想发小红书：是 → 走小红书发布链路（文案生成→图片生成→检查→发布→Markdown）；否 → 进入主意图路由。属于"前置过滤"架构模式。</p>
+        <div class="meta">START → 此节点 · 条件路由分流</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <!-- ===== 意图路由 ===== -->
+      <div class="stage-label">意图路由 · 条件分流</div>
+
+      <div class="node t-arch">
+        <div class="node-head">
+          <span class="ico">🧭</span>
+          <span class="idx">N01</span>
+          <h3>意图路由 (intent_router_node)</h3>
+        </div>
+        <p>LLM 识别用户意图，输出 <code>task_type</code> 字段，分流至六大业务链路：<br>
+        <strong>contract_review</strong>（合同审核，走完整 16 节点）/ <strong>compliance_review</strong>（合规审查，精简流程）/ <strong>legal_research</strong>（法律检索）/ <strong>legal_qa</strong>（法律问答RAG）/ <strong>other</strong>（LLM直接回答）。</p>
+        <div class="meta">条件边 · path_map 路由至各链路起点</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="branch">
+        <strong>↓ contract_review 路径</strong> · 以下 N02-N16 为合同审核完整链路。compliance_review 路径同样从 N02 进入，但跳过合同分类逻辑（在节点内判断 task_type 简化处理）。
+      </div>
+
+      <div class="arrow"></div>
+
+      <!-- ===== 文档处理阶段 ===== -->
+      <div class="stage-label">文档处理阶段 · N02-N04</div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">📄</span>
+          <span class="idx">N02</span>
+          <h3>文档提取 (doc_extract_node)</h3>
+        </div>
+        <p>读取 <code>uploaded_doc_path</code> 指向的合同文件（PDF/Word/TXT），解析为纯文本写入 <code>doc_text</code>。支持 .docx / .txt / 纯文本直传三种模式。无文件时直接使用 <code>input</code> 字段作为合同文本。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">🏷️</span>
+          <span class="idx">N03</span>
+          <h3>合同分类 (contract_classify_node)</h3>
+        </div>
+        <p>LLM 基于 <code>doc_text</code> 判定合同类型（买卖/租赁/借贷/服务/采购等），写入 <code>contract_type</code>。决定后续行业增强检索层与适用规则集。compliance_review 路径在此节点内简单跳过分类逻辑。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">✂️</span>
+          <span class="idx">N04</span>
+          <h3>条款切分 (clause_split_node)</h3>
+        </div>
+        <p>将 <code>doc_text</code> 按条款结构切分为结构化条款列表 <code>doc_clauses</code>。支持按"第X条"编号切分和按段落切分两种模式，为后续条款级审核提供粒度控制。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <!-- ===== 三审阶段 ===== -->
+      <div class="stage-label">三审串联 · N05-N07</div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">🔢</span>
+          <span class="idx">N05</span>
+          <h3>数值抽取 (numeric_extract_node)</h3>
+        </div>
+        <p>从合同文本中抽取关键数值（单价/数量/总价/付款比例/违约金比例/质保期等），写入 <code>extracted_numerics</code>。为后续数值校验提供数据基础。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">🤖</span>
+          <span class="idx">N06</span>
+          <h3>合同审核AI (contract_ai_review_node)</h3>
+        </div>
+        <p>基于 LLM 对 <code>doc_clauses</code> 逐条做风险审查，输出 <code>contract_risk_items</code>（合同风险项列表）。每条含风险描述、条款位置、建议修改等结构化字段。</p>
+        <div class="meta">第 1 路风险 · 合同条款风险</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-compliance">
+        <div class="node-head">
+          <span class="ico">🛡️</span>
+          <span class="idx">N07</span>
+          <h3>合规审查 (compliance_review_node)</h3>
+        </div>
+        <p>对照法律法规（民法典/民事诉讼法/数据安全法等）检测合规性风险，输出 <code>compliance_risk_items</code>。<strong>合规红线刚性，不被商业条款审核结果降级。</strong></p>
+        <div class="meta">第 2 路风险 · 合规风险 · 刚性不降级</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">✔️</span>
+          <span class="idx">N08</span>
+          <h3>数值校验 (numeric_validate_node)</h3>
+        </div>
+        <p>校验 <code>extracted_numerics</code> 的数值一致性与合理性（如：预付款+尾款+质保金=100%？违约金是否超法定上限？），输出 <code>numeric_risk_items</code>。基于 YAML 规则文件，Python 确定性执行。</p>
+        <div class="meta">第 3 路风险 · 数值校验 · 确定性规则 · 不依赖 LLM</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <!-- ===== 检索阶段 ===== -->
+      <div class="stage-label">法律检索 · N09a-N09e（5节点拆分子链路）</div>
+
+      <div class="node t-retrieval">
+        <div class="node-head">
+          <span class="ico">🔍</span>
+          <span class="idx">N09a</span>
+          <h3>检索·意图分解 (retrieval_intent_decompose_node)</h3>
+        </div>
+        <p>将用户输入/合同类型分解为多个检索子意图，决定后续检索策略。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-retrieval">
+        <div class="node-head">
+          <span class="ico">📚</span>
+          <span class="idx">N09b</span>
+          <h3>检索·基础层 (retrieval_base_layer_node)</h3>
+        </div>
+        <p>FAISS 向量检索 + Neo4j 图谱检索，4路并行获取基础法律知识。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-retrieval">
+        <div class="node-head">
+          <span class="ico">🔧</span>
+          <span class="idx">N09c</span>
+          <h3>检索·增强查询 (retrieval_enhance_query_node)</h3>
+        </div>
+        <p>基于基础层结果做增强查询，补充行业层与条款层检索。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-retrieval">
+        <div class="node-head">
+          <span class="ico">🔀</span>
+          <span class="idx">N09d</span>
+          <h3>检索·融合排序 (retrieval_fusion_sort_node)</h3>
+        </div>
+        <p>RRF（Reciprocal Rank Fusion）融合多路检索结果，去重、排序。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-retrieval">
+        <div class="node-head">
+          <span class="ico">📤</span>
+          <span class="idx">N09e</span>
+          <h3>检索·输出 (retrieval_output_node)</h3>
+        </div>
+        <p>整理检索结果为 <code>research_context</code> 与 <code>citations</code>（法规引用列表），供后续风险聚合与报告生成使用。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <!-- ===== 主体识别与资信查询 ===== -->
+      <div class="stage-label">主体识别 + 资信查询 · N10-N11</div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">👥</span>
+          <span class="idx">N10</span>
+          <h3>甲乙方识别 (party_identify_node)</h3>
+        </div>
+        <p>LLM 从合同文本中识别甲方/乙方名称，写入 <code>party_a</code> / <code>party_b</code>。同时识别用户立场 <code>user_side</code>（甲方/乙方/中立），影响后续风险聚合的立场化评分。</p>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-compliance">
+        <div class="node-head">
+          <span class="ico">🏢</span>
+          <span class="idx">N11</span>
+          <h3>企查查资信查询 (credit_check_node)</h3>
+        </div>
+        <p>调用<strong>企查查 MCP API</strong>（Bearer Token + JSON-RPC 2.0 + SSE 流式），查询甲乙双方企业资信：工商基本信息、股东结构、失信记录、被执行人、经营异常、行政处罚。计算资信评分与风险等级（Low/Medium/High），输出 <code>credit_risk_items</code> 和 <code>party_a_credit_info</code> / <code>party_b_credit_info</code>。</p>
+        <div class="meta">第 4 路风险 · 企查查 MCP · 三级兜底（MCP-Bearer → AppKey-MD5 → Mock）</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <!-- ===== 风险聚合与交付 ===== -->
+      <div class="stage-label">风险聚合 + 最终交付 · N12-N13</div>
+
+      <div class="node t-compliance">
+        <div class="node-head">
+          <span class="ico">⚠️</span>
+          <span class="idx">N12</span>
+          <h3>风险聚合 (risk_aggregate_node)</h3>
+        </div>
+        <p>合并<strong>四路风险数据</strong>：① 合同条款风险 <code>contract_risk_items</code> + ② 合规风险 <code>compliance_risk_items</code> + ③ 数值风险 <code>numeric_risk_items</code> + ④ 资信风险 <code>credit_risk_items</code>。去重、定级、计算综合评分 <code>overall_risk_score</code>（0-100）与风险等级 <code>risk_level</code>（Low/Medium/High）。合规 critical/high 级风险不降级。</p>
+        <div class="meta">四路聚合 · 立场化评分 · 合规刚性不降级</div>
+      </div>
+
+      <div class="arrow"></div>
+
+      <div class="node t-contract">
+        <div class="node-head">
+          <span class="ico">📦</span>
+          <span class="idx">N13</span>
+          <h3>最终交付 (final_delivery_node)</h3>
+        </div>
+        <p>组装最终报告：生成 <code>final_report_markdown</code>（Markdown 格式详细报告）+ <code>output</code>（纯文本摘要）。含风险清单、法规引用、资信摘要、是否需律师复核 <code>need_lawyer_review</code> 等字段。每条风险带 source_tag（条款审核/合规审查/数值校验/资信查询），全程审计追溯。</p>
+        <div class="meta">END · 结构化输出 · 审计追溯</div>
+      </div>
+
+    </div>
+
+    <div class="design-bar">
+      <div class="design-item"><strong>📱 前置过滤</strong>小红书意图识别在意图路由之前，所有请求先过此节点</div>
+      <div class="design-item"><strong>🛡️ 合规刚性</strong>合规审查为必经节点，结论不被商业审核降级</div>
+      <div class="design-item"><strong>✔️ 确定性校验</strong>数值校验用 Python 规则，不依赖 LLM</div>
+      <div class="design-item"><strong>🏢 企查查资信</strong>MCP Bearer Token + JSON-RPC 2.0 + SSE 流式</div>
+      <div class="design-item"><strong>⚠️ 四路聚合</strong>条款 + 合规 + 数值 + 资信，立场化评分</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="foot-nav">
+      <a href="00_index.html">🏠 首页</a>·
+      <a href="01_architecture.html">🏛️ 总架构</a>·
+      <a href="02_contract_review.html">📋 合同审核</a>·
+      <a href="03_retrieval.html">🔍 检索</a>·
+      <a href="04_compliance.html">🛡️ 合规</a>·
+      <a href="05_legal_qa.html">💬 法律问答</a>·
+      <a href="06_xiaohongshu.html">📱 小红书</a>
+    </div>
+    <p>法智引擎 · LangGraph 多智能体架构 v3.0 · 设计铁律：AI 辅助 · 人工兜底</p>
+    <p style="margin-top:6px;">基于 LangGraph · 企查查 MCP · Neo4j · FAISS · bge-m3</p>
+  </footer>
+
+</body>
+
+</html>

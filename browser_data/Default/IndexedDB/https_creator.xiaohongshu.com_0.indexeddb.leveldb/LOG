@@ -1,0 +1,31 @@
+2026/08/13-20:17:40.644 4138 Reusing MANIFEST E:\to_github_project\AI_legal_assistant\browser_data\Default\IndexedDB\https_creator.xiaohongshu.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/08/13-20:17:40.644 4138 Recovering log #7
+2026/08/13-20:17:40.644 4138 Reusing old log E:\to_github_project\AI_legal_assistant\browser_data\Default\IndexedDB\https_creator.xiaohongshu.com_0.indexeddb.leveldb/000007.log 
+2026/08/13-20:17:41.094 74dc Level-0 table #11: started
+2026/08/13-20:17:41.099 9e30 Current memtable full; waiting...
+2026/08/13-20:17:41.101 74dc Level-0 table #11: 741 bytes OK
+2026/08/13-20:17:41.102 74dc Delete type=0 #7
+2026/08/13-20:17:41.103 74dc Level-0 table #13: started
+2026/08/13-20:17:41.110 74dc Level-0 table #13: 507 bytes OK
+2026/08/13-20:17:41.111 74dc Delete type=0 #10
+2026/08/13-20:17:41.111 74dc Manual compaction at level-0 from '\x00\x09\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at '\x00\x09\x00\x00\x05' @ 551 : 1
+2026/08/13-20:17:41.111 74dc Compacting 2@0 + 1@1 files
+2026/08/13-20:17:41.117 74dc Generated table #14@0: 92 keys, 1373 bytes
+2026/08/13-20:17:41.117 74dc Compacted 2@0 + 1@1 files => 1373 bytes
+2026/08/13-20:17:41.118 74dc compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/13-20:17:41.118 74dc Delete type=2 #11
+2026/08/13-20:17:41.118 74dc Delete type=2 #13
+2026/08/13-20:17:41.119 74dc Manual compaction at level-0 from '\x00\x0a\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0b\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/13-20:17:41.119 74dc Manual compaction at level-0 from '\x00\x09\x00\x00\x05' @ 551 : 1 .. '\x00\x0a\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/13-20:18:23.988 74dc Level-0 table #16: started
+2026/08/13-20:18:23.994 74dc Level-0 table #16: 37067 bytes OK
+2026/08/13-20:18:23.996 74dc Delete type=2 #8
+2026/08/13-20:18:23.996 74dc Delete type=0 #12
+2026/08/13-20:18:23.997 74dc Manual compaction at level-0 from '\x00\x0b\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0c\x00\x00\x00' @ 0 : 0; will stop at '\x00\x0b\x00\x00\x05' @ 781 : 1
+2026/08/13-20:18:23.997 74dc Compacting 1@0 + 1@1 files
+2026/08/13-20:18:24.012 74dc Generated table #17@0: 112 keys, 1669 bytes
+2026/08/13-20:18:24.012 74dc Compacted 1@0 + 1@1 files => 1669 bytes
+2026/08/13-20:18:24.013 74dc compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/08/13-20:18:24.013 74dc Delete type=2 #16
+2026/08/13-20:18:24.014 74dc Manual compaction at level-0 from '\x00\x0b\x00\x00\x05' @ 781 : 1 .. '\x00\x0c\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/08/13-20:18:24.042 1db8 Manual compaction at level-0 from '\x00\x0c\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at (end)

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>法律问答智能体 · 法智引擎</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">⚖️ 法智引擎</div>
+  <a href="00_index.html" class="nav-index">🏠 首页</a>
+  <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+  <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
+  <a href="03_retrieval.html" class="nav-retrieval">🔍 检索智能体</a>
+  <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
+  <a href="05_legal_qa.html" class="nav-qa active">💬 法律问答</a>
+  <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
+  <span class="spacer"></span>
+  <span class="stat">LangGraph · Neo4j · Milvus · MinerU · bge-m3</span>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="page-head">
+    <div class="crumb">AGENT 04 · 法律问答</div>
+    <h1>💬 法律问答智能体</h1>
+    <p class="desc">基于法律知识图谱的法律问答链路：用户提问 → 实体抽取 → Neo4j 匹配 → Cypher 生成/校验/执行 → 答案生成。Neo4j 失败时降级至 LLM 直答，保证可用性。</p>
+  </div>
+
+  <div class="flow">
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">❓</span>
+        <span class="idx">N01</span>
+        <h3>用户提问</h3>
+      </div>
+      <p>用户通过自然语言提出法律问题，例如「盗窃罪的最高刑期是多少？」「劳动合同试用期最长多久？」。</p>
+      <div class="meta">入口节点 · 自然语言 query</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-arch">
+      <div class="node-head">
+        <span class="ico">🧭</span>
+        <span class="idx">N02</span>
+        <h3>意图路由 (法律问答)</h3>
+      </div>
+      <p>LLM 识别用户意图为「法律问答」，路由进入法律问答智能体分支（legal_qa_intent）。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">🏷️</span>
+        <span class="idx">N03</span>
+        <h3>实体抽取 (extract_entity)</h3>
+      </div>
+      <p>从用户问题中抽取法律实体：罪名 / 法条 / 主体 / 行为 / 数额 / 期限等，结构化为图谱查询输入。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">🔗</span>
+        <span class="idx">N04</span>
+        <h3>Neo4j 匹配 (match_entity)</h3>
+      </div>
+      <p>将抽取的实体与 Neo4j 法律知识图谱节点进行匹配，定位相关法条、罪名、量刑情节等子图。</p>
+      <div class="meta">知识图谱匹配 · 失败则降级</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">📝</span>
+        <span class="idx">N05</span>
+        <h3>Cypher 生成 (generate_cypher)</h3>
+      </div>
+      <p>LLM 基于匹配到的实体与图谱 schema 生成 Cypher 查询语句，用于精确检索法律知识图谱。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">✅</span>
+        <span class="idx">N06</span>
+        <h3>Cypher 校验 (check_cypher)</h3>
+      </div>
+      <p>对生成的 Cypher 进行语法 + 安全性校验，防止注入风险与无效查询。校验失败则重新生成。</p>
+      <div class="meta">确定性门禁 · 安全校验</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">▶️</span>
+        <span class="idx">N07</span>
+        <h3>Cypher 执行 (run_cypher)</h3>
+      </div>
+      <p>在 Neo4j 中执行校验通过的 Cypher，返回法条、量刑、关系等结构化图谱数据。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <!-- 降级路径分支 -->
+    <div class="branch">
+      <strong>🛟 降级路径：</strong>Neo4j 匹配/执行失败 → 跳转 <strong>LLM 直答 (llm_direct_out)</strong> 节点 → LLM 结合 RAG 检索结果直接生成答案，保证用户始终得到回复。
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">💡</span>
+        <span class="idx">N08</span>
+        <h3>答案生成 (neo4j_answer_generate)</h3>
+      </div>
+      <p>LLM 基于图谱结构化数据 + 用户问题生成自然语言答案，附带法条引用、量刑区间、相关案例。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-qa">
+      <div class="node-head">
+        <span class="ico">📦</span>
+        <span class="idx">N09</span>
+        <h3>输出交付</h3>
+      </div>
+      <p>结构化输出：答案正文 + 引用法条 + 图谱路径 + 置信度。支持 source_tag 审计追溯。</p>
+    </div>
+
+  </div>
+
+  <div class="design-bar">
+    <div class="design-item"><strong>🔗 知识图谱</strong>Neo4j 法律知识图谱精确匹配</div>
+    <div class="design-item"><strong>📝 Cypher 链路</strong>生成 → 校验 → 执行 三步保障</div>
+    <div class="design-item"><strong>🛟 降级兜底</strong>Neo4j 失败 → LLM + RAG 直答</div>
+    <div class="design-item"><strong>📊 可追溯</strong>答案附法条引用 + 图谱路径 + 置信度</div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-nav">
+    <a href="00_index.html">🏠 首页</a>·
+    <a href="01_architecture.html">🏛️ 总架构</a>·
+    <a href="02_contract_review.html">📋 合同审核</a>·
+    <a href="03_retrieval.html">🔍 检索</a>·
+    <a href="04_compliance.html">🛡️ 合规</a>·
+    <a href="05_legal_qa.html">💬 法律问答</a>·
+    <a href="06_xiaohongshu.html">📱 小红书</a>
+  </div>
+  <p>法智引擎 · LangGraph 多智能体架构 v3.0 · 设计铁律：AI 辅助 · 人工兜底</p>
+  <p style="margin-top:6px;">基于《律师法》第 13/28 条 · RAG + Neo4j + Milvus + bge-m3 + MinerU</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,1191 @@
+File content truncated due to size limit (50KB). First 50KB included below:
+File content truncated due to size limit (50KB). First 50KB included below:
+
+   1→<!DOCTYPE html>
+   2→<html lang="zh-CN">
+   3→
+   4→<head>
+   5→  <meta charset="UTF-8">
+   6→  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   7→  <title>法智引擎 — LangGraph多智能体架构流程图（优化版）</title>
+   8→  <style>
+   9→    /* ===== Reset & Base ===== */
+  10→    * {
+  11→      margin: 0;
+  12→      padding: 0;
+  13→      box-sizing: border-box
+  14→    }
+  15→
+  16→    body {
+  17→      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  18→      background: #0d141e;
+  19→      color: #e0e8f0;
+  20→      min-height: 100vh;
+  21→      overflow-x: auto
+  22→    }
+  23→
+  24→    a {
+  25→      text-decoration: none;
+  26→      color: inherit
+  27→    }
+  28→
+  29→    /* ===== Top Nav ===== */
+  30→    .topnav {
+  31→      position: sticky;
+  32→      top: 0;
+  33→      z-index: 1000;
+  34→      background: rgba(13, 20, 30, 0.97);
+  35→      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  36→      backdrop-filter: blur(12px);
+  37→      padding: 0 32px;
+  38→      height: 52px;
+  39→      display: flex;
+  40→      align-items: center;
+  41→      gap: 8px
+  42→    }
+  43→
+  44→    .topnav .brand {
+  45→      font-size: 16px;
+  46→      font-weight: 800;
+  47→      background: linear-gradient(135deg, #60c5fa, #a78bfa);
+  48→      -webkit-background-clip: text;
+  49→      -webkit-text-fill-color: transparent;
+  50→      margin-right: 24px
+  51→    }
+  52→
+  53→    .topnav a {
+  54→      font-size: 13px;
+  55→      font-weight: 600;
+  56→      padding: 6px 14px;
+  57→      border-radius: 8px;
+  58→      transition: all .2s;
+  59→      cursor: pointer
+  60→    }
+  61→
+  62→    .topnav a:hover {
+  63→      background: rgba(255, 255, 255, 0.06)
+  64→    }
+  65→
+  66→    .topnav .spacer {
+  67→      flex: 1
+  68→    }
+  69→
+  70→    .topnav .stat {
+  71→      font-size: 11px;
+  72→      color: #5a6a7a
+  73→    }
+  74→
+  75→    /* ===== Section ===== */
+  76→    section {
+  77→      padding: 48px 32px;
+  78→      min-width: 1200px;
+  79→      border-bottom: 1px solid rgba(255, 255, 255, 0.04)
+  80→    }
+  81→
+  82→    .sec-head {
+  83→      display: flex;
+  84→      align-items: baseline;
+  85→      gap: 14px;
+  86→      margin-bottom: 6px
+  87→    }
+  88→
+  89→    .sec-head h2 {
+  90→      font-size: 24px;
+  91→      font-weight: 800
+  92→    }
+  93→
+  94→    .sec-head .sec-num {
+  95→      font-size: 12px;
+  96→      font-weight: 700;
+  97→      letter-spacing: 2px;
+  98→      padding: 3px 10px;
+  99→      border-radius: 4px
+ 100→    }
+ 101→
+ 102→    .sec-desc {
+ 103→      font-size: 13px;
+ 104→      color: #7a8a9a;
+ 105→      margin-bottom: 20px;
+ 106→      line-height: 1.7
+ 107→    }
+ 108→
+ 109→    .phase {
+ 110→      font-size: 10px;
+ 111→      font-weight: 700;
+ 112→      letter-spacing: 2px;
+ 113→      text-transform: uppercase;
+ 114→      padding: 3px 10px;
+ 115→      border-radius: 4px;
+ 116→      display: inline-block;
+ 117→      margin-bottom: 8px
+ 118→    }
+ 119→
+ 120→    .ph-blue {
+ 121→      background: rgba(96, 197, 250, 0.15);
+ 122→      color: #60c5fa
+ 123→    }
+ 124→
+ 125→    .ph-orange {
+ 126→      background: rgba(251, 146, 60, 0.15);
+ 127→      color: #fb923c
+ 128→    }
+ 129→
+ 130→    .ph-yellow {
+ 131→      background: rgba(251, 191, 36, 0.15);
+ 132→      color: #fcd34d
+ 133→    }
+ 134→
+ 135→    .ph-green {
+ 136→      background: rgba(52, 211, 153, 0.15);
+ 137→      color: #34d399
+ 138→    }
+ 139→
+ 140→    .ph-purple {
+ 141→      background: rgba(167, 139, 250, 0.15);
+ 142→      color: #a78bfa
+ 143→    }
+ 144→
+ 145→    .ph-red {
+ 146→      background: rgba(239, 68, 68, 0.15);
+ 147→      color: #ef4444
+ 148→    }
+ 149→
+ 150→    .ph-pink {
+ 151→      background: rgba(236, 72, 153, 0.15);
+ 152→      color: #ec4899
+ 153→    }
+ 154→
+ 155→    .ph-cyan {
+ 156→      background: rgba(34, 211, 238, 0.15);
+ 157→      color: #22d3ee
+ 158→    }
+ 159→
+ 160→    /* ===== SVG Flowchart ===== */
+ 161→    .svg-wrap {
+ 162→      overflow: auto;
+ 163→      border: 1px solid rgba(255, 255, 255, 0.08);
+ 164→      border-radius: 12px;
+ 165→      background: rgba(255, 255, 255, 0.01);
+ 166→      padding: 20px
+ 167→    }
+ 168→
+ 169→    .svg-wrap svg {
+ 170→      display: block;
+ 171→      margin: 0 auto;
+ 172→      min-width: 100%
+ 173→    }
+ 174→
+ 175→    .node-group {
+ 176→      cursor: pointer;
+ 177→      transition: filter .2s
+ 178→    }
+ 179→
+ 180→    .node-group:hover {
+ 181→      filter: brightness(1.3)
+ 182→    }
+ 183→
+ 184→    .node-rect {
+ 185→      stroke-width: 1.5;
+ 186→      transition: stroke-width .2s
+ 187→    }
+ 188→
+ 189→    .node-group:hover .node-rect {
+ 190→      stroke-width: 2.5
+ 191→    }
+ 192→
+ 193→    .node-label {
+ 194→      font-size: 13px;
+ 195→      font-weight: 600;
+ 196→      text-anchor: middle;
+ 197→      dominant-baseline: central;
+ 198→      pointer-events: none;
+ 199→      user-select: none
+ 200→    }
+ 201→
+ 202→    .node-sub {
+ 203→      font-size: 10px;
+ 204→      font-weight: 400;
+ 205→      fill: #8a9aab;
+ 206→      pointer-events: none
+ 207→    }
+ 208→
+ 209→    .click-hint {
+ 210→      fill: #fbbf24;
+ 211→      opacity: 0.7;
+ 212→      animation: pulse 2s infinite
+ 213→    }
+ 214→
+ 215→    @keyframes pulse {
+ 216→
+ 217→      0%,
+ 218→      100% {
+ 219→        opacity: 0.4;
+ 220→        r: 4
+ 221→      }
+ 222→
+ 223→      50% {
+ 224→        opacity: 0.8;
+ 225→        r: 6
+ 226→      }
+ 227→    }
+ 228→
+ 229→    .edge {
+ 230→      fill: none;
+ 231→      stroke-width: 1.5
+ 232→    }
+ 233→
+ 234→    .edge-normal {
+ 235→      stroke: #4a6a8a
+ 236→    }
+ 237→
+ 238→    .edge-branch {
+ 239→      stroke: #7a8a9a;
+ 240→      stroke-dasharray: 5, 3
+ 241→    }
+ 242→
+ 243→    .edge-loop {
+ 244→      stroke: #fb923c;
+ 245→      stroke-width: 2;
+ 246→      stroke-dasharray: 6, 3
+ 247→    }
+ 248→
+ 249→    .edge-success {
+ 250→      stroke: #34d399
+ 251→    }
+ 252→
+ 253→    .edge-danger {
+ 254→      stroke: #ef4444;
+ 255→      stroke-dasharray: 5, 3
+ 256→    }
+ 257→
+ 258→    .edge-label {
+ 259→      font-size: 10px;
+ 260→      fill: #8a9aab;
+ 261→      text-anchor: middle;
+ 262→      pointer-events: none
+ 263→    }
+ 264→
+ 265→    .edge-label-loop {
+ 266→      fill: #fb923c;
+ 267→      font-weight: 600
+ 268→    }
+ 269→
+ 270→    .edge-label-danger {
+ 271→      fill: #fca5a5;
+ 272→      font-weight: 600
+ 273→    }
+ 274→
+ 275→    .edge-label-success {
+ 276→      fill: #6ee7b7;
+ 277→      font-weight: 600
+ 278→    }
+ 279→
+ 280→    /* Node type colors */
+ 281→    .node-start .node-rect {
+ 282→      fill: rgba(52, 211, 153, 0.12);
+ 283→      stroke: #34d399
+ 284→    }
+ 285→
+ 286→    .node-start .node-label {
+ 287→      fill: #6ee7b7
+ 288→    }
+ 289→
+ 290→    .node-process .node-rect {
+ 291→      fill: rgba(96, 197, 250, 0.08);
+ 292→      stroke: rgba(96, 197, 250, 0.4)
+ 293→    }
+ 294→
+ 295→    .node-process .node-label {
+ 296→      fill: #c0d8ef
+ 297→    }
+ 298→
+ 299→    .node-decision .node-rect {
+ 300→      fill: rgba(251, 191, 36, 0.08);
+ 301→      stroke: rgba(251, 191, 36, 0.4)
+ 302→    }
+ 303→
+ 304→    .node-decision .node-label {
+ 305→      fill: #fcd34d
+ 306→    }
+ 307→
+ 308→    .node-danger .node-rect {
+ 309→      fill: rgba(239, 68, 68, 0.08);
+ 310→      stroke: rgba(239, 68, 68, 0.4)
+ 311→    }
+ 312→
+ 313→    .node-danger .node-label {
+ 314→      fill: #fca5a5
+ 315→    }
+ 316→
+ 317→    .node-success .node-rect {
+ 318→      fill: rgba(52, 211, 153, 0.08);
+ 319→      stroke: rgba(52, 211, 153, 0.4)
+ 320→    }
+ 321→
+ 322→    .node-success .node-label {
+ 323→      fill: #6ee7b7
+ 324→    }
+ 325→
+ 326→    .node-end .node-rect {
+ 327→      fill: rgba(167, 139, 250, 0.1);
+ 328→      stroke: #a78bfa
+ 329→    }
+ 330→
+ 331→    .node-end .node-label {
+ 332→      fill: #d4b5ff
+ 333→    }
+ 334→
+ 335→    .node-detail .node-rect {
+ 336→      fill: rgba(255, 255, 255, 0.03);
+ 337→      stroke: rgba(255, 255, 255, 0.12);
+ 338→      stroke-dasharray: 3, 2
+ 339→    }
+ 340→
+ 341→    .node-detail .node-label {
+ 342→      fill: #8a9aab
+ 343→    }
+ 344→
+ 345→    .node-orange .node-rect {
+ 346→      fill: rgba(251, 146, 60, 0.08);
+ 347→      stroke: rgba(251, 146, 60, 0.4)
+ 348→    }
+ 349→
+ 350→    .node-orange .node-label {
+ 351→      fill: #fdba74
+ 352→    }
+ 353→
+ 354→    .node-purple .node-rect {
+ 355→      fill: rgba(167, 139, 250, 0.08);
+ 356→      stroke: rgba(167, 139, 250, 0.4)
+ 357→    }
+ 358→
+ 359→    .node-purple .node-label {
+ 360→      fill: #c4b5fd
+ 361→    }
+ 362→
+ 363→    .node-green .node-rect {
+ 364→      fill: rgba(52, 211, 153, 0.08);
+ 365→      stroke: rgba(52, 211, 153, 0.4)
+ 366→    }
+ 367→
+ 368→    .node-green .node-label {
+ 369→      fill: #6ee7b7
+ 370→    }
+ 371→
+ 372→    .node-blue .node-rect {
+ 373→      fill: rgba(96, 197, 250, 0.08);
+ 374→      stroke: rgba(96, 197, 250, 0.4)
+ 375→    }
+ 376→
+ 377→    .node-blue .node-label {
+ 378→      fill: #93c5fd
+ 379→    }
+ 380→
+ 381→    .node-pink .node-rect {
+ 382→      fill: rgba(236, 72, 153, 0.08);
+ 383→      stroke: rgba(236, 72, 153, 0.4)
+ 384→    }
+ 385→
+ 386→    .node-pink .node-label {
+ 387→      fill: #f9a8d4
+ 388→    }
+ 389→
+ 390→    .node-cyan .node-rect {
+ 391→      fill: rgba(34, 211, 238, 0.08);
+ 392→      stroke: rgba(34, 211, 238, 0.4)
+ 393→    }
+ 394→
+ 395→    .node-cyan .node-label {
+ 396→      fill: #67e8f9
+ 397→    }
+ 398→
+ 399→    /* ===== Modal ===== */
+ 400→    .modal-overlay {
+ 401→      display: none;
+ 402→      position: fixed;
+ 403→      top: 0;
+ 404→      left: 0;
+ 405→      width: 100%;
+ 406→      height: 100%;
+ 407→      background: rgba(0, 0, 0, 0.7);
+ 408→      z-index: 9999;
+ 409→      justify-content: center;
+ 410→      align-items: flex-start;
+ 411→      padding: 40px 20px;
+ 412→      overflow-y: auto
+ 413→    }
+ 414→
+ 415→    .modal-overlay.active {
+ 416→      display: flex;
+ 417→      animation: fadeIn .2s
+ 418→    }
+ 419→
+ 420→    @keyframes fadeIn {
+ 421→      from {
+ 422→        opacity: 0
+ 423→      }
+ 424→
+ 425→      to {
+ 426→        opacity: 1
+ 427→      }
+ 428→    }
+ 429→
+ 430→    .modal-content {
+ 431→      background: #1a2330;
+ 432→      border: 1px solid rgba(255, 255, 255, 0.1);
+ 433→      border-radius: 16px;
+ 434→      max-width: 800px;
+ 435→      width: 100%;
+ 436→      margin-bottom: 40px;
+ 437→      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+ 438→      animation: slideUp .3s
+ 439→    }
+ 440→
+ 441→    @keyframes slideUp {
+ 442→      from {
+ 443→        transform: translateY(30px);
+ 444→        opacity: 0
+ 445→      }
+ 446→
+ 447→      to {
+ 448→        transform: translateY(0);
+ 449→        opacity: 1
+ 450→      }
+ 451→    }
+ 452→
+ 453→    .modal-header {
+ 454→      display: flex;
+ 455→      align-items: center;
+ 456→      gap: 12px;
+ 457→      padding: 20px 24px;
+ 458→      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+ 459→      position: sticky;
+ 460→      top: 0;
+ 461→      background: #1a2330;
+ 462→      border-radius: 16px 16px 0 0;
+ 463→      z-index: 10
+ 464→    }
+ 465→
+ 466→    .modal-header .m-icon {
+ 467→      font-size: 24px
+ 468→    }
+ 469→
+ 470→    .modal-header h2 {
+ 471→      font-size: 18px;
+ 472→      font-weight: 700;
+ 473→      flex: 1
+ 474→    }
+ 475→
+ 476→    .modal-header .m-type {
+ 477→      font-size: 10px;
+ 478→      font-weight: 700;
+ 479→      letter-spacing: 1px;
+ 480→      padding: 3px 10px;
+ 481→      border-radius: 4px
+ 482→    }
+ 483→
+ 484→    .modal-close {
+ 485→      width: 32px;
+ 486→      height: 32px;
+ 487→      border-radius: 8px;
+ 488→      background: rgba(255, 255, 255, 0.06);
+ 489→      border: none;
+ 490→      color: #8a9aab;
+ 491→      font-size: 18px;
+ 492→      cursor: pointer;
+ 493→      transition: all .2s;
+ 494→      display: flex;
+ 495→      align-items: center;
+ 496→      justify-content: center
+ 497→    }
+ 498→
+ 499→    .modal-close:hover {
+ 500→      background: rgba(239, 68, 68, 0.2);
+ 501→      color: #fca5a5
+ 502→    }
+ 503→
+ 504→    .modal-body {
+ 505→      padding: 20px 24px;
+ 506→      max-height: calc(100vh - 200px);
+ 507→      overflow-y: auto
+ 508→    }
+ 509→
+ 510→    .modal-body::-webkit-scrollbar {
+ 511→      width: 6px
+ 512→    }
+ 513→
+ 514→    .modal-body::-webkit-scrollbar-track {
+ 515→      background: transparent
+ 516→    }
+ 517→
+ 518→    .modal-body::-webkit-scrollbar-thumb {
+ 519→      background: rgba(255, 255, 255, 0.1);
+ 520→      border-radius: 3px
+ 521→    }
+ 522→
+ 523→    .popup-section {
+ 524→      margin-bottom: 20px
+ 525→    }
+ 526→
+ 527→    .popup-section h3 {
+ 528→      font-size: 14px;
+ 529→      font-weight: 700;
+ 530→      margin-bottom: 8px;
+ 531→      padding-left: 10px;
+ 532→      border-left: 3px solid #60c5fa;
+ 533→      color: #93c5fd
+ 534→    }
+ 535→
+ 536→    .popup-section h3.think {
+ 537→      border-color: #fbbf24;
+ 538→      color: #fcd34d
+ 539→    }
+ 540→
+ 541→    .popup-section h3.sol {
+ 542→      border-color: #a78bfa;
+ 543→      color: #c4b5fd
+ 544→    }
+ 545→
+ 546→    .popup-section h3.tech {
+ 547→      border-color: #34d399;
+ 548→      color: #6ee7b7
+ 549→    }
+ 550→
+ 551→    .popup-section h3.opt {
+ 552→      border-color: #fb923c;
+ 553→      color: #fdba74
+ 554→    }
+ 555→
+ 556→    .popup-section h3.iv {
+ 557→      border-color: #ec4899;
+ 558→      color: #f9a8d4
+ 559→    }
+ 560→
+ 561→    .popup-section p {
+ 562→      font-size: 13px;
+ 563→      line-height: 1.8;
+ 564→      color: #b0c0d0
+ 565→    }
+ 566→
+ 567→    .popup-section ol {
+ 568→      padding-left: 20px
+ 569→    }
+ 570→
+ 571→    .popup-section ol li {
+ 572→      font-size: 13px;
+ 573→      line-height: 1.8;
+ 574→      color: #b0c0d0;
+ 575→      margin-bottom: 4px
+ 576→    }
+ 577→
+ 578→    .qa-block {
+ 579→      background: rgba(255, 255, 255, 0.03);
+ 580→      border-radius: 8px;
+ 581→      padding: 12px 16px;
+ 582→      margin-bottom: 10px;
+ 583→      border-left: 3px solid rgba(255, 255, 255, 0.1)
+ 584→    }
+ 585→
+ 586→    .qa-block .qa-q {
+ 587→      font-size: 13px;
+ 588→      font-weight: 600;
+ 589→      color: #fcd34d;
+ 590→      margin-bottom: 6px
+ 591→    }
+ 592→
+ 593→    .qa-block .qa-a {
+ 594→      font-size: 13px;
+ 595→      line-height: 1.8;
+ 596→      color: #b0c0d0
+ 597→    }
+ 598→
+ 599→    .qa-block.interview {
+ 600→      border-left-color: #ec4899
+ 601→    }
+ 602→
+ 603→    .qa-block.interview .qa-q {
+ 604→      color: #f9a8d4
+ 605→    }
+ 606→
+ 607→    .cmp-table {
+ 608→      width: 100%;
+ 609→      border-collapse: collapse;
+ 610→      font-size: 12px
+ 611→    }
+ 612→
+ 613→    .cmp-table th {
+ 614→      background: rgba(96, 197, 250, 0.1);
+ 615→      padding: 8px 10px;
+ 616→      text-align: left;
+ 617→      color: #93c5fd;
+ 618→      font-weight: 600;
+ 619→      border-radius: 4px
+ 620→    }
+ 621→
+ 622→    .cmp-table td {
+ 623→      padding: 8px 10px;
+ 624→      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+ 625→      color: #b0c0d0;
+ 626→      vertical-align: top
+ 627→    }
+ 628→
+ 629→    .cmp-table tr:hover td {
+ 630→      background: rgba(255, 255, 255, 0.02)
+ 631→    }
+ 632→
+ 633→    .tag {
+ 634→      display: inline-block;
+ 635→      padding: 2px 8px;
+ 636→      border-radius: 10px;
+ 637→      font-size: 10px;
+ 638→      font-weight: 600;
+ 639→      margin-right: 4px
+ 640→    }
+ 641→
+ 642→    .tag-rec {
+ 643→      background: rgba(52, 211, 153, 0.15);
+ 644→      color: #6ee7b7
+ 645→    }
+ 646→
+ 647→    .tag-alt {
+ 648→      background: rgba(96, 197, 250, 0.15);
+ 649→      color: #93c5fd
+ 650→    }
+ 651→
+ 652→    .loop-badge {
+ 653→      display: inline-block;
+ 654→      background: rgba(251, 146, 60, 0.15);
+ 655→      color: #fdba74;
+ 656→      padding: 3px 10px;
+ 657→      border-radius: 6px;
+ 658→      font-size: 11px;
+ 659→      font-weight: 600;
+ 660→      margin: 4px 0
+ 661→    }
+ 662→
+ 663→    /* ===== Cover ===== */
+ 664→    .cover {
+ 665→      text-align: center;
+ 666→      padding: 80px 40px;
+ 667→      min-height: 80vh;
+ 668→      display: flex;
+ 669→      flex-direction: column;
+ 670→      align-items: center;
+ 671→      justify-content: center
+ 672→    }
+ 673→
+ 674→    .cover h1 {
+ 675→      font-size: 48px;
+ 676→      font-weight: 900;
+ 677→      margin-bottom: 12px;
+ 678→      background: linear-gradient(135deg, #60c5fa, #a78bfa, #f0abfc);
+ 679→      -webkit-background-clip: text;
+ 680→      -webkit-text-fill-color: transparent
+ 681→    }
+ 682→
+ 683→    .cover .subtitle {
+ 684→      font-size: 18px;
+ 685→      color: #7a8a9a;
+ 686→      margin-bottom: 40px
+ 687→    }
+ 688→
+ 689→    .cover-grid {
+ 690→      display: grid;
+ 691→      grid-template-columns: 1fr 1fr;
+ 692→      gap: 20px;
+ 693→      text-align: left;
+ 694→      max-width: 800px;
+ 695→      width: 100%
+ 696→    }
+ 697→
+ 698→    .cover-card {
+ 699→      background: rgba(255, 255, 255, 0.03);
+ 700→      border: 1px solid rgba(255, 255, 255, 0.1);
+ 701→      border-radius: 14px;
+ 702→      padding: 24px 20px;
+ 703→      cursor: pointer;
+ 704→      transition: all .2s
+ 705→    }
+ 706→
+ 707→    .cover-card:hover {
+ 708→      background: rgba(255, 255, 255, 0.06);
+ 709→      transform: translateY(-2px)
+ 710→    }
+ 711→
+ 712→    .cover-card .cc-tag {
+ 713→      font-size: 11px;
+ 714→      font-weight: 700;
+ 715→      letter-spacing: 2px;
+ 716→      margin-bottom: 6px
+ 717→    }
+ 718→
+ 719→    .cover-card .cc-title {
+ 720→      font-size: 18px;
+ 721→      font-weight: 700;
+ 722→      margin-bottom: 8px
+ 723→    }
+ 724→
+ 725→    .cover-card .cc-desc {
+ 726→      font-size: 13px;
+ 727→      color: #8a9aab;
+ 728→      line-height: 1.7
+ 729→    }
+ 730→
+ 731→    /* ===== Legend ===== */
+ 732→    .legend {
+ 733→      display: flex;
+ 734→      flex-wrap: wrap;
+ 735→      gap: 12px;
+ 736→      margin: 16px 0;
+ 737→      padding: 12px 16px;
+ 738→      background: rgba(255, 255, 255, 0.02);
+ 739→      border-radius: 10px;
+ 740→      border: 1px solid rgba(255, 255, 255, 0.06)
+ 741→    }
+ 742→
+ 743→    .legend-item {
+ 744→      display: flex;
+ 745→      align-items: center;
+ 746→      gap: 6px;
+ 747→      font-size: 11px;
+ 748→      color: #8a9aab
+ 749→    }
+ 750→
+ 751→    .legend-swatch {
+ 752→      width: 16px;
+ 753→      height: 12px;
+ 754→      border-radius: 3px;
+ 755→      border: 1.5px solid
+ 756→    }
+ 757→
+ 758→    /* ===== Footer ===== */
+ 759→    footer {
+ 760→      padding: 32px;
+ 761→      text-align: center;
+ 762→      font-size: 12px;
+ 763→      color: #4a5a6a;
+ 764→      line-height: 1.8
+ 765→    }
+ 766→
+ 767→    footer a {
+ 768→      color: #60c5fa;
+ 769→      cursor: pointer
+ 770→    }
+ 771→
+ 772→    /* ===== Optimization Section ===== */
+ 773→    .opt-card {
+ 774→      background: rgba(255, 255, 255, 0.02);
+ 775→      border: 1px solid rgba(255, 255, 255, 0.08);
+ 776→      border-radius: 12px;
+ 777→      padding: 20px;
+ 778→      margin-bottom: 16px
+ 779→    }
+ 780→
+ 781→    .opt-card h3 {
+ 782→      font-size: 15px;
+ 783→      font-weight: 700;
+ 784→      margin-bottom: 10px;
+ 785→      color: #fdba74
+ 786→    }
+ 787→
+ 788→    .opt-card .opt-issue {
+ 789→      font-size: 13px;
+ 790→      color: #fca5a5;
+ 791→      margin-bottom: 8px;
+ 792→      line-height: 1.7
+ 793→    }
+ 794→
+ 795→    .opt-card .opt-solution {
+ 796→      font-size: 13px;
+ 797→      color: #6ee7b7;
+ 798→      line-height: 1.7
+ 799→    }
+ 800→
+ 801→    .opt-card .opt-detail {
+ 802→      font-size: 12px;
+ 803→      color: #b0c0d0;
+ 804→      line-height: 1.8;
+ 805→      margin-top: 8px
+ 806→    }
+ 807→
+ 808→    /* ===== Hint bar ===== */
+ 809→    .hint-bar {
+ 810→      background: rgba(251, 191, 36, 0.08);
+ 811→      border: 1px solid rgba(251, 191, 36, 0.2);
+ 812→      border-radius: 10px;
+ 813→      padding: 10px 16px;
+ 814→      margin-bottom: 16px;
+ 815→      font-size: 12px;
+ 816→      color: #fcd34d;
+ 817→      display: flex;
+ 818→      align-items: center;
+ 819→      gap: 8px
+ 820→    }
+ 821→  </style>
+ 822→</head>
+ 823→
+ 824→<body>
+ 825→
+ 826→  <!-- ═══ TOP NAV ═══ -->
+ 827→  <nav class="topnav">
+ 828→    <div class="brand">⚖️ 法智引擎</div>
+ 829→    <a href="#sec-index" class="nav-index" style="color:#60c5fa">🏠 首页</a>
+ 830→    <a href="#sec-qa" style="color:#22d3ee">💬 法律问答</a>
+ 831→    <a href="#sec-retrieval" style="color:#6ee7b7">🔍 法律检索</a>
+ 832→    <a href="#sec-xiaohongshu" style="color:#f472b6">📱 小红书发布</a>
+ 833→    <a href="#sec-contract" style="color:#fdba74">📋 合同审核</a>
+ 834→    <a href="#sec-compliance" style="color:#c4b5fd">🛡️ 合规审查</a>
+ 835→    <a href="#sec-arch" style="color:#93c5fd">🏛️ 总架构</a>
+ 836→    <a href="#sec-optimization" style="color:#f9a8d4">⚡ 优化分析</a>
+ 837→    <span class="spacer"></span>
+ 838→    <span class="stat">LangGraph Multi-Agent · 增强版 v3.0（含资信查询+检索双层策略）</span>
+ 839→  </nav>
+ 840→
+ 841→  <!-- ═══ SECTION 0: COVER ═══ -->
+ 842→  <section id="sec-index" class="cover">
+ 843→    <div>
+ 844→      <h1>⚖️ 法智引擎</h1>
+ 845→      <p class="subtitle">LangGraph 多智能体架构 · 增强流程图（含资信查询·检索双层策略·循环·可交互·面试导向）</p>
+ 846→      <div class="cover-grid">
+ 847→        <a href="#sec-qa" class="cover-card">
+ 848→          <div class="cc-tag" style="color:#22d3ee">AGENT 01</div>
+ 849→          <div class="cc-title" style="color:#67e8f9">💬 法律问答智能体</div>
+ 850→          <div class="cc-desc">Text-to-Cypher链路 · Neo4j图谱推理 · 实体抽取与匹配 · 多级降级容错 · Cypher校验重试环</div>
+ 851→        </a>
+ 852→        <a href="#sec-retrieval" class="cover-card">
+ 853→          <div class="cc-tag" style="color:#34d399">AGENT 02</div>
+ 854→          <div class="cc-title" style="color:#6ee7b7">🔍 法律检索智能体</div>
+ 855→          <div class="cc-desc">独立检索节点 · 复用风险聚合/甲乙方识别/最终交付 · 与合同审核·合规审查共享后处理链路</div>
+ 856→        </a>
+ 857→        <a href="#sec-xiaohongshu" class="cover-card">
+ 858→          <div class="cc-tag" style="color:#f472b6">AGENT 03</div>
+ 859→          <div class="cc-title" style="color:#f9a8d4">📱 小红书发布智能体</div>
+ 860→          <div class="cc-desc">文案生成 · AI配图 · 质量检查 · Playwright自动发布 · Markdown报告 · 入口前置意图识别</div>
+ 861→        </a>
+ 862→        <a href="#sec-contract" class="cover-card">
+ 863→          <div class="cc-tag" style="color:#fb923c">AGENT 04</div>
+ 864→          <div class="cc-title" style="color:#fdba74">📋 合同审核智能体</div>
+ 865→          <div class="cc-desc">三审刚性串联（条款→合规→数值）· 复用检索+聚合+交付链路 · 合规审查为必经节点</div>
+ 866→        </a>
+ 867→        <a href="#sec-compliance" class="cover-card">
+ 868→          <div class="cc-tag" style="color:#a78bfa">AGENT 05</div>
+ 869→          <div class="cc-title" style="color:#c4b5fd">🛡️ 合规审查智能体</div>
+ 870→          <div class="cc-desc">复用合同审核链路大部分节点 · 合规结论刚性不降级 · 与合同审核共享后处理</div>
+ 871→        </a>
+ 872→        <a href="#sec-arch" class="cover-card">
+ 873→          <div class="cc-tag" style="color:#60c5fa">OVERVIEW</div>
+ 874→          <div class="cc-title" style="color:#93c5fd">🏛️ 架构总流程图</div>
+ 875→          <div class="cc-desc">完整节点串联 · 入口前置过滤 · 意图路由分发 · 节点复用关系总览 · 点击节点查看深度解析</div>
+ 876→        </a>
+ 877→      </div>
+ 878→      <div style="margin-top:40px;font-size:13px;color:#5a6a7a;line-height:2">
+ 879→        <div>💡 <strong style="color:#fcd34d">交互说明：</strong>点击流程图中任意节点 → 弹出深度解析面板（功能·思考·方案对比·技术选型·优化建议·面试Q&A）</div>
+ 880→        <div>🔄 <strong style="color:#fb923c">循环标识：</strong>橙色虚线箭头 = 重试/回溯循环 · 红色虚线 = 异常路径 · 绿色 = 成功路径</div>
+ 881→      </div>
+ 882→    </div>
+ 883→  </section>
+ 884→
+ 885→  <!-- ═══ SECTION 1: LEGAL QA ═══ -->
+ 886→  <section id="sec-qa">
+ 887→    <div class="sec-head">
+ 888→      <span class="sec-num ph-cyan">AGENT 01</span>
+ 889→      <h2 style="color:#67e8f9">💬 法律问答智能体流程图（含循环）</h2>
+ 890→    </div>
+ 891→    <p class="sec-desc"><strong>Text-to-Cypher 知识图谱RAG链路</strong> · 实体抽取 → Neo4j匹配 → Cypher生成/校验/执行 → 答案生成<br>⚠️
+ 892→      核心循环：Cypher语法校验失败→重试生成（最多3次）· 匹配/执行失败→LLM直答降级<br>📌 <strong>复用关系：</strong>独立链路，不复用其他智能体节点；由 intent_router 路由进入</p>
+ 893→    <div class="hint-bar">💡 点击任意节点查看深度解析</div>
+ 894→    <div class="svg-wrap"><svg id="svg-qa"></svg></div>
+ 895→  </section>
+ 896→
+ 897→  <!-- ═══ SECTION 2: LEGAL RETRIEVAL ═══ -->
+ 898→  <section id="sec-retrieval">
+ 899→    <div class="sec-head">
+ 900→      <span class="sec-num ph-green">AGENT 02</span>
+ 901→      <h2 style="color:#6ee7b7">🔍 法律检索智能体流程图（含循环）</h2>
+ 902→    </div>
+ 903→    <p class="sec-desc"><strong>独立检索节点 + 复用后处理链路</strong> · legal_research → risk_aggregate → party_identify →
+ 904→      final_delivery<br>⚠️
+ 905→      由 intent_router 直接路由到 legal_research 节点，检索完成后复用合同审核/合规审查的后处理链路<br>📌 <strong>复用关系：</strong>复用
+ 906→      risk_aggregate（风险聚合）、party_identify（甲乙方识别）、final_delivery（最终交付）3个节点</p>
+ 907→    <div class="hint-bar">💡 点击任意节点查看深度解析 · 🔄 标记为复用的节点以虚线边框区分</div>
+ 908→    <div class="svg-wrap"><svg id="svg-retrieval"></svg></div>
+ 909→  </section>
+ 910→
+ 911→  <!-- ═══ SECTION 3: XIAOHONGSHU ═══ -->
+ 912→  <section id="sec-xiaohongshu">
+ 913→    <div class="sec-head">
+ 914→      <span class="sec-num ph-pink">AGENT 03</span>
+ 915→      <h2 style="color:#f9a8d4">📱 小红书发布智能体流程图（含循环）</h2>
+ 916→    </div>
+ 917→    <p class="sec-desc"><strong>入口前置意图识别 + 独立发布链路</strong> · START → xhs意图识别 → 文案生成 → 图片生成 → 质量检查 → 自动发布 →
+ 918→      Markdown报告<br>⚠️
+ 919→      核心循环：质量检查不通过→重新生成 · 图片生成失败→无图降级发布<br>📌 <strong>复用关系：</strong>独立链路，入口在 intent_router 之前（前置过滤），不复用其他智能体节点</p>
+ 920→    <div class="hint-bar">💡 点击任意节点查看深度解析</div>
+ 921→    <div class="svg-wrap"><svg id="svg-xiaohongshu"></svg></div>
+ 922→  </section>
+ 923→
+ 924→  <!-- ═══ SECTION 4: CONTRACT REVIEW ═══ -->
+ 925→  <section id="sec-contract">
+ 926→    <div class="sec-head">
+ 927→      <span class="sec-num ph-orange">AGENT 04</span>
+ 928→      <h2 style="color:#fdba74">📋 合同审核智能体流程图（含循环）</h2>
+ 929→    </div>
+ 930→    <p class="sec-desc"><strong>三审刚性串联（条款合理性→合规审查→数值校验）</strong> · 文档提取 → 合同分类 → 条款切分 → 数值抽取 → 合同审核AI → 合规审查 → 数值校验 → 检索
+ 931→      → 风险聚合 → 甲乙方识别 → 最终交付<br>⚠️
+ 932→      🛡️合规审查为合同审核<strong>必经节点</strong><br>📌 <strong>复用关系：</strong>后段复用
+ 933→      legal_research（检索）、risk_aggregate（风险聚合）、party_identify（甲乙方识别）、final_delivery（最终交付）4个节点</p>
+ 934→    <div class="hint-bar">💡 点击任意节点查看深度解析 · 🔄 标记为复用的节点以虚线边框区分</div>
+ 935→    <div class="svg-wrap"><svg id="svg-contract"></svg></div>
+ 936→  </section>
+ 937→
+ 938→  <!-- ═══ SECTION 5: COMPLIANCE ═══ -->
+ 939→  <section id="sec-compliance">
+ 940→    <div class="sec-head">
+ 941→      <span class="sec-num ph-purple">AGENT 05</span>
+ 942→      <h2 style="color:#c4b5fd">🛡️ 合规审查智能体流程图（含循环）</h2>
+ 943→    </div>
+ 944→    <p class="sec-desc"><strong>复用合同审核链路大部分节点</strong> · 文档提取 → 合同分类(跳过) → 条款切分 → 数值抽取 → 合同审核AI → 合规审查 → 数值校验 → 检索 →
+ 945→      风险聚合 → 甲乙方识别 → 最终交付<br>⚠️
+ 946→      合规结论刚性不降级<br>📌 <strong>复用关系：</strong>与合同审核共享
+ 947→      doc_extract、clause_split、numeric_extract、contract_ai_review、compliance_review、numeric_validate、legal_research、risk_aggregate、party_identify、final_delivery
+ 948→      共10个节点</p>
+ 949→    <div class="hint-bar">💡 点击任意节点查看深度解析 · 🔄 标记为复用的节点以虚线边框区分</div>
+ 950→    <div class="svg-wrap"><svg id="svg-compliance"></svg></div>
+ 951→  </section>
+ 952→
+ 953→  <!-- ═══ SECTION 6: OVERVIEW ═══ -->
+ 954→  <section id="sec-arch">
+ 955→    <div class="sec-head">
+ 956→      <span class="sec-num ph-blue">OVERVIEW</span>
+ 957→      <h2 style="color:#93c5fd">🏛️ 架构总流程图（含循环）</h2>
+ 958→    </div>
+ 959→    <p class="sec-desc">START → 小红书意图前置识别 → 意图路由(intent_router) → 6路分支分发 → 各智能体链路执行 → END<br>⚠️
+ 960→      本图展示完整的节点串联与复用关系，包含3条循环路径<br>📌 <strong>节点复用总览：</strong>doc_extract(合同+合规) · legal_research(合同+合规+检索) ·
+ 961→      risk_aggregate(合同+合规+检索) · final_delivery(合同+合规+检索)</p>
+ 962→    <div class="hint-bar">💡 点击任意节点查看深度解析（功能说明·思考疑问·方案对比·技术选型·优化建议·面试视角）</div>
+ 963→    <div class="legend">
+ 964→      <div class="legend-item">
+ 965→        <div class="legend-swatch" style="background:rgba(52,211,153,0.12);border-color:#34d399"></div>起始节点
+ 966→      </div>
+ 967→      <div class="legend-item">
+ 968→        <div class="legend-swatch" style="background:rgba(96,197,250,0.08);border-color:rgba(96,197,250,0.4)"></div>处理节点
+ 969→      </div>
+ 970→      <div class="legend-item">
+ 971→        <div class="legend-swatch" style="background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.4)"></div>判断节点
+ 972→      </div>
+ 973→      <div class="legend-item">
+ 974→        <div class="legend-swatch" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.4)"></div>风险/异常
+ 975→      </div>
+ 976→      <div class="legend-item">
+ 977→        <div class="legend-swatch" style="background:rgba(167,139,250,0.1);border-color:#a78bfa"></div>结束节点
+ 978→      </div>
+ 979→      <div class="legend-item"><span style="color:#fb923c">━━━</span> 循环/重试</div>
+ 980→      <div class="legend-item"><span style="color:#34d399">━━━</span> 成功路径</div>
+ 981→      <div class="legend-item"><span style="color:#ef4444">- - -</span> 异常路径</div>
+ 982→    </div>
+ 983→    <div class="svg-wrap"><svg id="svg-overview"></svg></div>
+ 984→  </section>
+ 985→
+ 986→  <!-- ═══ SECTION 5: OPTIMIZATION ═══ -->
+ 987→  <section id="sec-optimization">
+ 988→    <div class="sec-head">
+ 989→      <span class="sec-num ph-pink">OPTIMIZATION</span>
+ 990→      <h2 style="color:#f9a8d4">⚡ 架构优化分析与面试要点</h2>
+ 991→    </div>
+ 992→    <p class="sec-desc">对原设计中发现的不严谨、不完整之处进行优化建议 · 每条含问题分析+解决方案+成本收益 · 面试高频问题与回答思路</p>
+ 993→    <div id="opt-container"></div>
+ 994→  </section>
+ 995→
+ 996→  <!-- ═══ FOOTER ═══ -->
+ 997→  <footer>
+ 998→    <div style="margin-bottom:8px">
+ 999→      <a href="#sec-index">🏠 返回顶部</a> | <a href="#sec-qa">法律问答</a> | <a href="#sec-retrieval">法律检索</a> | <a
+1000→        href="#sec-xiaohongshu">小红书发布</a> | <a href="#sec-contract">合同审核</a> | <a href="#sec-compliance">合规审查</a> | <a
+1001→        href="#sec-arch">总架构</a> | <a href="#sec-optimization">优化分析</a>
+1002→    </div>
+1003→    <div>⚖️ 法智引擎 · LangGraph 多智能体架构流程图（增强版 v3.0）</div>
+1004→    <div style="margin-top:4px">设计铁律：AI做前置审查 · 律师做最终决策 | LangGraph + RAG + Neo4j + Milvus + bge-m3 + MinerU + Pydantic
+1005→    </div>
+1006→  </footer>
+1007→
+1008→  <!-- ═══ MODAL ═══ -->
+1009→  <div class="modal-overlay" id="modal" onclick="if(event.target===this)closePopup()">
+1010→    <div class="modal-content">
+1011→      <div class="modal-header">
+1012→        <span class="m-icon" id="m-icon">📋</span>
+1013→        <h2 id="m-title">节点详情</h2>
+1014→        <span class="m-type" id="m-type"></span>
+1015→        <button class="modal-close" onclick="closePopup()">✕</button>
+1016→      </div>
+1017→      <div class="modal-body" id="m-body"></div>
+1018→    </div>
+1019→  </div>
+1020→
+1021→  <script>
+1022→    const SVGNS = 'http://www.w3.org/2000/svg';
+1023→    function el(tag, attrs, text) { const e = document.createElementNS(SVGNS, tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e }
+1024→
+1025→    /* ═══════════════════════════════════════════════════
+1026→       NODE DATA — 每个节点的弹出内容
+1027→       t=标题 i=图标 y=类型 f=功能 s=步骤 th=思考 so=方案 tc=选型 op=优化 iv=面试
+1028→       ═══════════════════════════════════════════════════ */
+1029→    const D = {
+1030→
+1031→      /* ── OVERVIEW 节点（实际langgraph编排） ── */
+1032→      'ov_start': {
+1033→        t: 'START 入口', i: '🚀', y: 'start',
+1034→        f: '用户通过Streamlit界面上传文档或输入文字指令。StateGraph从START哨兵节点启动，进入第一个节点。',
+1035→        iv: [{ q: '面试官：LangGraph图的入口和出口怎么定义？', a: '用START和END两个哨兵常量。add_edge(START, node)定义入口，add_edge(node, END)定义出口。编译后调用graph.invoke(state)从START开始执行到END结束。' }]
+1036→      },
+1037→
+1038→      'ov_xhs_intent': {
+1039→        t: 'xiaohongshu_publish_intent 前置过滤', i: '📱', y: 'decision',
+1040→        f: '<strong>入口前置过滤</strong>——START后第一个节点，识别用户是否要发小红书。若是小红书意图则直接进入发布链路，否则交给intent_router主路由。<br>📌 <strong>独立链路</strong>：入口在intent_router之前，这是与其他智能体的核心区别',
+1041→        th: [{ q: '为什么小红书要前置过滤？', a: '因为小红书发布意图非常明确（"发小红书""写篇笔记"等关键词），可以快速识别避免进入主路由浪费LLM调用。同时发布链路是独立的，与其他法律任务完全无关。' }]
+1042→      },
+1043→
+1044→      'ov_router': {
+1045→        t: 'intent_router 意图路由', i: '🧭', y: 'decision',
+1046→        f: 'LLM分析用户输入，识别task_type：contract_review / compliance_review / legal_research / legal_qa / other。通过add_conditional_edges分发到5条业务链路。<br>📌 <strong>5路分支</strong>：合同/合规→doc_extract；法律检索→legal_research；法律问答→extract_entity；其他→llm_direct',
+1047→        th: [{ q: '面试官：intent_router的路由逻辑？', a: 'intent_router_router函数读取state["task_type"]返回路由标识符，path_map映射到具体节点名。5条分支：contract_review_path→doc_extract、compliance_review_path→doc_extract、legal_research_path→legal_research_node、legal_qa_path→extract_entity_from_user_input_node、llm_direct→llm_direct_out_node。' }]
+1048→      },
+1049→
+1050→      /* ── 小红书链路（独立） ── */
+1051→      'ov_xhs_text': {
+1052→        t: 'text_generate 文案生成', i: '✍️', y: 'pink',
+1053→        f: '生成小红书标题与正文，写入xiaohongshu_title/xiaohongshu_content。',
+1054→      },
+1055→      'ov_xhs_img': {
+1056→        t: 'image_generator 图片生成', i: '🎨', y: 'pink',
+1057→        f: '生成配图，写入xiaohongshu_image_path_list。',
+1058→      },
+1059→      'ov_xhs_check': {
+1060→        t: 'check_text_image 质量检查', i: '🛡️', y: 'decision',
+1061→        f: '校验标题/正文/图片是否可发布，输出is_can_publish_xiaohongshu。不通过则回退到text_generate重生成。',
+1062→        th: [{ q: '质量检查不通过怎么处理？', a: '走check_text_image_router条件路由：is_can_publish=True→auto_publish；is_can_publish=False→END（不重试）。代码中质量检查不通过直接结束，不做重试。' }]
+1063→      },
+1064→      'ov_xhs_pub': {
+1065→        t: 'xiaohongshu_auto_publish 自动发布', i: '🚀', y: 'pink',
+1066→        f: '调用Playwright模拟浏览器操作发布到小红书平台。',
+1067→      },
+1068→      'ov_xhs_md': {
+1069→        t: 'generate_markdown Markdown报告', i: '📝', y: 'pink',
+1070→        f: '将发布结果整理为Markdown存档，输出xiaohongshu_markdown_output。',
+1071→      },
+1072→
+1073→      /* ── 合同审核+合规审查 共享链路 ── */
+1074→      'ov_doc': {
+1075→        t: 'doc_extract 文档提取', i: '📤', y: 'green',
+1076→        f: '读取uploaded_doc_path解析文档为纯文本，写入state["doc_text"]。<br>📌 <strong>共享节点</strong>：合同审核和合规审查都从此节点开始（intent_router路由到同一节点）',
+1077→        th: [{ q: '为什么合同和合规都走doc_extract？', a: '两者都需要上传文档并解析文本。intent_router路由时，contract_review_path和compliance_review_path都映射到doc_extract_node.__name__，即同一个节点。这是代码级别的节点复用。' }]
+1078→      },
+1079→      'ov_classify': {
+1080→        t: 'contract_classify 合同分类', i: '🏷️', y: 'green',
+1081→        f: 'LLM判定合同类型（买卖/租赁/借贷/建设工程等），写入contract_type。<br>⚠️ <strong>注意</strong>：合规审查也走此节点，但contract_classify_node不检查task_type，始终执行分类逻辑',
+1082→      },
+1083→      'ov_clause': {
+1084→        t: 'clause_split 条款切分', i: '✂️', y: 'green',
+1085→        f: '按条款结构切分合同文本，生成结构化条款列表doc_clauses。',
+1086→      },
+1087→
+1088→      /* ── 🔄检索链路展开子节点（意图分解→基础层→增强→融合→输出） ── */
+1089→      'ov_ret_intent': {
+1090→        t: '🔄 retrieval_intent_decompose 意图分解（复用）', i: '🧠', y: 'purple',
+1091→        f: '<strong>🔄 复用节点</strong>——检索子链路N1。从 doc_text / contract_type / user_input 中提取检索查询与关键词，写入 retrieval_query 和 retrieval_keywords。当 LLM 提取失败时降级为标点分词。',
+1092→        th: [{ q: '如何保证关键词质量？', a: '优先LLM JSON结构化提取3-8个核心概念，失败 fallback 为基于中文标点的分词（取长度>1的词），再 fallback 为 query 前4字符。兼顾召回率与鲁棒性。' }]
+1093→      },
+1094→      'ov_ret_base': {
+1095→        t: '🔄 retrieval_base_layer 基础层必查（复用）', i: '📚', y: 'purple',
+1096→        f: '<strong>🔄 复用节点</strong>——检索子链路N2。执行两层检索：(1) FAISS向量检索知识图谱三元组（质量最高）；(2) 若结果不足3条，从本地法规txt目录按"第X条"关键词匹配。输出 base_citations。',
+1097→        th: [{ q: '两层检索的优先级？', a: 'FAISS > 本地法规。FAISS基于向量语义匹配，返回知识图谱中的实体关系；本地法规基于关键词，覆盖FAISS索引缺失的条款。两者合并去重后送入增强层。' }]
+1098→      },
+1099→      'ov_ret_enhance': {
+1100→        t: '🔄 retrieval_enhance_query 增强查询（复用）', i: '🚀', y: 'purple',
+1101→        f: '<strong>🔄 复用节点</strong>——检索子链路N3。当 base_citations.length < 2 时触发：调用 LLM 根据合同正文补充生成3-5条相关法条（JSON格式），标记 source="LLM生成"，写入 enhance_citations。',
+1102→        th: [{ q: '为什么设"不足2条"才增强？', a: '平衡质量与成本：2条法规足以支撑大多数合同条款的合法性判断，LLM补充的法条为"伪检索"可能存在幻觉，仅在基础层真正缺失时才兜底。' }]
+1103→      },
+1104→      'ov_ret_fusion': {
+1105→        t: '🔄 retrieval_fusion_sort 融合排序（复用）', i: '🔗', y: 'purple',
+1106→        f: '<strong>🔄 复用节点</strong>——检索子链路N4。合并 base_citations + enhance_citations → 去重（按title+article_no+content前40字符）→ 按score降序排序 → 拼装前8条为 research_context → 计算 quality_score（每条20分，上限100）。',
+1107→        th: [{ q: '为什么是前8条？', a: 'final_delivery节点组装报告时引用上限为8条，提前截断减少下游Token消耗；8条引用约占报告1/3版面，兼顾覆盖度与可读性。' }]
+1108→      },
+1109→      'ov_ret_output': {
+1110→        t: '🔄 retrieval_output 结果输出（复用）', i: '📤', y: 'purple',
+1111→        f: '<strong>🔄 复用节点</strong>——检索子链路N5。将 citations、research_context、quality_score 写入AgentState的标准字段，与原单节点 legal_research_node 的输出字段完全兼容。下游 risk_aggregate_node / final_delivery_node 无需修改。',
+1112→        th: [{ q: '为什么多此一举写一个输出节点？', a: '解耦设计：fusion节点负责"算"，output节点负责"写"。未来增加检索重排序、多轮检索时只需插入新节点，不影响下游读取字段。同时兼容旧单节点的输出字段名，保证 risk_aggregate/final_delivery 零修改。' }]
+1113→      },
+1114→
+1115→      'ov_numeric_ext': {
+1116→        t: 'numeric_extract 数值抽取', i: '🔢', y: 'green',
+1117→        f: '从合同文本中抽取关键数值（单价/数量/总价/违约金比例等），写入extracted_numerics。',
+1118→      },
+1119→      'ov_contract_ai': {
+1120→        t: 'contract_ai_review 合同审核AI', i: '⚖️', y: 'green',
+1121→        f: 'LLM从商业条款合理性角度审查，输出contract_risk_items（合同风险项）。<br>⚠️ <strong>注意</strong>：合规审查链路也执行此节点，输出contract_risk_items',
+1122→      },
+1123→      'ov_compliance': {
+1124→        t: 'compliance_review 合规审查', i: '🛡️', y: 'purple',
+1125→        f: '从法律法规合规角度审查，输出compliance_risk_items（合规风险项）。<br>📌 <strong>合规必经节点</strong>：在合同审核链路中是N5a→N5b的必经节点，合规审查链路中也执行此节点',
+1126→        th: [{ q: '合规审查输出什么数据？', a: 'compliance_risk_items列表，每个项包含clause（条款）、compliance_area（合规领域：强制性规定/数据合规/反垄断等7大类）、severity（严重程度）、description、legal_basis、remediation。' }]
+1127→      },
+1128→      'ov_numeric_val': {
+1129→        t: 'numeric_validate 数值校验', i: '✅', y: 'green',
+1130→        f: '7条确定性数值校验规则（金额一致性/比例合理性/期限合规等），输出numeric_risk_items。纯Python代码执行，不依赖LLM。',
+1131→      },
+1132→
+1133→      /* ── 共享后处理节点（🔄多链路复用） ── */
+1134→      'ov_research': {
+1135→        t: '🔄 legal_research 检索（复用）', i: '🔍', y: 'green',
+1136→        f: '<span style="color:#c62828">⚠️ 已弃用，拆分为5个子节点（retrieval_intent_decompose → retrieval_base_layer → retrieval_enhance_query → retrieval_fusion_sort → retrieval_output）。此节点仅保留 add_node 注册，不再连接到任何边。</span>',
+1137→      },
+1138→      'ov_aggregate': {
+1139→        t: '🔄 risk_aggregate 风险聚合（复用）', i: '📊', y: 'purple',
+1140→        f: '<strong>🔄 复用节点</strong>——被合同审核、合规审查、法律检索三条链路复用。合并contract_risk_items+compliance_risk_items+numeric_risk_items三路风险项，计算overall_risk_score与risk_level。<br>聚合规则：合规critical→不可降级，合同medium/low→处置策略。',
+1141→        th: [{ q: '面试官：风险聚合的核心规则？', a: '优先级：合规>数值>合同。合规风险是"是否合法"的刚性判断（不可降级），合同风险是"是否有利"的弹性判断（可降级）。代码实现：compliance_findings的risk_level字段为read-only，contract_findings只能追加suggestion不能修改compliance的risk_level。' }]
+1142→      },
+1143→      'ov_party': {
+1144→        t: '🔄 party_identify 甲乙方识别（复用）', i: '👥', y: 'purple',
+1145→        f: '<strong>🔄 复用节点</strong>——被合同审核、合规审查、法律检索三条链路复用。识别甲乙方主体信息，写入party_a/party_b/user_side。',
+1146→      },
+1147→      'ov_delivery': {
+1148→        t: '🔄 final_delivery 最终交付（复用）', i: '📦', y: 'purple',
+1149→        f: '<strong>🔄 复用节点</strong>——被合同审核、合规审查、法律检索三条链路复用。组装最终报告：output（纯文本摘要）+ final_report_markdown（Markdown完整报告）。',
+1150→        th: [{ q: '面试官：final_delivery为什么要复用？', a: '交付逻辑高度统一：组装报告→写入output→写入markdown。不同链路的差异仅在输入数据（合同审核有风险卡片，检索有引用列表），通过state字段动态适配。复用减少代码重复，保证交付格式一致。' }]
+1151→      },
+1152→
+1153→      /* ── 法律检索分支 ── */
+1154→      'ov_legal_res': {
+1155→        t: 'legal_research_node 检索入口', i: '🔍', y: 'green',
+1156→        f: 'intent_router直接路由到此节点（legal_research_path），检索完成后复用到共享后处理链路。<br>📌 对应langgraph_main.py第320行："legal_research_path": retrieval_intent_decompose_node.__name__（由单节点改为5节点检索链路入口）',
+1157→      },
+1158→
+1159→      /* ── 法律问答链路（独立） ── */
+1160→      'ov_qa_extract': {
+1161→        t: 'extract_entity 实体抽取', i: '🔬', y: 'cyan',
+1162→        f: '从用户问题中抽取法律实体/概念/法规名，写入user_input_entities。',
+1163→      },
+1164→      'ov_qa_match': {
+1165→        t: 'match_entity Neo4j匹配', i: '🔎', y: 'cyan',
+1166→        f: '在Neo4j知识图谱中匹配实体节点，写入matched_entities。',
+1167→      },
+1168→      'ov_qa_cypher': {
+1169→        t: 'generate_neo4j_cypher Cypher生成', i: '✍️', y: 'cyan',
+1170→        f: '基于匹配实体生成Cypher查询语句，写入cypher_query。',
+1171→      },
+1172→      'ov_qa_check': {
+1173→        t: 'check_cypher Cypher校验', i: '🛡️', y: 'decision',
+1174→        f: '校验Cypher语法合法性，输出is_all_validate_cypher。校验失败→重试生成（最多3次）；通过→执行查询。',
+1175→        th: [{ q: '面试官：Cypher校验重试环怎么实现的？', a: 'check_cypher_router条件路由：is_all_validate_cypher=True→run_cypher；is_all_validate_cypher=False且cypher_retry_count<3→generate_neo4j_cypher（重试）；is_all_validate_cypher=False且重试≥3→neo4j_answer_generate（放弃图查询直接生成答案）。' }]
+1176→      },
+1177→      'ov_qa_run': {
+1178→        t: 'run_cypher Cypher执行', i: '⚡', y: 'cyan',
+1179→        f: '执行Cypher查询，返回cypher_results列表。',
+1180→      },
+1181→      'ov_qa_answer': {
+1182→        t: 'neo4j_answer_generate 答案生成', i: '💡', y: 'cyan',
+1183→        f: '基于cypher_results生成自然语言答案，写入neo4j_answer→output。',
+1184→      },
+1185→
+1186→
+      'ret_intent_decompose': {
+        t: '检索N1 · retrieval_intent_decompose 意图分解', i: '🧠', y: 'purple',

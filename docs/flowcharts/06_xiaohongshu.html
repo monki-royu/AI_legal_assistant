@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>小红书发布智能体 · 法智引擎</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">⚖️ 法智引擎</div>
+  <a href="00_index.html" class="nav-index">🏠 首页</a>
+  <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+  <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
+  <a href="03_retrieval.html" class="nav-retrieval">🔍 检索智能体</a>
+  <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
+  <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
+  <a href="06_xiaohongshu.html" class="nav-xhs active">📱 小红书</a>
+  <span class="spacer"></span>
+  <span class="stat">LangGraph · Neo4j · Milvus · MinerU · bge-m3</span>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="page-head">
+    <div class="crumb">AGENT 05 · 小红书发布</div>
+    <h1>📱 小红书发布智能体</h1>
+    <p class="desc">法律科普内容自动生产与发布链路：用户输入主题 → 发布意图确认 → 文案生成 → 图片生成 → 质量检查 → 自动发布 → Markdown 报告。质量不通过自动重试生成。</p>
+  </div>
+
+  <div class="flow">
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">💡</span>
+        <span class="idx">N01</span>
+        <h3>用户输入主题</h3>
+      </div>
+      <p>用户输入法律科普主题，例如「租房合同避坑指南」「劳动者维权须知」「个人信息保护常识」。</p>
+      <div class="meta">入口节点 · topic 输入</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-arch">
+      <div class="node-head">
+        <span class="ico">🧭</span>
+        <span class="idx">N02</span>
+        <h3>意图路由 (小红书)</h3>
+      </div>
+      <p>LLM 识别用户意图为「小红书发布」，路由进入小红书发布智能体分支（xiaohongshu_publish_intent）。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">🔐</span>
+        <span class="idx">N03</span>
+        <h3>发布意图确认</h3>
+      </div>
+      <p>二次确认用户发布意图，避免误触自动发布。确认后才进入文案与图片生成流程。</p>
+      <div class="meta">人机交互 · 防误触</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">✍️</span>
+        <span class="idx">N04</span>
+        <h3>文案生成 (text_generate)</h3>
+      </div>
+      <p>LLM 生成小红书风格文案：标题党 + emoji + 标签 + 法律知识点 + 行动建议，符合平台调性。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">🎨</span>
+        <span class="idx">N05</span>
+        <h3>图片生成 (image_generate)</h3>
+      </div>
+      <p>基于文案生成配图（封面 + 内页图），适配小红书竖版比例，含法律主题视觉元素。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">🔍</span>
+        <span class="idx">N06</span>
+        <h3>质量检查 (check_text_image)</h3>
+      </div>
+      <p>检查文案合规性（无违规词/法律准确性）+ 图片质量（清晰度/相关性）。通过则发布，不通过则重试。</p>
+      <div class="meta">质量门禁 · 不通过则重试</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <!-- 重试路径分支 -->
+    <div class="branch">
+      <strong>🔄 重试路径：</strong>质量检查不通过 → 回到 N04 文案生成重新生成文案 + 图片 → 最多重试 3 次 → 3 次失败升级人工处理。
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">🚀</span>
+        <span class="idx">N07</span>
+        <h3>自动发布 (auto_publish)</h3>
+      </div>
+      <p>通过质量检查后，使用 cookies 自动登录小红书并发布图文笔记，含标题、正文、配图、标签。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">📋</span>
+        <span class="idx">N08</span>
+        <h3>Markdown 报告 (generate_markdown)</h3>
+      </div>
+      <p>生成发布报告（Markdown）：主题、文案、图片路径、发布链接、时间戳，便于审计与复盘。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-xhs">
+      <div class="node-head">
+        <span class="ico">📦</span>
+        <span class="idx">N09</span>
+        <h3>输出交付</h3>
+      </div>
+      <p>输出最终结果：发布链接 + 文案存档 + 图片存档 + Markdown 报告。全程可追溯。</p>
+    </div>
+
+  </div>
+
+  <div class="design-bar">
+    <div class="design-item"><strong>✍️ 文案生成</strong>小红书风格 · emoji · 标签</div>
+    <div class="design-item"><strong>🎨 图片生成</strong>竖版配图 · 法律主题视觉</div>
+    <div class="design-item"><strong>🔍 质量门禁</strong>合规性 + 准确性 + 图片质量</div>
+    <div class="design-item"><strong>🚀 自动发布</strong>cookies 登录 · 一键发布</div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-nav">
+    <a href="00_index.html">🏠 首页</a>·
+    <a href="01_architecture.html">🏛️ 总架构</a>·
+    <a href="02_contract_review.html">📋 合同审核</a>·
+    <a href="03_retrieval.html">🔍 检索</a>·
+    <a href="04_compliance.html">🛡️ 合规</a>·
+    <a href="05_legal_qa.html">💬 法律问答</a>·
+    <a href="06_xiaohongshu.html">📱 小红书</a>
+  </div>
+  <p>法智引擎 · LangGraph 多智能体架构 v3.0 · 设计铁律：AI 辅助 · 人工兜底</p>
+  <p style="margin-top:6px;">基于《律师法》第 13/28 条 · RAG + Neo4j + Milvus + bge-m3 + MinerU</p>
+</footer>
+
+</body>
+</html>

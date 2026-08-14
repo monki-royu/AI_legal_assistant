@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>合规审查智能体 · 法智引擎</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">⚖️ 法智引擎</div>
+  <a href="00_index.html" class="nav-index">🏠 首页</a>
+  <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+  <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
+  <a href="03_retrieval.html" class="nav-retrieval">🔍 检索智能体</a>
+  <a href="04_compliance.html" class="nav-compliance active">🛡️ 合规审查</a>
+  <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
+  <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
+  <span class="spacer"></span>
+  <span class="stat">LangGraph · Neo4j · Milvus · MinerU · bge-m3</span>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="page-head">
+    <div class="crumb">AGENT 03 · 合规审查</div>
+    <h1>🛡️ 合规审查智能体</h1>
+    <p class="desc">基础筛查必做 + 深度审查按需触发 → LLM 动态合规校验 → 双视角协同（contract_ref / compliance_ref）→ 6 维比对矩阵 → 高风险人工签章。完整合规闭环。</p>
+  </div>
+
+  <div class="flow">
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">🔬</span>
+        <span class="idx">N01</span>
+        <h3>基础筛查</h3>
+      </div>
+      <p>对合同进行必做的合规性基础筛查：主体资格、经营范围、签章要件、法定形式等基础维度。</p>
+      <div class="meta">必做节点 · 全量执行</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">🎯</span>
+        <span class="idx">N02</span>
+        <h3>深度审查触发</h3>
+      </div>
+      <p>根据基础筛查结果 + 合同类型 + 风险信号，判断是否触发深度审查。高风险/敏感领域自动触发。</p>
+      <div class="meta">条件分支 · 按需触发</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">🤖</span>
+        <span class="idx">N03</span>
+        <h3>LLM 动态合规校验</h3>
+      </div>
+      <p>LLM 基于法规库 + 行业规范动态生成校验规则，对条款逐条合规性判定，输出违规点 + 引用依据。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">👁️‍🗨️</span>
+        <span class="idx">N04</span>
+        <h3>双视角协同</h3>
+      </div>
+      <p>两个视角并行审查：<strong>contract_ref</strong>（合同条款视角）+ <strong>compliance_ref</strong>（合规规范视角），交叉验证避免遗漏。</p>
+    </div>
+
+    <!-- 双视角并行 -->
+    <div class="parallel">
+      <div class="pl-title">↓ 双视角并行 ↓</div>
+      <div class="pl-grid">
+        <div class="pl-item"><strong>📄 contract_ref</strong>从合同条款出发，逐条比对合规要求</div>
+        <div class="pl-item"><strong>📐 compliance_ref</strong>从合规规范出发，反查合同是否覆盖</div>
+      </div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">📊</span>
+        <span class="idx">N05</span>
+        <h3>6 维比对矩阵</h3>
+      </div>
+      <p>6 维度比对：合法性 / 合规性 / 完整性 / 一致性 / 风险性 / 可执行性。生成比对矩阵 + 违规定级。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">✅</span>
+        <span class="idx">N06</span>
+        <h3>合规结论</h3>
+      </div>
+      <p>生成合规结论：通过 / 有条件通过 / 不通过。高风险项触发人工签章流程，输出合规审查报告。</p>
+      <div class="meta">高风险 → 人工签章</div>
+    </div>
+
+  </div>
+
+  <div class="design-bar">
+    <div class="design-item"><strong>🔬 基础 + 深度</strong>基础筛查必做，深度审查按需触发</div>
+    <div class="design-item"><strong>🤖 动态校验</strong>LLM 动态生成校验规则，适配多场景</div>
+    <div class="design-item"><strong>👁️ 双视角</strong>contract_ref + compliance_ref 交叉验证</div>
+    <div class="design-item"><strong>📊 6 维矩阵</strong>合法/合规/完整/一致/风险/可执行</div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-nav">
+    <a href="00_index.html">🏠 首页</a>·
+    <a href="01_architecture.html">🏛️ 总架构</a>·
+    <a href="02_contract_review.html">📋 合同审核</a>·
+    <a href="03_retrieval.html">🔍 检索</a>·
+    <a href="04_compliance.html">🛡️ 合规</a>·
+    <a href="05_legal_qa.html">💬 法律问答</a>·
+    <a href="06_xiaohongshu.html">📱 小红书</a>
+  </div>
+  <p>法智引擎 · LangGraph 多智能体架构 v3.0 · 设计铁律：AI 辅助 · 人工兜底</p>
+  <p style="margin-top:6px;">基于《律师法》第 13/28 条 · RAG + Neo4j + Milvus + bge-m3 + MinerU</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>检索智能体 · 法智引擎</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="brand">⚖️ 法智引擎</div>
+  <a href="00_index.html" class="nav-index">🏠 首页</a>
+  <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+  <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
+  <a href="03_retrieval.html" class="nav-retrieval active">🔍 检索智能体</a>
+  <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
+  <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
+  <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
+  <span class="spacer"></span>
+  <span class="stat">LangGraph · Neo4j · Milvus · MinerU · bge-m3</span>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="page-head">
+    <div class="crumb">AGENT 02 · 检索核心</div>
+    <h1>🔍 检索智能体</h1>
+    <p class="desc">9 阶段检索链路：上游调用 → 意图分解 → 并行调度（4 路 + 行业层 + 条款层）→ RRF 融合 → 冲突消解 → 质量网关 → 重试环 → 结果聚合 → 结构化输出。可被多个上游 Agent 复用。</p>
+  </div>
+
+  <div class="flow">
+
+    <div class="node t-retrieval">
+      <div class="node-head">
+        <span class="ico">📥</span>
+        <span class="idx">N01</span>
+        <h3>上游调用</h3>
+      </div>
+      <p>接收上游 Agent（合同审核 / 合规审查 / 法律问答）的检索请求，携带 query、context、立场等参数。</p>
+      <div class="meta">复用入口 · 不重复计算</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-retrieval">
+      <div class="node-head">
+        <span class="ico">🧩</span>
+        <span class="idx">N02</span>
+        <h3>意图分解 (N1)</h3>
+      </div>
+      <p>将原始 query 分解为多个子意图（向量意图 / 关键词意图 / 实体意图 / 法规意图），为并行调度做准备。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-retrieval">
+      <div class="node-head">
+        <span class="ico">⚡</span>
+        <span class="idx">N03</span>
+        <h3>并行调度 (N3 · 4 路并行)</h3>
+      </div>
+      <p>Send API 并行调度基础层 4 路 + 行业增强层 N 路 + 条款级动态触发。4 大检索策略同时执行。</p>
+    </div>
+
+    <!-- 4 路并行展示 -->
+    <div class="parallel">
+      <div class="pl-title">↓ 基础层 4 路并行 ↓</div>
+      <div class="pl-grid">
+        <div class="pl-item"><strong> VECTOR 向量检索</strong>Milvus + bge-m3 语义召回</div>
+        <div class="pl-item"><strong> BM25 全文检索</strong>关键词倒排匹配</div>
+        <div class="pl-item"><strong> GRAPH 知识图谱</strong>Neo4j 实体关系检索</div>
+        <div class="pl-item"><strong> LAW 法规库</strong>结构化法规条文检索</div>
+      </div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-retrieval">
+      <div class="node-head">
+        <span class="ico">🔀</span>
+        <span class="idx">N04</span>
+        <h3>RRF 融合 (Reciprocal Rank Fusion)</h3>
+      </div>
+      <p>倒数排名融合算法合并多路结果，消除各路打分尺度差异，生成统一排序的候选集。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">⚖️</span>
+        <span class="idx">N05</span>
+        <h3>冲突消解</h3>
+      </div>
+      <p>检测多源结果中的矛盾条款（如不同效力层级的法规冲突），按效力优先级 + 时效性消解。</p>
+      <div class="meta">确定性门禁 · Python 代码</div>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-compliance">
+      <div class="node-head">
+        <span class="ico">🚦</span>
+        <span class="idx">N06</span>
+        <h3>质量网关</h3>
+      </div>
+      <p>计算结果质量分（相关性 + 覆盖率 + 时效性）。质量分 ≥ 0.85 通过；&lt; 0.85 进入重试环。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <!-- 重试环分支 -->
+    <div class="branch">
+      <strong>🔄 重试环 (N07)：</strong>质量分 &lt; 0.85 → 回到 N02 意图分解重新生成子查询 → 最多重试 3 次 → 3 次失败升级人工处理。
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-retrieval">
+      <div class="node-head">
+        <span class="ico">🧺</span>
+        <span class="idx">N08</span>
+        <h3>结果聚合</h3>
+      </div>
+      <p>聚合通过质量网关的结果，去重、排序、附加 source_tag（来源标记），生成结构化候选集。</p>
+    </div>
+
+    <div class="arrow"></div>
+
+    <div class="node t-retrieval">
+      <div class="node-head">
+        <span class="ico">📦</span>
+        <span class="idx">N09</span>
+        <h3>结构化输出</h3>
+      </div>
+      <p>返回结构化检索结果给上游 Agent，包含条文内容、来源、bbox、置信度等字段，支持审计追溯。</p>
+    </div>
+
+  </div>
+
+  <div class="design-bar">
+    <div class="design-item"><strong>🧱 模块复用</strong>检索智能体被合同/合规/问答 Agent 共享调用</div>
+    <div class="design-item"><strong>⚡ 并行调度</strong>Send API 4 路并行 + 行业层 + 条款层</div>
+    <div class="design-item"><strong>🔀 RRF 融合</strong>倒数排名融合，消除打分尺度差异</div>
+    <div class="design-item"><strong>🔄 弹性重试</strong>质量分 &lt; 0.85 重试，3 次失败升级人工</div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-nav">
+    <a href="00_index.html">🏠 首页</a>·
+    <a href="01_architecture.html">🏛️ 总架构</a>·
+    <a href="02_contract_review.html">📋 合同审核</a>·
+    <a href="03_retrieval.html">🔍 检索</a>·
+    <a href="04_compliance.html">🛡️ 合规</a>·
+    <a href="05_legal_qa.html">💬 法律问答</a>·
+    <a href="06_xiaohongshu.html">📱 小红书</a>
+  </div>
+  <p>法智引擎 · LangGraph 多智能体架构 v3.0 · 设计铁律：AI 辅助 · 人工兜底</p>
+  <p style="margin-top:6px;">基于《律师法》第 13/28 条 · RAG + Neo4j + Milvus + bge-m3 + MinerU</p>
+</footer>
+
+</body>
+</html>
