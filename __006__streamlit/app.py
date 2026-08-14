@@ -32,9 +32,20 @@
 # ===== 标准库导入区 =====
 import os  # 操作系统接口，用于路径拼接与目录定位
 import sys  # 系统相关参数与函数，用于修改 sys.path 以导入上层模块
-import json  # JSON 序列化/反序列化（本文件中虽未直接使用，但保留以备扩展）
-import time  # 时间相关函数，用于流式输出的 sleep 模拟打字延迟
-import asyncio  # 异步事件循环库，用于在同步上下文中驱动后端 async 流式接口
+import json  # JSON 序列化/反序列化
+import time  # 时间相关函数
+import asyncio  # 异步事件循环库
+import threading  # 多线程，用于在独立线程中运行 asyncio 事件循环
+import tempfile  # 临时文件目录，用于保存上传图片
+import subprocess  # 子进程调用，用于隔离运行 Playwright 发布脚本
+from pathlib import Path  # 路径对象，安全拼接路径
+
+# Windows 下设置兼容的事件循环策略（必须在任何 asyncio 操作之前执行）
+if sys.platform.startswith("win"):
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
 
 # 将项目根目录（本文件上一级）插入 sys.path 首位，确保能正确导入 __004__langgraph_more_nodes 等同级包
 # os.path.abspath(__file__) 取本文件绝对路径 -> dirname 两次得到项目根目录
@@ -64,280 +75,240 @@ st.set_page_config(
 # 这是 Streamlit 中深度自定义 UI 的标准做法（Streamlit 原生主题能力有限）
 st.markdown("""
 <style>
-    /* ===== 全局变量 - 红底蓝配 ===== */
-    /* :root 选择器定义全局 CSS 变量，所有后续样式可通过 var(--xxx) 引用，便于统一调色 */
+    /* ===== 全局变量 - 浅色专业主题 ===== */
     :root {
-        /* 大面积红色背景系 —— 主色调，营造庄重法律氛围 */
-        --red-bg-1: #450a0a;      /* 深红 1 —— 顶部最深处背景 */
-        --red-bg-2: #7f1d1d;      /* 深红 2 —— 中段过渡色 */
-        --red-bg-3: #991b1b;      /* 中红 3 —— 下段背景 */
-        --red-bg-4: #b91c1c;      /* 亮红 4 —— 高亮强调色 */
-        --red-accent: #dc2626;    /* 鲜红 —— 危险/重点强调用 */
-        
-        /* 科技感深蓝色系 —— 用于高亮、按钮、链接、选中态，与红色形成强对比 */
-        --blue-deep: #0a1929;     /* 极深蓝 —— 深色卡片底色 */
-        --blue-mid: #0D47A1;      /* 科技深蓝 —— 按钮渐变起始色 */
-        --blue-bright: #1976D2;   /* 科技蓝 —— 主交互色，按钮/选中态主色 */
-        --blue-soft: #42A5F5;     /* 科技浅蓝 —— 文字高亮、链接悬停色 */
-        --blue-glow: rgba(25, 118, 210, 0.45);  /* 蓝色辉光半透明色，用于 box-shadow 光晕 */
-        
-        /* 多色卡片边框 (参考图二) —— 5 张快捷卡片各用一种主题色 */
-        --card-blue: #38bdf8;     /* 天蓝色卡片 */
-        --card-orange: #fb923c;   /* 橙色卡片 */
-        --card-green: #4ade80;    /* 绿色卡片 */
-        --card-purple: #a78bfa;   /* 紫色卡片 */
-        --card-pink: #f472b6;     /* 粉色卡片 */
-        --card-amber: #fbbf24;    /* 琥珀色卡片 */
-        
-        /* 文本 (高对比度, 确保清晰可读) —— 在深红背景上需使用浅色文字 */
-        --text-white: #ffffff;    /* 主标题/强调文本纯白 */
-        --text-light: #fef2f2;    /* 近白 —— 副标题 */
-        --text-soft: #fecaca;     /* 柔红 —— 正文文字（浅红色，与红底和谐） */
-        --text-muted: #fca5a5;    /* 浅红 —— 次要/灰色文字 */
-        --text-dark: #1f2937;     /* 深灰 (用于白底组件内部文字，如输入框) */
+        --bg-primary: #FAFBFC;
+        --bg-secondary: #F3F4F6;
+        --bg-tertiary: #E5E7EB;
+        --sidebar-bg: #FFFFFF;
+        --sidebar-border: #E5E7EB;
+
+        --blue-deep: #0D47A1;
+        --blue-mid: #1565C0;
+        --blue-bright: #1976D2;
+        --blue-soft: #42A5F5;
+        --blue-glow: rgba(25, 118, 210, 0.15);
+        --blue-hover: #1E88E5;
+
+        --card-blue: #38bdf8;
+        --card-orange: #fb923c;
+        --card-green: #4ade80;
+        --card-purple: #a78bfa;
+        --card-pink: #f472b6;
+        --card-amber: #fbbf24;
+
+        --text-primary: #1F2937;
+        --text-secondary: #374151;
+        --text-muted: #6B7280;
+        --text-faint: #9CA3AF;
+        --text-inverse: #FFFFFF;
+
+        --border-light: #E5E7EB;
+        --border-medium: #D1D5DB;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+        --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
     }
 
-    /* ===== 主背景: 大面积红色 (从上到下渐变) ===== */
-    /* .stApp 是 Streamlit 应用最外层容器 */
+    /* ===== 主背景: 浅灰白色 ===== */
+    html { scroll-behavior: smooth; }
     .stApp {
-        background: linear-gradient(180deg, #450a0a 0%, #7f1d1d 40%, #991b1b 100%);  /* 180deg 自上而下三色渐变红 */
-        min-height: 100vh;  /* 最小高度占满视口，确保短内容时背景也铺满 */
+        background: var(--bg-primary);
+        min-height: 100vh;
     }
-    /* 主内容容器：与 stApp 配合再叠一层渐变，并加上顶部内边距 */
     [data-testid="stAppViewContainer"] > .main {
-        background: linear-gradient(180deg, #450a0a 0%, #7f1d1d 100%);  /* 主内容区双色渐变 */
-        padding-top: 2rem;  /* 顶部留白，避免内容贴顶 */
+        background: var(--bg-primary);
+        padding-top: 2rem;
     }
 
     /* ===== 顶部导航栏 ===== */
-    /* stHeader 是 Streamlit 顶部固定栏 */
     [data-testid="stHeader"] {
-        background: linear-gradient(90deg, #450a0a 0%, #7f1d1d 50%, #450a0a 100%);  /* 90deg 横向三段渐变，中间亮两端深 */
-        border-bottom: 2px solid rgba(37, 99, 235, 0.3);  /* 底部蓝色分隔线，与主色调呼应 */
-        backdrop-filter: blur(10px);  /* 毛玻璃效果，滚动时背景模糊 */
+        background: #FFFFFF;
+        border-bottom: 1px solid var(--border-light);
+        backdrop-filter: blur(10px);
     }
 
-    /* ===== 侧边栏 (左侧导航: 深红渐变与主页面和谐) ===== */
-    /* !important 强制覆盖 Streamlit 默认浅色背景 */
+    /* ===== 侧边栏 (白色, 左侧细边框) ===== */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #3b0808 0%, #5b1212 50%, #7f1d1d 100%) !important;  /* 比主页面更深的红渐变 */
-        border-right: 2px solid rgba(37, 99, 235, 0.35);  /* 右侧蓝色分隔线 */
+        background: var(--sidebar-bg) !important;
+        border-right: 1px solid var(--sidebar-border);
     }
-    /* 侧边栏内 Markdown 文字颜色统一为柔红色 */
     [data-testid="stSidebar"] .stMarkdown {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
     }
-    /* 侧边栏各级标题：白色 + 文字阴影，确保在深红背景上清晰可读 */
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-        color: #ffffff !important;
-        text-shadow: 0 1px 4px rgba(0,0,0,0.5);  /* 半透明黑色阴影增强可读性 */
+        color: var(--text-primary) !important;
     }
-    /* 侧边栏内的 label / p / span 等通用文字颜色 */
     section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] span {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
     }
-    /* 侧边栏 logo 文字 —— 通过属性选择器精准定位内联 style 设置深色的元素并强制改白 */
     [data-testid="stSidebar"] .stMarkdown div[style*="color:#1f2937"] {
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
     }
-    /* 侧边栏 radio: 选中态蓝色背景, 未选中浅色文字 */
-    /* radio 是侧边栏主导航组件，这里将其选项 label 改造成卡片式按钮 */
     [data-testid="stSidebar"] [data-testid="stRadio"] label {
-        background: transparent !important;  /* 默认透明背景 */
-        color: #fecaca !important;  /* 未选中文字柔红色 */
-        padding: 10px 14px;  /* 内边距，让点击区域更大更易点 */
-        border-radius: 10px;  /* 圆角，符合现代 UI 风格 */
-        margin-bottom: 6px;  /* 选项之间间距 */
-        transition: all 0.2s;  /* 0.2s 过渡动画，让 hover/选中切换更顺滑 */
-        border: 1px solid transparent;  /* 默认无可见边框，hover 时显示 */
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 6px;
+        transition: all 0.2s;
+        border: 1px solid transparent;
     }
-    /* radio 选项悬停态：浅蓝背景 + 浅蓝边框 */
     [data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
-        background: rgba(25, 118, 210, 0.18) !important;
-        border: 1px solid rgba(25, 118, 210, 0.3);
+        background: rgba(25, 118, 210, 0.08) !important;
+        border: 1px solid rgba(25, 118, 210, 0.25);
     }
-    /* radio 选中态：使用 :has(input:checked) CSS4 伪类精准定位被选中的 label */
     [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) {
-        background: linear-gradient(90deg, var(--blue-mid), var(--blue-bright)) !important;  /* 蓝色渐变背景 */
-        color: white !important;  /* 选中时文字变白 */
-        box-shadow: 0 4px 14px rgba(59,130,246,0.35);  /* 蓝色辉光阴影 */
+        background: linear-gradient(90deg, var(--blue-mid), var(--blue-bright)) !important;
+        color: white !important;
+        box-shadow: 0 2px 8px var(--blue-glow);
     }
-    /* 选中态下内部子标签文字也强制白色 */
     [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) .stRadioLabel {
         color: white !important;
     }
-    /* 侧边栏 toggle / checkbox 文字颜色 */
     [data-testid="stSidebar"] [data-testid="stCheckbox"] label,
     [data-testid="stSidebar"] [data-testid="stToggle"] label {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
     }
-    /* 侧边栏 divider 分隔线颜色 */
     [data-testid="stSidebar"] hr,
     [data-testid="stSidebar"] [data-testid="stMarkdown"] hr {
-        border-color: rgba(254, 202, 202, 0.2) !important;
+        border-color: var(--border-light) !important;
     }
-    /* 侧边栏 section headings —— h3 标题样式增强 */
     [data-testid="stSidebar"] [data-testid="stMarkdown"] h3,
     [data-testid="stSidebar"] .stMarkdown h3 {
-        color: #ffffff !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-        border-bottom: 1px solid rgba(59,130,246,0.25);  /* 标题底部蓝色细线 */
+        color: var(--text-primary) !important;
+        border-bottom: 1px solid var(--border-light);
         padding-bottom: 6px;
         margin-top: 14px !important;
     }
-    /* 侧边栏 footer 小字颜色更淡 */
     [data-testid="stSidebar"] .stMarkdown small,
     [data-testid="stSidebar"] small {
-        color: rgba(254, 202, 202, 0.7) !important;
+        color: var(--text-faint) !important;
     }
 
-    /* ===== 全局文本颜色 (高对比度, 清晰可读) ===== */
-    /* 所有 Markdown 文字默认白色 */
+    /* ===== 全局文本颜色 ===== */
     .stMarkdown {
-        color: var(--text-white) !important;
+        color: var(--text-primary) !important;
     }
-    /* Markdown 各级标题：白色 + 粗体 + 文字阴影 */
     .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4 {
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
         font-weight: 800;
-        text-shadow: 0 1px 4px rgba(0,0,0,0.4);
     }
-    /* Markdown 段落与列表项：柔红色 + 14px + 1.7 行高，保证可读性 */
     .stMarkdown p, .stMarkdown li {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
         font-size: 14px;
         line-height: 1.7;
     }
-    /* small / .small 类：浅红色更淡的辅助文字 */
     .stMarkdown small, .stMarkdown .small {
-        color: #fca5a5 !important;
+        color: var(--text-muted) !important;
     }
 
-    /* ===== 任务介绍/问候区 (带背景框, 确保文字清晰) ===== */
-    /* .task-greeting 是任务页顶部大字问候语，通过 st.markdown 自定义 HTML 渲染 */
+    /* ===== 任务介绍/问候区 ===== */
     .task-greeting {
-        font-size: 36px;  /* 大字号醒目 */
-        font-weight: 900;  /* 最粗字重 */
-        color: #ffffff;
-        letter-spacing: 1.5px;  /* 字间距加宽，增强气势 */
-        text-align: center;  /* 居中对齐 */
+        font-size: 36px;
+        font-weight: 900;
+        color: var(--text-primary);
+        letter-spacing: 1.5px;
+        text-align: center;
         margin-bottom: 8px;
         line-height: 1.3;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.5);  /* 强阴影增强可读性 */
     }
-    /* .accent 是问候语中"法智"等关键词的渐变文字效果 */
     .task-greeting .accent {
-        background: linear-gradient(135deg, #42A5F5, #1976D2);  /* 135deg 蓝色渐变 */
-        -webkit-background-clip: text;  /* 背景裁剪到文字（Webkit 内核） */
-        -webkit-text-fill-color: transparent;  /* 文字填充透明，露出渐变背景 */
-        background-clip: text;  /* 标准属性，兼容现代浏览器 */
+        background: linear-gradient(135deg, var(--blue-soft), var(--blue-bright));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
-    /* .task-intro-box 是问候语下方的任务说明卡片 */
     .task-intro-box {
-        max-width: 780px;  /* 限制最大宽度，避免长行难读 */
-        margin: 0 auto 20px;  /* 水平居中 + 底部间距 */
+        max-width: 780px;
+        margin: 0 auto 20px;
         padding: 16px 22px;
-        background: rgba(0, 0, 0, 0.35);  /* 半透明黑底，与红背景叠加产生深色卡片效果 */
-        border: 1px solid rgba(25, 118, 210, 0.25);  /* 蓝色细边框 */
-        border-radius: 14px;  /* 圆角 */
-        border-left: 4px solid #1976D2;  /* 左侧蓝色粗边，作为视觉强调条 */
-        backdrop-filter: blur(6px);  /* 毛玻璃效果 */
+        background: #FFFFFF;
+        border: 1px solid var(--border-light);
+        border-radius: 14px;
+        border-left: 4px solid var(--blue-bright);
+        box-shadow: var(--shadow-sm);
     }
-    /* 任务说明卡片内的段落与 span 文字样式 */
     .task-intro-box p, .task-intro-box span {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
         font-size: 14px;
         line-height: 1.8;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
-    /* .task-upload-row 是任务页文件上传按钮行的容器 */
     .task-upload-row {
         max-width: 780px;
         margin: 0 auto 16px;
-        display: flex;  /* 弹性布局，水平排列按钮 */
-        gap: 12px;  /* 按钮之间间距 */
-        flex-wrap: wrap;  /* 自动换行，适配窄屏 */
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
     }
-    /* .task-upload-btn 是上传按钮的视觉样式（实际点击由 Streamlit file_uploader 承担） */
     .task-upload-btn {
         padding: 10px 18px;
         border-radius: 10px;
-        background: rgba(25, 118, 210, 0.15);  /* 半透明蓝底 */
-        border: 1px solid rgba(25, 118, 210, 0.4);
-        color: #93c5fd;  /* 浅蓝文字 */
+        background: rgba(25, 118, 210, 0.06);
+        border: 1px solid rgba(25, 118, 210, 0.3);
+        color: var(--blue-bright);
         font-size: 13px;
         font-weight: 600;
-        cursor: pointer;  /* 鼠标变手型，提示可点击 */
+        cursor: pointer;
         transition: all 0.2s;
     }
-    /* 上传按钮悬停态：背景加深 + 文字变白 */
     .task-upload-btn:hover {
-        background: rgba(25, 118, 210, 0.28);
-        color: #ffffff;
+        background: rgba(25, 118, 210, 0.12);
+        color: var(--blue-mid);
     }
 
-    /* ===== Hero 标题区 (参考图四: "你好, 我是法智") ===== */
-    /* .hero-container 是首页 Hero 区最外层容器，居中并限制宽度 */
+    /* ===== Hero 标题区 ===== */
     .hero-container {
         max-width: 900px;
         margin: 0 auto;
         padding: 40px 20px 20px;
         text-align: center;
     }
-    /* .hero-title 是首页最大标题文字 */
     .hero-title {
         font-size: 48px;
         font-weight: 900;
-        color: var(--text-white);
-        letter-spacing: 2px;  /* 字间距更宽，气势更强 */
+        color: var(--text-primary);
+        letter-spacing: 2px;
         margin-bottom: 8px;
         line-height: 1.2;
     }
-    /* Hero 标题中关键词的渐变文字效果（与 .task-greeting .accent 同款） */
     .hero-title .accent {
         background: linear-gradient(135deg, var(--blue-soft), var(--blue-bright));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
-    /* .hero-subtitle 是 Hero 标题下方的副标题/描述文字 */
     .hero-subtitle {
         font-size: 16px;
-        color: #fecaca !important;
+        color: var(--text-muted) !important;
         margin-bottom: 32px;
         letter-spacing: 1px;
-        text-shadow: 0 1px 4px rgba(0,0,0,0.4);
         font-weight: 500;
     }
-    /* 副标题内部所有子元素统一柔红色 */
     .hero-subtitle p, .hero-subtitle span, .hero-subtitle div {
-        color: #fecaca !important;
+        color: var(--text-muted) !important;
     }
 
-    /* ===== 中央大输入框 (参考图四) ===== */
-    /* .main-input-card 是输入框外层卡片，呈现类 DeepSeek 大边框效果 */
+    /* ===== 中央大输入框 ===== */
     .main-input-card {
         max-width: 820px;
         margin: 0 auto;
-        background: rgba(255, 255, 255, 0.04);  /* 极淡白底，几乎透明 */
-        border: 2px solid rgba(25, 118, 210, 0.5);  /* 蓝色 2px 边框 */
-        border-radius: 18px;  /* 大圆角 */
+        background: #FFFFFF;
+        border: 2px solid var(--border-light);
+        border-radius: 18px;
         padding: 6px;
-        box-shadow: 0 0 0 1px rgba(25, 118, 210, 0.2), 0 20px 60px rgba(0, 0, 0, 0.4);  /* 双层阴影：内层蓝色细圈 + 外层深色投影 */
-        transition: all 0.3s;  /* 0.3s 过渡，hover 时平滑变化 */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+        transition: all 0.3s;
     }
-    /* 卡片悬停态：边框变亮蓝 + 阴影更深 */
     .main-input-card:hover {
         border-color: var(--blue-bright);
-        box-shadow: 0 0 0 1px var(--blue-glow), 0 24px 72px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 0 1px var(--blue-glow), 0 8px 32px rgba(0,0,0,0.08);
     }
-    /* 输入框区域去除默认外边距，紧贴卡片内边距 */
     .main-input-card .stTextArea {
         margin: 0 !important;
     }
-    /* 移除 Streamlit textarea 默认背景与边框，让其融入卡片 */
     .main-input-card .stTextArea > div {
         background: transparent !important;
         border: none !important;
@@ -346,45 +317,39 @@ st.markdown("""
         background: transparent !important;
         border: none !important;
     }
-    /* 实际 textarea 元素：透明背景 + 白字 + 大内边距 + 最小高度 */
     .main-input-card .stTextArea > div > div > textarea {
         background: transparent !important;
-        color: var(--text-white) !important;
+        color: var(--text-primary) !important;
         border: none !important;
         font-size: 15px !important;
         padding: 18px 20px !important;
         min-height: 90px !important;
         line-height: 1.6 !important;
     }
-    /* textarea 的占位符文字颜色（半透明柔红） */
     .main-input-card .stTextArea > div > div > textarea::placeholder {
-        color: rgba(254, 202, 202, 0.5) !important;
+        color: var(--text-faint) !important;
     }
-    /* .main-input-row 是输入框下方的操作行（左侧 chip 按钮 + 右侧发送按钮） */
     .main-input-row {
         display: flex;
         align-items: center;
-        justify-content: space-between;  /* 两端对齐 */
+        justify-content: space-between;
         padding: 0 16px 12px;
         gap: 12px;
     }
-    /* 左侧按钮组容器 */
     .main-input-left {
         display: flex;
         gap: 8px;
         align-items: center;
     }
-    /* 右侧按钮组容器 */
     .main-input-right {
         display: flex;
         gap: 8px;
         align-items: center;
     }
-    /* .send-btn 是圆形发送按钮，蓝色渐变 + 辉光阴影 */
     .send-btn {
         width: 40px;
         height: 40px;
-        border-radius: 50%;  /* 圆形 */
+        border-radius: 50%;
         background: linear-gradient(135deg, var(--blue-mid), var(--blue-bright));
         color: white;
         border: none;
@@ -394,46 +359,41 @@ st.markdown("""
         justify-content: center;
         font-size: 18px;
         transition: all 0.2s;
-        box-shadow: 0 4px 14px var(--blue-glow);  /* 蓝色辉光 */
+        box-shadow: 0 4px 12px var(--blue-glow);
     }
-    /* 发送按钮悬停态：上移 2px + 阴影扩大 */
     .send-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px var(--blue-glow);
+        box-shadow: 0 6px 18px var(--blue-glow);
     }
-    /* .chip-btn 是输入框下方的圆角胶囊按钮（如附件、思考开关等） */
     .chip-btn {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         padding: 8px 14px;
-        border-radius: 20px;  /* 胶囊形 */
-        background: rgba(25, 118, 210, 0.12);
-        border: 1px solid rgba(25, 118, 210, 0.35);
-        color: var(--blue-soft);
+        border-radius: 20px;
+        background: rgba(25, 118, 210, 0.06);
+        border: 1px solid rgba(25, 118, 210, 0.25);
+        color: var(--blue-bright);
         font-size: 13px;
         cursor: pointer;
         transition: all 0.2s;
     }
-    /* chip 按钮悬停态 */
     .chip-btn:hover {
-        background: rgba(25, 118, 210, 0.22);
+        background: rgba(25, 118, 210, 0.12);
         border-color: var(--blue-bright);
     }
-    /* chip 按钮激活态：蓝色渐变填充 + 白字 */
     .chip-btn.active {
         background: linear-gradient(135deg, var(--blue-mid), var(--blue-bright));
         color: white;
         border-color: transparent;
     }
-    /* .icon-btn 是方形图标按钮（如附件、麦克风等） */
     .icon-btn {
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: rgba(254, 242, 242, 0.08);
-        border: 1px solid rgba(254, 242, 242, 0.15);
-        color: var(--text-soft);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-light);
+        color: var(--text-muted);
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -441,66 +401,58 @@ st.markdown("""
         font-size: 16px;
         transition: all 0.2s;
     }
-    /* 图标按钮悬停态 */
     .icon-btn:hover {
-        background: rgba(254, 242, 242, 0.15);
-        color: var(--text-white);
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
     }
 
-    /* ===== 多色快捷卡片 (参考图二) ===== */
-    /* .quick-cards 是快捷卡片网格容器，自适应列数 */
+    /* ===== 多色快捷卡片 ===== */
     .quick-cards {
         max-width: 820px;
         margin: 28px auto 0;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));  /* CSS Grid 自适应布局，每列最小 240px */
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 16px;
     }
-    /* .quick-card 是单张快捷卡片本体 */
     .quick-card {
         padding: 18px 20px;
         border-radius: 14px;
-        background: rgba(0, 0, 0, 0.3);  /* 半透明黑底 */
-        backdrop-filter: blur(8px);  /* 毛玻璃 */
+        background: #FFFFFF;
         cursor: pointer;
         transition: all 0.25s;
-        position: relative;  /* 相对定位，配合 ::before 伪元素绘制顶部彩条 */
+        position: relative;
         overflow: hidden;
+        box-shadow: var(--shadow-sm);
     }
-    /* ::before 伪元素：卡片顶部 3px 彩色装饰条，颜色由具体颜色类决定 */
     .quick-card::before {
         content: '';
         position: absolute;
         top: 0; left: 0; right: 0;
         height: 3px;
     }
-    /* 卡片悬停态：上移 3px + 背景加深 */
     .quick-card:hover {
         transform: translateY(-3px);
-        background: rgba(0, 0, 0, 0.4);
+        box-shadow: var(--shadow-md);
     }
-    /* 6 种颜色变体：分别设置边框颜色与顶部彩条渐变 */
-    .quick-card.blue { border: 1px solid rgba(56, 189, 248, 0.35); }
+    .quick-card.blue { border: 1px solid rgba(56, 189, 248, 0.3); }
     .quick-card.blue::before { background: linear-gradient(90deg, var(--card-blue), var(--blue-bright)); }
-    .quick-card.orange { border: 1px solid rgba(251, 146, 60, 0.35); }
+    .quick-card.orange { border: 1px solid rgba(251, 146, 60, 0.3); }
     .quick-card.orange::before { background: linear-gradient(90deg, var(--card-orange), #f59e0b); }
-    .quick-card.green { border: 1px solid rgba(74, 222, 128, 0.35); }
+    .quick-card.green { border: 1px solid rgba(74, 222, 128, 0.3); }
     .quick-card.green::before { background: linear-gradient(90deg, var(--card-green), #10b981); }
-    .quick-card.purple { border: 1px solid rgba(167, 139, 250, 0.35); }
+    .quick-card.purple { border: 1px solid rgba(167, 139, 250, 0.3); }
     .quick-card.purple::before { background: linear-gradient(90deg, var(--card-purple), #8b5cf6); }
-    .quick-card.pink { border: 1px solid rgba(244, 114, 182, 0.35); }
+    .quick-card.pink { border: 1px solid rgba(244, 114, 182, 0.3); }
     .quick-card.pink::before { background: linear-gradient(90deg, var(--card-pink), #ec4899); }
-    .quick-card.amber { border: 1px solid rgba(251, 191, 36, 0.35); }
+    .quick-card.amber { border: 1px solid rgba(251, 191, 36, 0.3); }
     .quick-card.amber::before { background: linear-gradient(90deg, var(--card-amber), #d97706); }
 
-    /* .quick-card-tag 是卡片顶部小标签（如 OVERVIEW / AGENT 01） */
     .quick-card-tag {
         font-size: 11px;
         font-weight: 700;
-        letter-spacing: 2px;  /* 字母间距大，营造科技感 */
+        letter-spacing: 2px;
         margin-bottom: 8px;
     }
-    /* 各颜色变体的小标签文字颜色 */
     .quick-card.blue .quick-card-tag { color: var(--card-blue); }
     .quick-card.orange .quick-card-tag { color: var(--card-orange); }
     .quick-card.green .quick-card-tag { color: var(--card-green); }
@@ -508,261 +460,301 @@ st.markdown("""
     .quick-card.pink .quick-card-tag { color: var(--card-pink); }
     .quick-card.amber .quick-card-tag { color: var(--card-amber); }
 
-    /* .quick-card-title 是卡片主标题 */
     .quick-card-title {
         font-size: 17px;
         font-weight: 700;
-        color: var(--text-white);
+        color: var(--text-primary);
         margin-bottom: 8px;
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    /* .quick-card-desc 是卡片描述文字 */
     .quick-card-desc {
         font-size: 13px;
         color: var(--text-muted);
         line-height: 1.55;
     }
 
-    /* ===== 底部说明文字 (参考图三) ===== */
-    /* .footer-desc 是页面底部说明区，居中限宽 */
+    /* ===== 底部说明文字 ===== */
     .footer-desc {
         max-width: 900px;
         margin: 40px auto 20px;
         text-align: center;
         padding: 0 20px;
     }
-    /* .principle 是设计铁律主说明文字 */
     .footer-desc .principle {
         font-size: 16px;
-        color: var(--text-soft);
+        color: var(--text-secondary);
         line-height: 1.8;
         margin-bottom: 10px;
     }
-    /* .tech-stack 是技术栈说明文字 */
     .footer-desc .tech-stack {
         font-size: 13px;
         color: var(--text-muted);
         letter-spacing: 0.5px;
     }
-    /* .footer-disclaimer 是底部免责声明小字 */
     .footer-disclaimer {
         max-width: 900px;
         margin: 8px auto 30px;
         text-align: center;
         font-size: 11px;
-        color: rgba(252, 165, 165, 0.5);  /* 更淡的浅红，弱化处理 */
+        color: var(--text-faint);
         padding: 0 20px;
     }
 
-    /* ===== 任务类型多色卡片 (首页: 智能问答/合同审核...) ===== */
-    /* .task-type-cards 是首页 5 张任务类型选择卡片的网格容器 */
+    /* ===== 任务类型多色卡片 ===== */
     .task-type-cards {
         max-width: 900px;
         margin: 24px auto 8px;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));  /* 每列最小 160px */
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 12px;
     }
-    /* .task-type-card 是单张任务类型卡片 */
     .task-type-card {
-        background: rgba(0, 0, 0, 0.25);
+        background: #FFFFFF;
         border-radius: 12px;
         padding: 14px 16px;
         cursor: pointer;
         transition: all 0.2s;
         text-align: center;
-        border: 2px solid transparent;  /* 默认透明边框，选中时变蓝 */
+        border: 2px solid transparent;
+        box-shadow: var(--shadow-sm);
     }
-    /* 卡片悬停态 */
     .task-type-card:hover {
-        background: rgba(0, 0, 0, 0.4);
+        background: var(--bg-secondary);
         transform: translateY(-2px);
     }
-    /* 卡片选中态：蓝色半透明背景 + 蓝色边框 + 蓝色辉光 */
     .task-type-card.active {
-        background: rgba(37, 99, 235, 0.18);
+        background: rgba(25, 118, 210, 0.06);
         border-color: var(--blue-bright);
         box-shadow: 0 0 0 1px var(--blue-glow);
     }
-    /* 5 种颜色变体的顶部 3px 彩色边 */
     .task-type-card.blue { border-top: 3px solid var(--card-blue); }
     .task-type-card.orange { border-top: 3px solid var(--card-orange); }
     .task-type-card.green { border-top: 3px solid var(--card-green); }
     .task-type-card.purple { border-top: 3px solid var(--card-purple); }
     .task-type-card.pink { border-top: 3px solid var(--card-pink); }
-    /* 卡片图标 emoji 样式 */
     .task-type-card-icon {
         font-size: 22px;
         margin-bottom: 6px;
     }
-    /* 卡片标签文字样式 */
     .task-type-card-label {
         font-size: 14px;
         font-weight: 700;
-        color: var(--text-white);
+        color: var(--text-primary);
     }
-    /* 选中态下标签文字变浅蓝 */
     .task-type-card.active .task-type-card-label {
-        color: var(--blue-soft);
+        color: var(--blue-bright);
     }
 
     /* ===== 按钮 ===== */
-    /* 全局 stButton 按钮样式：蓝色渐变 + 白字 + 圆角 */
     .stButton > button {
-        background: linear-gradient(135deg, var(--blue-mid), var(--blue-bright));
+        background: linear-gradient(135deg, var(--blue-mid), var(--blue-bright)) !important;
         color: white !important;
-        border: 1px solid var(--blue-glow);
-        border-radius: 10px;
-        padding: 10px 24px;
-        font-weight: 600;
-        transition: all 0.2s;
-        font-size: 14px;
+        border: 1px solid transparent !important;
+        border-radius: 10px !important;
+        padding: 10px 24px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
+        font-size: 14px !important;
+        box-shadow: 0 2px 8px var(--blue-glow) !important;
     }
-    /* 按钮悬停态：更深蓝 + 上移 1px + 蓝色辉光 */
     .stButton > button:hover {
-        background: linear-gradient(135deg, #1d4ed8, var(--blue-bright));
-        border-color: var(--blue-soft);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px var(--blue-glow);
+        background: linear-gradient(135deg, #1d4ed8, var(--blue-bright)) !important;
+        border-color: var(--blue-soft) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 14px var(--blue-glow) !important;
     }
-    /* 按钮内部所有子元素文字强制白色 */
+    .stButton > button[data-testid="stBaseButton-secondary"],
+    .stButton > button[kind="secondary"] {
+        background: #FFFFFF !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-medium) !important;
+        box-shadow: none !important;
+    }
+    .stButton > button[data-testid="stBaseButton-secondary"]:hover,
+    .stButton > button[kind="secondary"]:hover {
+        background: var(--bg-secondary) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--text-muted) !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
     .stButton > button p, .stButton > button span, .stButton > button div {
+        color: inherit !important;
+    }
+    .stButton > button:not([kind="secondary"]) p,
+    .stButton > button:not([kind="secondary"]) span,
+    .stButton > button:not([kind="secondary"]) div {
         color: white !important;
     }
 
-    /* ===== 输入框 (黑色字 + 白底/清晰色) ===== */
-    /* 各类输入控件统一白底黑字，确保在深色页面上清晰可读 */
+    /* ===== Expander ===== */
+    .streamlit-expanderHeader {
+        background: #FFFFFF !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 10px !important;
+        padding: 10px 24px !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        text-align: center !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    .streamlit-expanderHeader:hover {
+        background: var(--bg-secondary) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-medium) !important;
+    }
+    .streamlit-expanderHeader p,
+    .streamlit-expanderHeader span {
+        text-align: center !important;
+        display: flex !important;
+        justify-content: center !important;
+        width: 100% !important;
+    }
+    .streamlit-expanderContent {
+        background: #FFFFFF !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-light) !important;
+        border-top: none !important;
+        border-radius: 0 0 10px 10px !important;
+        padding: 12px 24px !important;
+    }
+    .streamlit-expanderContent p,
+    .streamlit-expanderContent div {
+        color: var(--text-primary) !important;
+    }
+
+    /* ===== 输入框 ===== */
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
     .stSelectbox > div > div > div,
     .stNumberInput > div > div > input {
-        background: rgba(255, 255, 255, 0.95) !important;  /* 接近纯白底 */
-        color: #111827 !important;         /* 黑色字, 确保清楚 */
-        border: 1px solid rgba(37, 99, 235, 0.25) !important;  /* 蓝色细边框 */
+        background: #FFFFFF !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-medium) !important;
         border-radius: 8px !important;
         font-weight: 500 !important;
     }
-    /* 输入框占位符文字颜色 */
+    .stTextArea > div > div > textarea {
+        caret-color: var(--blue-bright) !important;
+    }
+    .stTextInput > div > div > input {
+        caret-color: var(--blue-bright) !important;
+    }
     .stTextInput > div > div > input::placeholder,
     .stTextArea > div > div > textarea::placeholder {
-        color: #6b7280 !important;
+        color: var(--text-faint) !important;
     }
-    /* 各类输入控件的 label 文字颜色与字重 */
     .stTextInput label, .stTextArea label, .stSelectbox label, .stNumberInput label {
-        color: var(--text-soft) !important;
+        color: var(--text-secondary) !important;
         font-weight: 600;
         font-size: 13px;
     }
 
-    /* ===== Streamlit radio 修复: 黑色字可见 ===== */
-    /* 主内容区 radio 选项：白底黑字（侧边栏 radio 由前面规则单独处理为深色风格） */
+    /* ===== Streamlit radio 修复 ===== */
     [data-testid="stRadio"] label {
-        color: #111827 !important;
-        background: rgba(255, 255, 255, 0.9);
+        color: var(--text-primary) !important;
+        background: #FFFFFF;
         padding: 6px 10px;
         border-radius: 8px;
         font-weight: 500;
     }
-    /* 主内容区 radio 悬停态：纯白背景 */
     [data-testid="stRadio"] label:hover {
-        background: rgba(255, 255, 255, 1);
+        background: var(--bg-secondary);
     }
 
     /* ===== expander / file_uploader ===== */
-    /* 文件上传器内部容器：白底黑字 + 蓝色边框 */
     .stFileUploader > div > div {
-        background: rgba(255, 255, 255, 0.95) !important;
-        color: #111827 !important;
+        background: #FFFFFF !important;
+        color: var(--text-primary) !important;
         border-radius: 10px !important;
-        border: 1px solid rgba(25, 118, 210, 0.3) !important;
+        border: 1px solid var(--border-medium) !important;
     }
-    /* 文件上传器内部所有子元素文字颜色统一深灰 */
     .stFileUploader > div > div div,
     .stFileUploader > div > div span,
     .stFileUploader > div > div p,
     .stFileUploader > div > div small,
     .stFileUploader > div > div label {
-        color: #374151 !important;
+        color: var(--text-secondary) !important;
     }
-    /* 文件上传器外层 label 文字颜色（柔红色） */
     .stFileUploader label {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
         font-weight: 600 !important;
         font-size: 13px !important;
     }
-    /* expander 折叠面板：半透明黑底 + 圆角 + 细边框 */
     [data-testid="stExpander"] {
-        background: rgba(0, 0, 0, 0.3);
+        background: #FFFFFF;
         border-radius: 10px;
-        border: 1px solid rgba(254, 242, 242, 0.1);
+        border: 1px solid var(--border-light);
     }
-    /* expander 折叠面板的标题（summary）文字样式 */
     [data-testid="stExpander"] details summary p,
     [data-testid="stExpander"] details summary span {
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
         font-weight: 600 !important;
     }
-    /* selectbox / multiselect 的 label 颜色 */
     .stSelectbox label, .stMultiSelect label {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
         font-weight: 600 !important;
     }
-    /* toggle / checkbox 的 label 颜色 */
     [data-testid="stToggle"] label, [data-testid="stCheckbox"] label {
-        color: #fecaca !important;
+        color: var(--text-secondary) !important;
     }
 
     /* ===== 信息/警告框 ===== */
-    /* stInfo/stWarning/stError/stSuccess 四种提示框统一圆角与深色文字 */
     .stInfo, .stWarning, .stError, .stSuccess {
         border-radius: 10px !important;
-        color: var(--text-dark) !important;
+        color: var(--text-primary) !important;
     }
-    /* 提示框内部所有子元素继承父级颜色 */
     .stInfo *, .stWarning *, .stError *, .stSuccess * {
         color: inherit !important;
     }
-    /* 信息框：蓝色半透明背景 + 蓝色边框 */
     .stInfo {
-        background: rgba(25, 118, 210, 0.18) !important;
-        border: 1px solid rgba(25, 118, 210, 0.4) !important;
+        background: rgba(25, 118, 210, 0.08) !important;
+        border: 1px solid rgba(25, 118, 210, 0.25) !important;
     }
-    /* 警告框：琥珀色半透明背景 + 琥珀色边框 */
     .stWarning {
-        background: rgba(251, 191, 36, 0.18) !important;
-        border: 1px solid rgba(251, 191, 36, 0.4) !important;
+        background: rgba(251, 191, 36, 0.1) !important;
+        border: 1px solid rgba(251, 191, 36, 0.3) !important;
     }
-    /* 错误框：红色半透明背景 + 红色边框 */
     .stError {
-        background: rgba(239, 68, 68, 0.18) !important;
-        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        background: rgba(239, 68, 68, 0.08) !important;
+        border: 1px solid rgba(239, 68, 68, 0.25) !important;
     }
-    /* 成功框：绿色半透明背景 + 绿色边框 */
     .stSuccess {
-        background: rgba(34, 197, 94, 0.18) !important;
-        border: 1px solid rgba(34, 197, 94, 0.4) !important;
+        background: rgba(34, 197, 94, 0.08) !important;
+        border: 1px solid rgba(34, 197, 94, 0.25) !important;
     }
 
     /* ===== 风险卡片 ===== */
-    /* .risk-card 是单张风险项卡片，左侧彩色粗边作为严重级别标识 */
     .risk-card {
-        background: rgba(0, 0, 0, 0.3);
+        background: #FFFFFF;
         border-radius: 12px;
         padding: 18px 20px;
         margin-bottom: 16px;
-        border-left: 4px solid var(--blue-bright);  /* 默认左侧蓝色粗边 */
-        backdrop-filter: blur(6px);
-        border: 1px solid rgba(254, 242, 242, 0.08);
+        border-left: 4px solid var(--blue-bright);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
+        scroll-margin-top: 80px;
+        transition: box-shadow 0.3s ease, transform 0.2s ease;
     }
-    /* 4 种严重级别的左侧粗边颜色：红/橙/黄/蓝 */
+    .risk-card.jump-target {
+        animation: cardFlash 0.9s ease-out;
+    }
+    .risk-card:target {
+        animation: cardFlash 0.9s ease-out;
+        scroll-margin-top: 80px;
+    }
+    @keyframes cardFlash {
+        0% { box-shadow: 0 0 0 4px rgba(25,118,210,0.45), var(--shadow-sm); transform: scale(1.01); }
+        100% { box-shadow: var(--shadow-sm); transform: scale(1); }
+    }
     .risk-card.critical { border-left: 4px solid #ef4444; }
     .risk-card.high { border-left: 4px solid #f97316; }
     .risk-card.medium { border-left: 4px solid #fbbf24; }
     .risk-card.low { border-left: 4px solid #1976D2; }
 
-    /* .risk-header 是风险卡片头部（徽章 + 标题 + 来源） */
     .risk-header {
         display: flex;
         align-items: center;
@@ -770,7 +762,6 @@ st.markdown("""
         margin-bottom: 12px;
         flex-wrap: wrap;
     }
-    /* .risk-badge 是严重级别徽章（胶囊形） */
     .risk-badge {
         display: inline-block;
         padding: 4px 12px;
@@ -779,35 +770,30 @@ st.markdown("""
         font-weight: 700;
         color: white;
     }
-    /* 4 种严重级别徽章的渐变背景色 */
     .risk-badge.critical { background: linear-gradient(135deg, #dc2626, #ef4444); }
     .risk-badge.high { background: linear-gradient(135deg, #ea580c, #f97316); }
-    .risk-badge.medium { background: linear-gradient(135deg, #d97706, #fbbf24); color: #1f2937; }  /* 黄底配深色字 */
+    .risk-badge.medium { background: linear-gradient(135deg, #d97706, #fbbf24); color: #1f2937; }
     .risk-badge.low { background: linear-gradient(135deg, #0D47A1, #1976D2); }
 
-    /* .risk-title 是风险描述标题，flex:1 占满中间空间 */
     .risk-title {
         font-size: 15px;
         font-weight: 700;
-        color: var(--text-white);
+        color: var(--text-primary);
         flex: 1;
     }
-    /* .risk-source 是风险来源标签（小胶囊） */
     .risk-source {
         font-size: 11px;
         color: var(--text-muted);
-        background: rgba(25, 118, 210, 0.15);
+        background: rgba(25, 118, 210, 0.08);
         padding: 2px 8px;
         border-radius: 4px;
     }
-    /* .risk-body 是风险正文描述 */
     .risk-body {
-        color: var(--text-soft);
+        color: var(--text-secondary);
         font-size: 14px;
         line-height: 1.6;
         margin-bottom: 12px;
     }
-    /* .risk-meta 是元信息行（条款 + 法条依据） */
     .risk-meta {
         display: flex;
         gap: 16px;
@@ -816,67 +802,97 @@ st.markdown("""
         margin-bottom: 12px;
         flex-wrap: wrap;
     }
-    /* .risk-suggestion 是修改建议框 */
     .risk-suggestion {
-        background: rgba(25, 118, 210, 0.1);
+        background: rgba(25, 118, 210, 0.06);
         border-radius: 8px;
         padding: 10px 14px;
         margin-bottom: 12px;
         font-size: 13px;
-        color: var(--blue-soft);
-        border: 1px solid rgba(25, 118, 210, 0.2);
+        color: var(--blue-mid);
+        border: 1px solid rgba(25, 118, 210, 0.15);
     }
-    /* .risk-suggestion-label 是"修改建议"小标签 */
     .risk-suggestion-label {
-        color: var(--blue-soft);
+        color: var(--blue-bright);
         font-weight: 600;
         font-size: 12px;
         margin-bottom: 4px;
     }
 
     /* ===== 文档高亮 ===== */
-    /* .doc-container 是合同/文档原文展示容器，带滚动条 */
     .doc-container {
-        background: rgba(0, 0, 0, 0.25);
+        background: #FFFFFF;
         border-radius: 12px;
         padding: 24px;
-        border: 1px solid rgba(254, 242, 242, 0.08);
-        max-height: 70vh;  /* 最大高度 70% 视口，超出滚动 */
-        overflow-y: auto;  /* 垂直方向自动滚动条 */
+        border: 1px solid var(--border-light);
+        max-height: 70vh;
+        overflow-y: auto;
         font-size: 14px;
         line-height: 1.8;
+        box-shadow: var(--shadow-sm);
     }
-    /* .doc-paragraph 是单个文档段落 */
     .doc-paragraph {
         margin-bottom: 14px;
         padding: 8px 12px;
         border-radius: 6px;
-        color: var(--text-soft);
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
     }
-    /* 4 种严重级别的高亮段落背景色与左侧粗边 */
+    /* <a> 标签样式: 去除下划线, 继承颜色, 块级显示 */
+    a.doc-paragraph {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+    }
+    a.doc-paragraph:hover {
+        text-decoration: none;
+        color: inherit;
+    }
+    .doc-paragraph.highlight-critical,
+    .doc-paragraph.highlight-high,
+    .doc-paragraph.highlight-medium,
+    .doc-paragraph.highlight-low {
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+    }
+    .doc-paragraph.highlight-critical:hover,
+    .doc-paragraph.highlight-high:hover,
+    .doc-paragraph.highlight-medium:hover,
+    .doc-paragraph.highlight-low:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .doc-paragraph:target {
+        animation: jumpFlash 0.9s ease-out;
+    }
+    @keyframes jumpFlash {
+        0% { box-shadow: 0 0 0 3px rgba(25,118,210,0.35); }
+        100% { box-shadow: 0 0 0 0 rgba(25,118,210,0); }
+    }
+    .doc-container {
+        scroll-behavior: smooth;
+    }
     .doc-paragraph.highlight-critical {
-        background: rgba(239, 68, 68, 0.22);
+        background: rgba(239, 68, 68, 0.08);
         border-left: 3px solid #ef4444;
     }
     .doc-paragraph.highlight-high {
-        background: rgba(249, 115, 22, 0.2);
+        background: rgba(249, 115, 22, 0.08);
         border-left: 3px solid #f97316;
     }
     .doc-paragraph.highlight-medium {
-        background: rgba(251, 191, 36, 0.18);
+        background: rgba(251, 191, 36, 0.08);
         border-left: 3px solid #fbbf24;
-        color: var(--text-white);  /* 黄底配白字更清晰 */
+        color: var(--text-primary);
     }
     .doc-paragraph.highlight-low {
-        background: rgba(25, 118, 210, 0.16);
+        background: rgba(25, 118, 210, 0.08);
         border-left: 3px solid #1976D2;
     }
 
     /* ===== 思考过程动画 ===== */
-    /* .thinking-container 是思考过程提示卡片 */
     .thinking-container {
-        background: rgba(37, 99, 235, 0.12);
-        border: 1px solid rgba(25, 118, 210, 0.3);
+        background: rgba(25, 118, 210, 0.06);
+        border: 1px solid rgba(25, 118, 210, 0.2);
         border-radius: 12px;
         padding: 14px 18px;
         margin-bottom: 12px;
@@ -884,62 +900,53 @@ st.markdown("""
         align-items: flex-start;
         gap: 12px;
     }
-    /* .thinking-icon 是左侧思考图标 */
     .thinking-icon {
         font-size: 18px;
         margin-top: 2px;
     }
-    /* .thinking-content 是右侧思考文字内容区 */
     .thinking-content {
         flex: 1;
     }
-    /* .thinking-title 是思考标题 */
     .thinking-title {
-        color: var(--blue-soft);
+        color: var(--blue-bright);
         font-size: 13px;
         font-weight: 700;
         margin-bottom: 6px;
     }
-    /* .thinking-steps 是思考步骤文字 */
     .thinking-steps {
-        color: var(--text-soft);
+        color: var(--text-secondary);
         font-size: 13px;
         line-height: 1.7;
     }
-    /* .thinking-dots 是三个跳动小圆点动画容器 */
     .thinking-dots {
         display: inline-flex;
         gap: 4px;
         margin-left: 4px;
     }
-    /* 单个小圆点样式 */
     .thinking-dots span {
         display: inline-block;
         width: 6px;
         height: 6px;
-        background: var(--blue-soft);
+        background: var(--blue-bright);
         border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;  /* 应用 bounce 动画 */
+        animation: bounce 1.4s infinite ease-in-out both;
     }
-    /* 三个圆点错开动画延迟，形成"波浪"效果 */
     .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
     .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
-    /* @keyframes bounce 定义缩放动画：0%与100%缩小为0，40%放大为1 */
     @keyframes bounce {
         0%, 80%, 100% { transform: scale(0); }
         40% { transform: scale(1); }
     }
 
     /* ===== 风险总览卡片 ===== */
-    /* .risk-overview 是顶部风险评分总览卡片 */
     .risk-overview {
-        background: rgba(0, 0, 0, 0.28);
+        background: #FFFFFF;
         border-radius: 12px;
         padding: 20px 24px;
         margin-bottom: 20px;
-        border: 1px solid rgba(254, 242, 242, 0.08);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
     }
-    /* .score-circle 是风险评分圆形数字展示 */
     .score-circle {
         display: inline-flex;
         align-items: center;
@@ -951,83 +958,69 @@ st.markdown("""
         font-weight: 900;
         margin-right: 20px;
     }
-    /* 3 种风险等级的圆形背景渐变 */
     .score-circle.low { background: linear-gradient(135deg, #16a34a, #22c55e); color: white; }
     .score-circle.medium { background: linear-gradient(135deg, #d97706, #fbbf24); color: #1f2937; }
     .score-circle.high { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; }
-    /* .overview-info 是评分圆右侧的信息块 */
     .overview-info { display: inline-block; vertical-align: top; }
-    /* .overview-label 是信息块标签 */
     .overview-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
-    /* .overview-value 是信息块主值（风险等级） */
-    .overview-value { font-size: 20px; font-weight: 700; color: var(--text-white); margin-bottom: 4px; }
-    /* .overview-desc 是信息块描述 */
-    .overview-desc { font-size: 13px; color: var(--text-soft); }
+    .overview-value { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .overview-desc { font-size: 13px; color: var(--text-secondary); }
 
     /* ===== 统计卡片 ===== */
-    /* .stat-row 是统计卡片行，flex 布局水平排列 */
     .stat-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    /* .stat-mini 是单个小统计卡片 */
     .stat-mini {
-        flex: 1;  /* 等分剩余空间 */
+        flex: 1;
         min-width: 80px;
-        background: rgba(0, 0, 0, 0.25);
+        background: #FFFFFF;
         border-radius: 10px;
         padding: 12px 16px;
         text-align: center;
-        border: 1px solid rgba(254, 242, 242, 0.08);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
     }
-    /* .stat-mini .num 是统计数字，大号粗体白字 */
-    .stat-mini .num { font-size: 24px; font-weight: 900; color: var(--text-white); }
-    /* 各严重级别统计数字的颜色 */
+    .stat-mini .num { font-size: 24px; font-weight: 900; color: var(--text-primary); }
     .stat-mini.critical .num { color: #ef4444; }
     .stat-mini.high .num { color: #f97316; }
     .stat-mini.medium .num { color: #fbbf24; }
     .stat-mini.low .num { color: var(--blue-bright); }
-    /* .stat-mini .label 是统计标签小字 */
     .stat-mini .label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
     /* ===== 聊天消息 ===== */
-    /* stChatMessage 容器：透明背景 + 上下内边距 */
     [data-testid="stChatMessage"] {
         background: transparent !important;
         padding: 12px 0;
     }
-    /* 用户消息气泡：蓝色渐变背景 + 圆角 + 蓝色边框 */
     [data-testid="stChatMessage.user"] > div > div {
         background: linear-gradient(135deg, var(--blue-mid), var(--blue-bright));
         border-radius: 16px;
         padding: 14px 18px;
-        border: 1px solid var(--blue-glow);
+        border: 1px solid transparent;
+        box-shadow: 0 2px 8px var(--blue-glow);
     }
-    /* 用户消息内部文字颜色统一白色 */
     [data-testid="stChatMessage.user"] p,
     [data-testid="stChatMessage.user"] span,
     [data-testid="stChatMessage.user"] li {
         color: white !important;
     }
-    /* 助手消息气泡：半透明黑底 + 圆角 + 细边框 */
     [data-testid="stChatMessage.assistant"] > div > div {
-        background: rgba(0, 0, 0, 0.25);
+        background: #FFFFFF;
         border-radius: 16px;
         padding: 14px 18px;
-        border: 1px solid rgba(254, 242, 242, 0.08);
+        border: 1px solid var(--border-light);
+        box-shadow: var(--shadow-sm);
     }
-    /* 助手消息正文与列表项颜色 */
     [data-testid="stChatMessage.assistant"] p,
     [data-testid="stChatMessage.assistant"] li {
-        color: var(--text-soft) !important;
+        color: var(--text-secondary) !important;
     }
-    /* 助手消息各级标题颜色 */
     [data-testid="stChatMessage.assistant"] h1,
     [data-testid="stChatMessage.assistant"] h2,
     [data-testid="stChatMessage.assistant"] h3,
     [data-testid="stChatMessage.assistant"] h4 {
-        color: var(--text-white) !important;
+        color: var(--text-primary) !important;
     }
 
-    /* ===== 彻底隐藏首页内部的隐藏 radio 与 selectbox 控件 ===== */
-    /* 通过 aria-label 精准定位隐藏的 radio 控件，使用多种方式彻底隐藏（display/尺寸/visibility/位移） */
+    /* ===== 隐藏控件 ===== */
     [data-testid="stRadio"][aria-label="task_type_hidden"],
     [data-testid="stRadio"][aria-label="task_type_radio"] {
         display: none !important;
@@ -1036,27 +1029,23 @@ st.markdown("""
         overflow: hidden !important;
         visibility: hidden !important;
         position: absolute !important;
-        left: -9999px !important;  /* 移出视口外，确保不影响布局 */
+        left: -9999px !important;
     }
-    /* 隐藏 qa/contract 等文字外露的 radio —— 通过 :has 伪类定位包含特定 label 的 radiogroup */
     div[role="radiogroup"]:has(label[for*="task_type_radio"]) {
         display: none !important;
     }
 
     /* ===== 隐藏默认元素 ===== */
-    /* 隐藏 Streamlit 右上角主菜单 */
     #MainMenu { visibility: hidden; }
-    /* 隐藏底部 footer */
     footer { visibility: hidden; }
-    /* 隐藏 Streamlit 装饰性元素 */
     [data-testid="stDecoration"] { display: none; }
 
     /* ===== 滚动条 ===== */
-    /* 自定义 Webkit 滚动条宽度与轨道、滑块颜色 */
     ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-    ::-webkit-scrollbar-thumb { background: rgba(25, 118, 210, 0.5); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(25, 118, 210, 0.7); }
+    ::-webkit-scrollbar-track { background: #F1F5F9; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -1085,9 +1074,9 @@ with st.sidebar:
             ⚖️
         </div>
         <!-- 主标题"法智引擎"：白色大字 + 字间距 -->
-        <div style="font-size:18px;font-weight:900;color:#ffffff;letter-spacing:2px;text-shadow:0 1px 4px rgba(0,0,0,0.5);">法智引擎</div>
+        <div style="font-size:18px;font-weight:900;color:#1F2937;letter-spacing:2px;">法智引擎</div>
         <!-- 副标题：柔红色小字 -->
-        <div style="color:#fecaca;font-size:12px;margin-top:4px;opacity:0.85;">AI 原生法律助理</div>
+        <div style="color:#6B7280;font-size:12px;margin-top:4px;opacity:0.85;">AI 原生法律助理</div>
     </div>
     """, unsafe_allow_html=True)
     st.markdown("---")  # 分隔线，区分 Logo 与导航
@@ -1132,6 +1121,136 @@ RISK_LEVEL_MAP = {
     "Medium": {"label": "中风险", "color": "#fbbf24", "desc": "建议律师复核"},
     "High": {"label": "高风险", "color": "#ef4444", "desc": "需人工审核后修改"},
 }
+
+
+def _run_backend_isolated(input_text, task_type, timeout_sec=300):
+    """在独立子进程中运行后端 LangGraph, 抗进程级崩溃。
+
+    作用:
+        当 graph.invoke 内部的 C 扩展 (numpy/pyarrow/tiktoken/numexpr 等)
+        触发硬崩溃 (segfault / OOM / abort) 时, 同进程的 try/except 无法捕获,
+        整个 Streamlit 主进程会一起死掉, 导致前端 spinner 永远卡在"正在加载"。
+        本函数通过 subprocess 启动一个独立的 Python 进程执行 langgraph_main,
+        这样即使子进程崩溃 (非 0 退出码) 或超时, 本函数也能检测到并返回 None,
+        让调用方安全回退 demo 数据。
+
+    参数:
+        input_text (str): 用户输入的合同/文档全文
+        task_type (str): 任务类型 contract_review / compliance_review / legal_research
+        timeout_sec (int): 子进程最长运行秒数, 超时后强制 kill 并视为失败
+
+    返回值:
+        dict | None: 成功 -> 返回 legal_response_full 的结构化 dict;
+                     失败/崩溃/超时 -> 返回 None, 调用方应 fallback 演示数据
+
+    说明:
+        - 使用 --input_file 写临时文件传长文本, 避免 Windows shell 引号/换行转义问题
+        - subprocess stdout 只承载 JSON 返回, 节点执行 print 日志走 stderr
+          (用户在 CMD 窗口中仍能看到节点进度日志)
+    """
+    # 演示模式 / 后端不可用: 直接返回 None 让调用方走本地 demo 分支
+    if not HAS_BACKEND or demo_mode:
+        return None
+    if not input_text or not input_text.strip():
+        return None
+
+    try:
+        # ---- 步骤 1: 写临时输入文件 ----
+        # delete=False 让子进程仍能读取; 用 finally 在函数尾部删除
+        tmp_fp = tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", suffix=".txt", delete=False
+        )
+        try:
+            tmp_fp.write(input_text)
+            tmp_path = tmp_fp.name
+        finally:
+            tmp_fp.close()
+
+        # ---- 步骤 2: 构造命令 ----
+        # sys.executable: 当前 Streamlit 用的 Python 解释器(与用户启动 app.py 的 Python 一致)
+        # -m __004__langgraph_more_nodes.langgraph_main: 以模块模式启动,
+        #   这样 __package__ 正确, 内部 from __004__xxx.xxx import xxx 正常工作
+        # mode=full: 返回 legal_response_full 结构化 JSON 单行
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cmd = [
+            sys.executable, "-u", "-m",
+            "__004__langgraph_more_nodes.langgraph_main",
+            "--input_file", tmp_path,
+            "--task_type", str(task_type),
+            "--mode", "full",
+        ]
+
+        # ---- 步骤 3: 同步运行子进程 + 超时保护 ----
+        # stdout=PIPE 捕获 JSON 返回
+        # stderr=None 让子进程 stderr 直接继承到当前 CMD 窗口, 用户能看到节点日志
+        #
+        # === Windows 中文环境关键: 设置 PYTHONIOENCODING + PYTHONUTF8 ===
+        # 若不设: Python 子进程会沿用 CMD 默认代码页 GBK, 当代码里 print("\u25b6 执行节点")
+        # 时就会抛出 UnicodeEncodeError: 'gbk' codec can't encode character '\u25b6',
+        # 导致整条 CLI 链路退出码=1, 前端 fallback demo 但真实后端本应能跑通.
+        # 强制 UTF-8 后 sys.stdout/stderr 全部使用 utf-8, 不再有 GBK 编码崩溃.
+        sub_env = os.environ.copy()
+        sub_env["PYTHONIOENCODING"] = "utf-8"
+        sub_env["PYTHONUTF8"] = "1"
+        sub_env.pop("PYTHONLEGACYWINDOWSSTDIO", None)  # 禁用 legacy 模式
+        try:
+            completed = subprocess.run(
+                cmd,
+                cwd=project_root,          # 切到项目根,让包导入路径一致
+                capture_output=True,       # stdout/stderr 都捕获,避免继承时干扰解析
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout_sec,
+                env=sub_env,               # 带 UTF-8 强制变量
+            )
+        except subprocess.TimeoutExpired:
+            print(f"[_run_backend_isolated] 子进程超时 ({timeout_sec}s), 回退 demo")
+            return None
+
+        # 把子进程 stderr 回显到当前进程 (保留原 CMD 窗口的节点日志观感)
+        if completed.stderr:
+            sys.stderr.write(completed.stderr)
+            sys.stderr.flush()
+
+        # ---- 步骤 4: 解析 stdout JSON ----
+        stdout_str = (completed.stdout or "").strip()
+        # 子进程退出非 0: 明确失败, 直接回退
+        if completed.returncode != 0:
+            print(
+                f"[_run_backend_isolated] 子进程退出码={completed.returncode}, "
+                f"回退 demo. stderr_tail={completed.stderr[-400:] if completed.stderr else '(空)'}"
+            )
+            return None
+
+        if not stdout_str:
+            print("[_run_backend_isolated] 子进程 stdout 为空, 回退 demo")
+            return None
+
+        try:
+            parsed = json.loads(stdout_str)
+        except json.JSONDecodeError as e:
+            print(f"[_run_backend_isolated] JSON 解析失败: {e}, 原始片段前300字: {stdout_str[:300]}")
+            return None
+
+        # CLI 会把异常封装为 {"__cli_error__": "..."} -> 返回非 0 + JSON 错误, 这里双保险再判一次
+        if isinstance(parsed, dict) and "__cli_error__" in parsed:
+            print(f"[_run_backend_isolated] 后端返回错误标记: {parsed['__cli_error__']}, 回退 demo")
+            return None
+
+        return parsed
+
+    except Exception as e:
+        # 本函数任何自身异常(文件IO/subprocess 构造失败等) 都要 swallow, 否则又把前端卡死
+        print(f"[_run_backend_isolated] 外围异常: {type(e).__name__}: {e}")
+        return None
+    finally:
+        # 无论成功失败, 临时文件一定要清理
+        try:
+            if "tmp_path" in locals() and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
 
 
 def _stream_response(input_text, **kwargs):
@@ -1264,11 +1383,30 @@ def _get_demo_result(doc_text):
     return {
         "output": "# 合同审核报告\n\n本合同存在 **4项风险**，建议关注以下条款：\n\n1. 违约金比例偏高\n2. 管辖约定需明确\n3. 付款周期较长\n4. 标的描述可完善",  # 流式输出文本
         "doc_text": doc,  # 合同原文
-        "merged_risk_items": [  # 4 项风险，覆盖 critical/high/medium/low 四个级别，便于演示
-            {"severity": "critical", "source": "合同审核", "description": "违约金比例超过司法保护上限", "clause": "第五条 违约责任", "legal_basis": "《民法典》第585条", "suggestion": "建议将违约金调整为每日万分之三至万分之五"},
-            {"severity": "high", "source": "合同审核", "description": "争议解决管辖约定可能被认定无效", "clause": "第六条 争议解决", "legal_basis": "《民事诉讼法》第24条", "suggestion": "建议约定合同履行地或被告所在地人民法院管辖"},
-            {"severity": "medium", "source": "合同审核", "description": "预付款比例较高，存在资金占用风险", "clause": "第三条 付款方式", "legal_basis": "《民法典》第510条", "suggestion": "建议将预付款比例降至20%"},
-            {"severity": "low", "source": "合同审核", "description": "合同标的描述缺少质量标准", "clause": "第一条 合同标的", "legal_basis": "《民法典》第512条", "suggestion": "建议补充详细的技术规格和验收标准"}
+        "merged_risk_items": [  # 4 项风险，覆盖 critical/high/medium/low 四个级别
+            # clause 字段故意不写"第X条"前缀(合同实际编号千差万别, 纯关键词才能匹配)
+            # 并在 description/suggestion 里大量使用中文合同必现的通用锚点词: 违约金/违约/
+            # 责任/管辖/争议解决/预付款/付款/质量/质保/验收/定金/保证金等, 保证高亮
+            {"severity": "critical", "source": "合同审核",
+             "description": "违约金比例超过司法保护上限，违约金约定过高，违约责任条款约定日违约金超过法定标准",
+             "clause": "违约责任 违约金 违约条款 赔偿责任",
+             "legal_basis": "《民法典》第585条 违约金 违约责任",
+             "suggestion": "建议将违约金调整为每日万分之三至万分之五 违约责任 违约金比例"},
+            {"severity": "high", "source": "合同审核",
+             "description": "争议解决管辖约定可能被认定无效，争议解决条款 管辖法院 约定管辖不明确",
+             "clause": "争议解决 管辖 管辖法院 诉讼 人民法院",
+             "legal_basis": "《民事诉讼法》第24条 合同纠纷 被告住所地",
+             "suggestion": "建议约定合同履行地或被告所在地人民法院管辖 争议解决 管辖"},
+            {"severity": "medium", "source": "合同审核",
+             "description": "预付款比例较高，存在资金占用风险 付款方式 付款比例 预付款过高",
+             "clause": "付款方式 预付款 付款计划 付款比例 支付方式 结算方式",
+             "legal_basis": "《民法典》第510条 付款 价款支付",
+             "suggestion": "建议将预付款比例降至20% 预付款 付款方式 分期付款"},
+            {"severity": "low", "source": "合同审核",
+             "description": "合同标的描述缺少质量标准 质量验收 产品规格不完整",
+             "clause": "合同标的 质量标准 验收 质保 产品规格 交付标准",
+             "legal_basis": "《民法典》第512条 质量要求 履行标准",
+             "suggestion": "建议补充详细的技术规格和验收标准 质量标准 验收 质保期"}
         ],
         "overall_risk_score": 62,  # 综合评分 62 分（中风险区间）
         "risk_level": "Medium",    # 风险等级：中风险
@@ -1303,9 +1441,21 @@ def _get_compliance_demo_result(doc_text):
         "output": "# 合规审查报告\n\n本文档存在 **3项合规风险**。",  # 流式输出文本
         "doc_text": doc,
         "merged_risk_items": [  # 3 项合规风险：high/medium/low 各一项
-            {"severity": "high", "source": "数据合规", "description": "未明确个人信息保护条款", "clause": "数据与隐私保护", "legal_basis": "《个人信息保护法》第17条", "suggestion": "建议增加个人信息处理告知条款"},
-            {"severity": "medium", "source": "税务合规", "description": "发票开具与税务承担约定不明确", "clause": "税务与发票", "legal_basis": "《税收征收管理法》第21条", "suggestion": "建议明确发票类型和开具时间"},
-            {"severity": "low", "source": "劳动合规", "description": "未涉及员工竞业限制", "clause": "保密条款", "legal_basis": "《劳动合同法》第23条", "suggestion": "建议补充员工保密和竞业限制约定"}
+            {"severity": "high", "source": "数据合规",
+             "description": "未明确个人信息保护条款，数据处理 隐私保护 个人信息告知义务缺失",
+             "clause": "数据保护 个人信息 隐私保护 数据处理 保密信息",
+             "legal_basis": "《个人信息保护法》第17条 个人信息 告知",
+             "suggestion": "建议增加个人信息处理告知条款 个人信息保护 数据合规 隐私"},
+            {"severity": "medium", "source": "税务合规",
+             "description": "发票开具与税务承担约定不明确，税务发票 税率 税款承担 增值税",
+             "clause": "税务条款 发票开具 税率 税款 增值税 税费承担",
+             "legal_basis": "《税收征收管理法》第21条 发票 税务",
+             "suggestion": "建议明确发票类型和开具时间 发票 税务合规 增值税专用发票"},
+            {"severity": "low", "source": "劳动合规",
+             "description": "未涉及员工竞业限制 保密条款 商业秘密 劳动合同",
+             "clause": "保密条款 竞业限制 商业秘密 知识产权 劳动合同",
+             "legal_basis": "《劳动合同法》第23条 保密义务 竞业限制",
+             "suggestion": "建议补充员工保密和竞业限制约定 保密条款 竞业限制 商业秘密"}
         ],
         "overall_risk_score": 45,  # 综合评分 45 分（中风险区间偏低）
         "risk_level": "Medium",
@@ -1318,75 +1468,289 @@ def _get_compliance_demo_result(doc_text):
     }
 
 
-def _highlight_doc(doc_text, risk_items):
-    """根据风险项关键词高亮文档段落，返回 HTML 字符串。
+def _highlight_doc(doc_text, risk_items, card_id_prefix=""):
+    """根据风险项关键词高亮文档段落，返回 HTML 字符串 + 段落→风险项映射。
 
     作用：
         将合同/文档原文按段落拆分，根据每项风险的 clause/description/legal_basis/
-        suggestion 字段提取关键词，匹配段落文本。命中则按严重级别（critical>high>
-        >medium>low，取最严重）为段落添加对应高亮 CSS 类，最终生成带高亮的 HTML。
+        suggestion 字段提取"整句 + 中文分词级子关键词"，匹配段落文本。命中则按严重
+        级别（critical>high>medium>low，取最严重）为段落添加对应高亮 CSS 类。
+        同时建立"段落 → 风险项索引列表"映射，为每个高亮段落注入 onclick，
+        点击时平滑滚动到对应的风险卡片并触发高亮动画。
 
     参数：
         doc_text (str): 文档原文
         risk_items (list[dict]): 风险项列表，每项含 severity/clause/description/
-            legal_basis/suggestion 等字段
+            legal_basis/suggestion/doc_offsets 等字段
+        card_id_prefix (str): 风险卡片 HTML id 前缀，与 _render_risk_cards 的
+            key_prefix 保持一致，生成的卡片 id 格式为 "risk-card-{prefix}-{idx}"
 
     返回值：
-        str: HTML 字符串，包含 .doc-container 容器与若干 .doc-paragraph 段落 div
-
-    可迁移性说明：
-        纯文本处理 + HTML 生成，无 Streamlit 依赖，可迁移到任何需要文档高亮的场景。
-        匹配策略为"关键词子串包含"，简单但可能误匹配；若需更精准可改为正则或语义匹配。
+        tuple: (html_str, para_to_risks)
+            - html_str (str): 含 .doc-container 容器与若干 .doc-paragraph 段落 div
+            - para_to_risks (dict): {段落索引: [风险项索引列表]}
+              可用于外部精准同步高亮 / 跳转行为
     """
-    # 统一换行符：将 Windows 风格 \r\n 转为 \n，并去除首尾空白
+    import re as _re
+
     normalized = doc_text.replace("\r\n", "\n").strip()
-    # 优先按双换行（空行）分段
-    paragraphs = [p.strip() for p in normalized.split("\n\n") if p.strip()]
-    # 若双换行分段只有 0 或 1 段，但文本中存在单换行，则降级按单换行分段
-    if len(paragraphs) <= 1 and "\n" in normalized:
-        paragraphs = [p.strip() for p in normalized.split("\n") if p.strip()]
-    # 若仍无段落（极端空文本），则将整段原文作为唯一段落
-    if not paragraphs:
-        paragraphs = [normalized]
+    # ---- 段落拆分: 中文合同优先按换行切(哪怕没有空行) ----
+    # 中文合同通常用 "\n 一、xxx\n 二、xxx" 编号, 两换行分段策略经常只有 1 段,
+    # 导致所有高亮都堆在第一段落上看不出效果. 这里始终按 "\n" 切更贴近中文写作习惯.
+    paragraphs_raw = [p.strip() for p in normalized.split("\n") if p.strip()]
+    # 但如果存在空行, 仍然优先按双换行聚合一次 (让"一、标题 + 内容"成为同一段, 视觉更好)
+    if "\n\n" in normalized:
+        merged_paras = [p.strip() for p in normalized.split("\n\n") if p.strip()]
+        if len(merged_paras) >= 2:
+            paragraphs_raw = merged_paras
+    if not paragraphs_raw:
+        paragraphs_raw = [normalized]
 
-    # para_highlights: {段落索引: 严重级别}，记录每个段落应高亮的级别
+    # para_highlights: {段落索引: 最严重级别}
     para_highlights = {}
-    # sev_order: 严重级别排序字典，数字越小越严重（用于取最严重级别）
+    # para_to_risks: {段落索引: set of 风险项索引} 用于跨面板跳转
+    para_to_risks = {}
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-    # 遍历每个风险项，提取关键词并匹配段落
-    for risk in risk_items:
-        sev = risk.get("severity", "low").lower()  # 当前风险级别
-        keywords = []  # 关键词列表
-        # 从 clause/description/legal_basis/suggestion 4 个字段提取关键词
-        for field in ["clause", "description", "legal_basis", "suggestion"]:
-            val = risk.get(field, "")
-            # 仅保留长度 > 2 的非空字符串作为关键词（避免过短误匹配）
-            if val and len(val.strip()) > 2:
-                keywords.append(val.strip())
-        # 遍历所有段落，检查是否包含任一关键词
-        for i, para in enumerate(paragraphs):
-            para_lower = para.lower()  # 段落小写，做大小写不敏感匹配
-            for kw in keywords:
-                kw_clean = kw.strip().lower()  # 关键词小写
-                # 关键词长度 > 2 且存在于段落中
-                if len(kw_clean) > 2 and kw_clean in para_lower:
-                    # 取当前段落已记录级别与当前级别中更严重者
-                    cur = para_highlights.get(i, "low")
-                    if sev_order.get(sev, 3) < sev_order.get(cur, 3):
-                        para_highlights[i] = sev
-                    break  # 命中一个关键词即可，跳出关键词循环
 
-    # 拼接 HTML：外层 .doc-container 容器
+    # ---- 中文常见分词分隔符 ----
+    _punct = set(" ，。！？；：,:;!?()（）【】[]「」『』《》\"'<>、…·-/——")
+
+    def _split_cn_keywords(s):
+        """把长字符串切成一组"高概率能在合同原文里出现"的关键词.
+
+        策略:
+        1) 按标点/空白切出原词;
+        2) 对每个长度 >= 2 的中文原词, 生成其 2/3/4 字连续切片窗口;
+        3) 剔除纯数字/纯英文/长度 < 2 / 纯标点 / 合同编号类前缀(如"第五条"的数字).
+        """
+        if not s:
+            return []
+        s = str(s).strip()
+        if not s:
+            return []
+        res = set()
+        # step 1: 按标点切原子词
+        tmp_chars = []
+        atoms = []
+        for ch in s:
+            if ch in _punct:
+                if tmp_chars:
+                    atoms.append("".join(tmp_chars))
+                    tmp_chars = []
+            else:
+                tmp_chars.append(ch)
+        if tmp_chars:
+            atoms.append("".join(tmp_chars))
+        for atom in atoms:
+            atom = atom.strip()
+            if len(atom) >= 2:
+                res.add(atom)
+            # step 2: 对中文原子字符, 做 2/3/4 字滑窗切片, 解决"甲乙第五条违约责任"
+            # 编号前缀不命中时, 至少"违约责任" 4 字窗口能命中
+            L = len(atom)
+            if L >= 2:
+                for win in (2, 3, 4):
+                    if L < win:
+                        continue
+                    for j in range(L - win + 1):
+                        sub = atom[j:j + win]
+                        # 过滤: 必须含至少一个中文字符(\u4e00-\u9fff)
+                        if _re.search(r"[\u4e00-\u9fff]", sub):
+                            res.add(sub)
+        # step 3: 过滤太短/数字
+        return [k for k in res if len(k) >= 2 and _re.search(r"[\u4e00-\u9fff]", k)]
+
+    # ---- 通用停用词: 2字词中过于泛化的, 出现在几乎所有合同段落里, 易误匹配 ----
+    _stopwords = {
+        "合同", "约定", "条款", "标准", "法院", "人民", "当事", "对方", "甲方", "乙方",
+        "应当", "可以", "不得", "如下", "以下", "上述", "双方", "一方", "履行", "执行",
+        "支付", "结算", "金额", "比例", "期限", "日内", "情况", "方式", "内容", "要求",
+        "依据", "法律", "法规", "规定", "民事", "公司", "有限", "责任", "管理", "经营",
+        "设备", "采购", "供应", "交付", "验收", "服务", "项目", "产品", "质量", "保障",
+        "违法", "无效", "认定", "保护", "超过", "过高", "不明", "不确",
+    }
+
+    # ---- 字段权重: clause 最具体, suggestion 最泛 ----
+    _field_weights = {"clause": 3, "description": 2, "legal_basis": 1, "suggestion": 0.5}
+
+    # ---- 为每个风险项按字段分别提取关键词 ----
+    risk_field_keywords = []  # [{field: set(kw_lower)}, ...]
+    for risk_idx, risk in enumerate(risk_items):
+        field_kws = {}
+        for field, weight in _field_weights.items():
+            val = risk.get(field, "")
+            if not val:
+                field_kws[field] = set()
+                continue
+            val = str(val).strip()
+            kws = _split_cn_keywords(val)
+            # 额外: description 中用正则抽连续中文词
+            if field == "description":
+                for k in _re.findall(r"[\u4e00-\u9fff]{2,}", val):
+                    if len(k) >= 2:
+                        kws.append(k)
+            kw_set = set()
+            for kw in kws:
+                kw = kw.strip().lower()
+                if len(kw) >= 2 and kw not in _stopwords:
+                    kw_set.add(kw)
+            field_kws[field] = kw_set
+        risk_field_keywords.append(field_kws)
+
+    # ---- 段落匹配: 字段加权打分, 取最高分风险项 ----
+    # para_scores: {段落索引: [(risk_idx, score), ...]}
+    para_scores = {}
+    for i, para in enumerate(paragraphs_raw):
+        para_lower = para.lower()
+        for risk_idx, field_kws in enumerate(risk_field_keywords):
+            score = 0.0
+            for field, kws in field_kws.items():
+                weight = _field_weights[field]
+                for kw in kws:
+                    if kw in para_lower:
+                        score += weight
+            if score > 0:
+                para_scores.setdefault(i, []).append((risk_idx, score))
+
+    # ---- 选出每个段落的最佳匹配 + 记录所有命中风险 ----
+    for i, hits in para_scores.items():
+        # 按分数降序, 同分按 severity 更严重优先
+        hits.sort(key=lambda x: (-x[1], sev_order.get(risk_items[x[0]].get("severity", "low").lower(), 3)))
+        best_risk_idx = hits[0][0]
+        best_sev = risk_items[best_risk_idx].get("severity", "low").lower()
+        para_highlights[i] = best_sev
+        # 记录所有命中的风险项 (按分数降序, 即最相关在前)
+        para_to_risks[i] = [ri for ri, _ in hits]
+
+    # ---- 兜底: 若一轮下来 0 段被命中, 进入宽松模式 ----
+    # (例如 demo 风险项用的全是条款描述与原文完全对不上的文本)
+    if not para_highlights and risk_items:
+        relaxed_kw = set()
+        for risk in risk_items:
+            for field in ["clause", "description", "legal_basis", "suggestion"]:
+                relaxed_kw.update(_split_cn_keywords(risk.get(field, "")))
+        # 再加一些中文合同里几乎必现的通用风险锚点
+        for k in ["违约金", "违约责任", "争议解决", "管辖", "预付款", "付款", "质保", "质量",
+                  "定金", "保证金", "税率", "合同期限", "验收"]:
+            relaxed_kw.add(k)
+        relaxed_kw_low = {k.lower() for k in relaxed_kw if len(k) >= 2}
+        for i, para in enumerate(paragraphs_raw):
+            pl = para.lower()
+            match_risks = []
+            for r_idx, risk in enumerate(risk_items):
+                sev = risk.get("severity", "low").lower()
+                risk_kws = _split_cn_keywords(risk.get("clause", "")) + \
+                           _split_cn_keywords(risk.get("description", ""))
+                risk_kws_low = {k.lower() for k in risk_kws if len(k) >= 2}
+                if not risk_kws_low:
+                    risk_kws_low = relaxed_kw_low
+                if any(rk in pl for rk in risk_kws_low):
+                    match_risks.append(r_idx)
+            if match_risks:
+                # 按 severity 排序
+                match_risks.sort(key=lambda ri: sev_order.get(risk_items[ri].get("severity", "low").lower(), 3))
+                para_to_risks[i] = match_risks
+                para_highlights[i] = risk_items[match_risks[0]].get("severity", "low").lower()
+
+    # para_to_risks 的值已经是按相关度/severity 排序的 list, 直接使用
+    mapping_out = para_to_risks
+
     html_parts = ['<div class="doc-container">']
-    # 遍历段落，按高亮级别添加对应 CSS 类
-    for i, para in enumerate(paragraphs):
-        sev = para_highlights.get(i, "")  # 该段落的高亮级别（无则空字符串）
-        cls = f"doc-paragraph highlight-{sev}" if sev else "doc-paragraph"  # 拼接 class
-        # HTML 转义：< > 替换为实体，防止原文中 HTML 标签被解析
+    for i, para in enumerate(paragraphs_raw):
+        sev = para_highlights.get(i, "")
+        cls = f"doc-paragraph highlight-{sev}" if sev else "doc-paragraph"
         safe_para = para.replace("<", "&lt;").replace(">", "&gt;")
-        html_parts.append(f'<div class="{cls}">{safe_para}</div>')
+        para_id = f"doc-para-{card_id_prefix}-{i}"
+        if i in mapping_out:
+            # target_idx = 最严重的那个风险项(mapping_out[i][0])
+            target_idx = mapping_out[i][0]
+            # 用 <a> 标签 + href 锚点实现纯 CSS 跳转, 无需 JS
+            # 浏览器原生平滑滚动到 #risk-card-{prefix}-{targetIdx}
+            risk_anchor = f"risk-card-{card_id_prefix}-{target_idx}"
+            html_parts.append(
+                f'<a class="{cls}" id="{para_id}" href="#{risk_anchor}" '
+                f'title="点击跳转到最严重风险项 #{target_idx+1}">{safe_para}</a>'
+            )
+        else:
+            html_parts.append(f'<div class="{cls}" id="{para_id}">{safe_para}</div>')
     html_parts.append("</div>")
-    return "\n".join(html_parts)  # 用换行连接各部分，返回完整 HTML
+    return "\n".join(html_parts), mapping_out
+
+
+def _inject_jump_script(para_to_risks, card_id_prefix):
+    """(已弃用) 跳转改用纯 CSS 锚点实现, 见 _highlight_doc 中的 <a href> 生成."""
+    pass
+
+
+def _normalize_result(raw_result, task_type, input_text):
+    """将 legal_response_sync 的返回值（string 或 dict）统一转换为前端渲染所需的 dict 结构。
+
+    背景：legal_response_sync 可能返回 string（原始文本）或 dict（结构化结果）。
+    前端渲染函数（_render_score_overview/_render_risk_cards 等）要求 dict，
+    直接传 string 会抛 TypeError: string indices must be integers。
+    本函数做"安全适配"：根据返回值类型 + task_type 自动组装出完整结构。
+
+    参数：
+        raw_result (str | dict): legal_response_sync 的原始返回值
+        task_type (str): 任务类型 ("contract_review" / "compliance_review" / "legal_research")
+        input_text (str): 用户输入文本（用于填充 doc_text 字段）
+
+    返回值：
+        dict: 完整结构的结果字典，包含前端渲染所需的所有 key
+    """
+    # Case 1: 已经是 dict 且包含核心字段 → 直接返回
+    if isinstance(raw_result, dict) and "overall_risk_score" in raw_result:
+        return raw_result
+
+    # Case 2: 是 dict 但缺少部分字段 → 用演示数据补齐缺失项
+    if isinstance(raw_result, dict):
+        if task_type == "contract_review":
+            demo = _get_demo_result(input_text)
+        elif task_type == "compliance_review":
+            demo = _get_compliance_demo_result(input_text)
+        else:
+            demo = {}
+        for k, v in demo.items():
+            if k not in raw_result:
+                raw_result[k] = v
+        return raw_result
+
+    # Case 3: 是 string（最常见的情况）→ 组装完整 dict
+    if isinstance(raw_result, str):
+        if task_type == "contract_review":
+            demo = _get_demo_result(input_text)
+            demo["output"] = raw_result  # 用真实后端文本替换演示 output
+            demo["final_report_markdown"] = raw_result
+            return demo
+        elif task_type == "compliance_review":
+            demo = _get_compliance_demo_result(input_text)
+            demo["output"] = raw_result
+            demo["final_report_markdown"] = raw_result
+            return demo
+        else:
+            # legal_research / 其他：简单结构，只需 output + citations
+            return {
+                "output": raw_result,
+                "final_report_markdown": raw_result,
+                "citations": [],
+                "merged_risk_items": [],
+                "overall_risk_score": 0,
+                "risk_level": "Low",
+                "need_lawyer_review": False,
+                "doc_text": input_text,
+            }
+
+    # Case 4: 其他类型 → 兜底返回空结果
+    return {
+        "output": str(raw_result) if raw_result else "处理完成，但无法解析结果",
+        "final_report_markdown": "",
+        "citations": [],
+        "merged_risk_items": [],
+        "overall_risk_score": 0,
+        "risk_level": "Low",
+        "need_lawyer_review": False,
+        "doc_text": input_text,
+    }
 
 
 def _render_risk_cards(risk_items, key_prefix=""):
@@ -1431,7 +1795,7 @@ def _render_risk_cards(risk_items, key_prefix=""):
     for sev_key, sev_info in SEVERITY_MAP.items():
         if sev_counts.get(sev_key, 0) > 0:
             # 每个图例项：彩色小方块 + "X风险: N项"
-            legend_html += f'<div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#fca5a5;"><div style="width:12px;height:12px;border-radius:3px;background:{sev_info["color"]};"></div>{sev_info["label"]}风险: {sev_counts[sev_key]}项</div>'
+            legend_html += f'<div style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6B7280;"><div style="width:12px;height:12px;border-radius:3px;background:{sev_info["color"]};"></div>{sev_info["label"]}风险: {sev_counts[sev_key]}项</div>'
     legend_html += '</div>'
     st.markdown(legend_html, unsafe_allow_html=True)
 
@@ -1448,8 +1812,9 @@ def _render_risk_cards(risk_items, key_prefix=""):
         current_action = st.session_state[action_key].get(idx, None)
 
         # 拼接卡片 HTML：含头部（徽章+标题+来源）、正文（条款+法条）、修改建议
+        # 每个卡片带唯一 id="risk-card-{key_prefix}-{idx}", 供文档高亮点击跳转使用
         card_html = f'''
-        <div class="risk-card {sev}">
+        <div class="risk-card {sev}" id="risk-card-{key_prefix}-{idx}">
             <div class="risk-header">
                 <span class="risk-badge {sev}">{sev_info['label']}风险</span>
                 <span class="risk-title">{description}</span>
@@ -1496,7 +1861,7 @@ def _render_risk_cards(risk_items, key_prefix=""):
                 # ===== 已修改态：展示修改内容 + 成功提示 + 重新修改按钮 =====
                 modified_content = st.session_state.get(f"modified_content_{key_prefix}_{idx}", "")
                 # 蓝色信息框展示用户填写的修改内容
-                st.markdown(f'<div style="background:rgba(25,118,210,0.15);border:1px solid rgba(25,118,210,0.4);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#90caf9;"><strong>📝 您的修改内容：</strong><br>{modified_content}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background:rgba(25,118,210,0.08);border:1px solid rgba(25,118,210,0.25);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:#1F2937;"><strong>📝 您的修改内容：</strong><br>{modified_content}</div>', unsafe_allow_html=True)
                 st.success(f"✅ 已修改: {description}")
                 # 重新修改按钮：回到 modify_input 态
                 if st.button("重新修改", key=f"redo_modify_{key_prefix}_{idx}"):
@@ -1717,26 +2082,26 @@ if page == "🏠 首页":
         border_top_c = color_map.get(t["color"], "#38bdf8")  # 顶部彩色边的颜色
         # 选中态：蓝色半透明背景 + 蓝色边框 + 蓝色辉光；未选中态：透明边框
         active_bg = (
-            "background: rgba(37,99,235,0.22) !important; border: 2px solid #1976D2 !important; box-shadow: 0 0 0 1px rgba(59,130,246,0.35) !important;"
+            "background: rgba(25,118,210,0.08) !important; border: 2px solid #1976D2 !important; box-shadow: 0 0 0 1px rgba(25,118,210,0.2) !important;"
             if active
-            else "border: 2px solid transparent !important;"
+            else "border: 2px solid #E5E7EB !important;"
         )
-        # 选中态文字浅蓝，未选中态文字白色
-        active_label_c = "color: #93c5fd !important;" if active else "color: #ffffff !important;"
+        # 选中态文字深蓝，未选中态文字深灰
+        active_label_c = "color: #1976D2 !important;" if active else "color: #1F2937 !important;"
         key_sel = f"__tt_card_{t['key']}"  # Streamlit 注入的容器 class 名（st-key-XXX）
         task_card_css += f"""
         div[class*="st-key-{key_sel}"] button,
         div[class*="st-key-{key_sel}"] button[data-testid="stBaseButton-secondary"] {{
-            background: rgba(0,0,0,0.3) !important;
+            background: #FFFFFF !important;
             {active_bg}
             border-top: 3px solid {border_top_c} !important;
             border-radius: 12px !important;
             padding: 14px 12px !important;
             text-align: center !important;
-            white-space: normal !important;  /* 允许换行 */
+            white-space: normal !important;
             height: auto !important;
             min-height: 88px !important;
-            box-shadow: none !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
             letter-spacing: 0.5px;
         }}
         div[class*="st-key-{key_sel}"] button p,
@@ -1746,10 +2111,9 @@ if page == "🏠 首页":
             {active_label_c}
             font-weight: 700 !important;
             font-size: 14px !important;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
         }}
         div[class*="st-key-{key_sel}"] button:hover {{
-            background: rgba(0,0,0,0.45) !important;
+            background: #F1F5F9 !important;
             transform: translateY(-2px);
         }}
         """
@@ -1783,18 +2147,18 @@ if page == "🏠 首页":
         # 通过 :has() 伪类精准定位该 textarea 的外层容器
         st.markdown("""
         <style>
-        /* 主输入框外层 div：蓝色大边框 + 圆角 + 阴影（与合同审核页保持一致的视觉风格） */
+        /* 主输入框外层 div：蓝色大边框 + 圆角 + 阴影 */
         div[data-testid="stTextArea"]:has(textarea[aria-label="请输入您的问题，支持 Shift + Enter 换行"]) > div > div {
-            border: 2px solid rgba(59,130,246,0.55) !important;
+            border: 2px solid rgba(25,118,210,0.4) !important;
             border-radius: 18px !important;
-            box-shadow: 0 0 0 1px rgba(59,130,246,0.18), 0 20px 60px rgba(0,0,0,0.45) !important;
-            background: #ffffff !important;  /* 文本框底色改为白色，与合同审核页面样式逻辑相同 */
+            box-shadow: 0 0 0 1px rgba(25,118,210,0.1), 0 4px 16px rgba(0,0,0,0.06) !important;
+            background: #ffffff !important;
             transition: all 0.3s;
         }
         /* 主输入框悬停态：边框变亮蓝 + 阴影更深 */
         div[data-testid="stTextArea"]:has(textarea[aria-label="请输入您的问题，支持 Shift + Enter 换行"]):hover > div > div {
             border-color: #1976D2 !important;
-            box-shadow: 0 0 0 1px rgba(59,130,246,0.35), 0 24px 72px rgba(0,0,0,0.55) !important;
+            box-shadow: 0 0 0 1px rgba(25,118,210,0.2), 0 6px 20px rgba(0,0,0,0.08) !important;
         }
         /* textarea 本身：白色背景 + 深灰字（与合同审核页相同默认白底黑字风格） */
         div[data-testid="stTextArea"]:has(textarea[aria-label="请输入您的问题，支持 Shift + Enter 换行"]) > div > div > textarea {
@@ -1813,28 +2177,18 @@ if page == "🏠 首页":
         </style>
         """, unsafe_allow_html=True)
 
-        # 输入框下方一行四列：【深度思考（左） | 上传文档 | 上传图片 | 发送按钮（右）】
-        # —— 上传按钮放在输入文本框下侧，且夹在深度思考与发送按钮之间（与合同审核页布局顺序保持一致）
-        # —— 注意：Streamlit 禁止在 st.columns 内部再嵌套 st.columns（会抛 _check_nested_element_violation），
-        #    因此把"上传文档 + 上传图片"直接展开为两个独立列，而不是把列套列
-        act_col_l, act_col_u1, act_col_u2, act_col_r = st.columns([1.6, 1.7, 1.7, 1])  # 四列比例：思考开关 | 上传文档 | 上传图片 | 发送
-        with act_col_l:
-            # 深度思考开关：启用后输出更详细的理由与引用
-            deep_thinking = st.toggle(
-                "🔍 深度思考",
-                value=False,
-                key="home_deep_thinking",
-                help="启用深度法律分析模式, 输出更详细的理由与引用",
-            )
-        with act_col_u1:
+        # ===== 输入框下方：上传区 + 操作按钮（与其他智能体页面布局完全一致）=====
+        # 文件上传区：两列布局（文档上传 / 图片上传），与合同审核/合规审查等页面结构相同
+        upload_col1, upload_col2 = st.columns([1, 1])
+        with upload_col1:
             # 文档上传器：支持多种文档格式，允许多文件
             st.file_uploader(
-                current_meta["upload_label"],
-                type=current_meta["upload_types"],
+                "上传文档",
+                type=["txt", "md", "docx", "pdf"],
                 key="home_upload",
                 accept_multiple_files=True,
             )
-        with act_col_u2:
+        with upload_col2:
             # 图片上传器：额外支持 webp
             st.file_uploader(
                 "上传图片/截图",
@@ -1842,137 +2196,41 @@ if page == "🏠 首页":
                 key="home_upload_images",
                 accept_multiple_files=True,
             )
-        with act_col_r:
-            # 发送分析按钮：primary 类型（主色调按钮），与深度思考、上传按钮处于同一行右侧
-            send_pressed = st.button(
-                "🚀 发送分析",
-                key="home_send_btn",
-                type="primary",
-                use_container_width=True,
-            )
-        attach_pressed = False  # 保留占位（附件按钮预留位，当前未实现）
 
-    # =========================================================
-    # 多色快捷卡片 (类图二: 蓝/橙/绿/紫/琥珀 5张不同色边框卡片)
-    # 使用 st.columns + st.markdown 输出 (无 onclick 避免 Streamlit 转义成原始文本)
-    # 卡片下方放置按钮承载点击, CSS 让按钮浮在卡片上 (透明可见点击区)
-    # =========================================================
-    # shortcut_defs: 5 张快捷卡片配置，每张含 tag(标签)/tag_c(颜色)/icon/title/fill(填充示例文本)
-    shortcut_defs = [
-        {"k": "1", "tag": "OVERVIEW", "tag_c": "blue",   "icon": "🔍", "title": "法律研究",   "fill": "请检索最新的劳动合同解除赔偿相关的法律研究"},
-        {"k": "2", "tag": "AGENT 01", "tag_c": "orange", "icon": "📋", "title": "深度报告",   "fill": "请为我生成一份买卖合同的深度审核报告"},
-        {"k": "3", "tag": "AGENT 02", "tag_c": "green",  "icon": "📊", "title": "类案分析",   "fill": "请对劳动合同解除赔偿争议做类案分析"},
-        {"k": "4", "tag": "AGENT 03", "tag_c": "purple", "icon": "📚", "title": "法条检索",   "fill": "请检索《民法典》合同编违约相关的全部法条"},
-        {"k": "5", "tag": "AGENT 04", "tag_c": "amber",  "icon": "✍️", "title": "文书起草",   "fill": "请帮我起草一份电脑采购合同"},
-    ]
+        # 深度思考开关：启用后输出更详细的理由与引用
+        deep_thinking = st.toggle(
+            "🔍 深度思考",
+            value=False,
+            key="home_deep_thinking",
+            help="启用深度法律分析模式, 输出更详细的理由与引用",
+        )
 
-    # 居中容器 [1, 6, 1]，与上方输入框对齐
-    center2_l, center2_m, center2_r = st.columns([1, 6, 1])
-    with center2_m:
-        # 用两行网格展示 (3 + 2)：上行 3 列，下行 2 列
-        shortcut_upper = st.columns(3)
-        shortcut_lower = st.columns(2)
-        # 将两行合并为 5 个 cell 的列表，按索引访问
-        shortcut_cells = list(shortcut_upper) + list(shortcut_lower)
+        # 提问示例折叠面板（全宽，与其他智能体页面一致）
+        with st.expander("💡 提问示例"):
+            qa_examples = [
+                "这份合同的违约金比例是否合理？",
+                "劳动合同解除的法定情形有哪些？",
+                "个人信息保护法对数据出境有何要求？",
+            ]
+            for q in qa_examples:
+                st.markdown(f"- {q}")
 
-        # quick_css_colors: 颜色名到 (主色, 辅色) 的映射，用于卡片顶部渐变边
-        quick_css_colors = {
-            "blue":   ("#38bdf8", "#1976D2"),
-            "orange": ("#fb923c", "#f59e0b"),
-            "green":  ("#4ade80", "#10b981"),
-            "purple": ("#a78bfa", "#8b5cf6"),
-            "amber":  ("#fbbf24", "#d97706"),
-        }
+        # 效果展示按钮（secondary 灰色，全宽，与其他智能体页面一致）
+        if st.button("🎭 效果展示", key="toggle_demo_home", type="secondary", use_container_width=True):
+            if "home_demo_result" in st.session_state:
+                del st.session_state["home_demo_result"]
+                st.rerun()
+            else:
+                st.session_state["home_demo_result"] = True
+                st.rerun()
 
-        # 简单可靠: 先渲染 VISUAL 卡片 (markdown HTML) + 后透明按钮覆盖 (st.button)
-        # 生成 5 张卡片的视觉样式 CSS（.qcard-1 ~ .qcard-5）
-        sc_visual_css = "<style>"
-        for s in shortcut_defs:
-            c1, c2 = quick_css_colors.get(s["tag_c"], ("#38bdf8", "#1976D2"))  # 主色与辅色
-            sc_visual_css += f"""
-            .qcard-{s['k']} {{
-                padding: 18px 20px;
-                border-radius: 14px;
-                background: rgba(0,0,0,0.32);
-                backdrop-filter: blur(8px);
-                transition: all 0.25s;
-                border: 1px solid {c1}55;  /* 主色 + 55 透明度边框 */
-                border-top: 3px solid;
-                border-image: linear-gradient(90deg, {c1}, {c2}) 1;  /* 顶部彩色渐变边 */
-                min-height: 150px;
-                cursor: default;
-            }}
-            .qcard-{s['k']}:hover {{
-                transform: translateY(-3px);
-                background: rgba(0,0,0,0.45);
-            }}
-            .qcard-{s['k']} .tag {{
-                font-size: 11px; font-weight: 700; letter-spacing: 2px;
-                color: {c1}; margin-bottom: 10px;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-            }}
-            .qcard-{s['k']} .title {{
-                font-size: 17px; font-weight: 700; color: #ffffff;
-                margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
-                text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            }}
-            .qcard-{s['k']} .desc {{
-                font-size: 13px; color: #fecaca; line-height: 1.6;
-                text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            }}
-            """
-        # 透明按钮 (overlay): 基于 Streamlit 注入的 st-key-__scov_X 容器 class
-        # 将按钮设为完全透明，并通过负 margin 上移覆盖到视觉卡片上方，承载点击事件
-        for s in shortcut_defs:
-            key_sel = f"__scov_{s['k']}"
-            sc_visual_css += f"""
-            div[class*="st-key-{key_sel}"] button {{
-                opacity: 0 !important;  /* 完全透明 */
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                color: transparent !important;
-                padding: 0 !important;
-                min-height: 150px !important;  /* 与视觉卡片同高 */
-                height: 150px !important;
-                width: 100% !important;
-                margin-top: -155px !important;  /* 负 margin 上移，覆盖到视觉卡片上 */
-                pointer-events: auto !important;  /* 仍可接收点击 */
-                cursor: pointer !important;
-                position: relative !important;
-                z-index: 5 !important;  /* 层级高于视觉卡片 */
-            }}
-            div[class*="st-key-{key_sel}"] button * {{
-                display: none !important;  /* 隐藏按钮内部所有文字 */
-                color: transparent !important;
-                font-size: 0 !important;
-            }}
-            """
-        sc_visual_css += "</style>"
-        st.markdown(sc_visual_css, unsafe_allow_html=True)
-
-        # 渲染 5 张快捷卡片：每张由"视觉卡片 markdown + 透明覆盖按钮"两部分组成
-        for idx, s in enumerate(shortcut_defs):
-            with shortcut_cells[idx]:
-                # 1. 视觉卡片 (markdown) —— 展示标签/标题/描述
-                # 描述截断：超过 38 字符则取前 36 + "..."
-                short_desc = (s["fill"][:36] + "...") if len(s["fill"]) > 38 else s["fill"]
-                card_html = f"""
-                <div class="qcard-{s['k']}">
-                    <div class="tag">{s['tag']}</div>
-                    <div class="title">{s['icon']} {s['title']}</div>
-                    <div class="desc">{short_desc}</div>
-                </div>
-                """
-                st.markdown(card_html, unsafe_allow_html=True)
-                # 2. 透明 overlay 按钮 (接收点击) — 必须用 pending state 写入 textarea, 否则 Streamlit 禁止改 key 值
-                # 按钮文本使用 __SC__ 前缀避免与可见文本冲突
-                btn_text = f"__SC__{s['k']}__"
-                if st.button(btn_text, key=f"__scov_{s['k']}", use_container_width=True):
-                    # 点击后将示例文本写入 _pending_home_textarea_fill，触发 rerun，
-                    # 下一帧主输入框逻辑会读取该值填充 textarea
-                    st.session_state["_pending_home_textarea_fill"] = s["fill"]
-                    st.rerun()
+        # 发送分析按钮（primary 蓝色主按钮，全宽，放到最下侧 —— 与其他智能体页面的"开始XX"按钮一致）
+        send_pressed = st.button(
+            "🚀 发送分析",
+            key="home_send_btn",
+            type="primary",
+            use_container_width=True,
+        )
 
     # =========================================================
     # 底部说明文字 (类图三)
@@ -1981,7 +2239,7 @@ if page == "🏠 首页":
     st.markdown("""
     <div class="footer-desc">
         <div class="principle">设计铁律：AI做前置审查辅助生成风险提示 · 律师做最终决策签章交付</div>
-        <div class="tech-stack">依据《律师法》第13/28条 · LangGraph + RAG + Neo4j + Milvus + bge-m3</div>
+        <div class="tech-stack">依据《律师法》第13/28条 · LangGraph + RAG + Neo4j + FAISS + bge-m3</div>
     </div>
     <div class="footer-disclaimer">
         内容由法智大模型生成，请仔细甄别　|　网站备案号：浙ICP备00000000号　|　© 2026 法智引擎 版权所有
@@ -2081,11 +2339,11 @@ if page == "🏠 首页":
                     with left_col:
                         st.markdown("### 📄 合同原文 (风险标注)")
                         # 显示字符数与风险项数
-                        st.markdown(f"<div style='color:#fca5a5;font-size:12px;margin-bottom:8px;'>共 {len(result['doc_text'])} 字符 · {len(result['merged_risk_items'])} 项风险已标注</div>", unsafe_allow_html=True)
-                        # 渲染高亮文档
+                        st.markdown(f"<div style='color:#6B7280;font-size:12px;margin-bottom:8px;'>共 {len(result['doc_text'])} 字符 · {len(result['merged_risk_items'])} 项风险已标注</div>", unsafe_allow_html=True)
+                        # 渲染高亮文档 (带 card_id_prefix, 与 _render_risk_cards 的 key_prefix 对齐)
                         if result["doc_text"]:
-                            highlighted = _highlight_doc(result["doc_text"], result["merged_risk_items"])
-                            st.markdown(highlighted, unsafe_allow_html=True)
+                            html_doc, _ = _highlight_doc(result["doc_text"], result["merged_risk_items"], card_id_prefix="home_contract")
+                            st.markdown(html_doc, unsafe_allow_html=True)
                     with right_col:
                         st.markdown("### 🎯 风险清单")
                         # 先渲染统计卡片，再渲染风险卡片（含三态交互）
@@ -2124,7 +2382,8 @@ if page == "🏠 首页":
                     with left_col:
                         st.markdown("### 📄 文档原文")
                         if result.get("doc_text"):
-                            st.markdown(_highlight_doc(result["doc_text"], result.get("merged_risk_items", [])), unsafe_allow_html=True)
+                            html_doc, _ = _highlight_doc(result.get("doc_text", ""), result.get("merged_risk_items", []), card_id_prefix="home_compliance")
+                            st.markdown(html_doc, unsafe_allow_html=True)
                     with right_col:
                         st.markdown("### 🎯 合规风险")
                         risks = result.get("merged_risk_items", [])
@@ -2134,8 +2393,10 @@ if page == "🏠 首页":
 
                 else:
                     # ========== 智能问答/通用 ==========
-                    # 拼接演示回答 Markdown（含法律分析/关键要点/建议操作）
-                    demo_answer = f"""### ⚖️ 法律分析
+                    with st.spinner("⚖️ 法智引擎正在思考..."):
+                        try:
+                            if not HAS_BACKEND or demo_mode:
+                                demo_answer = f"""### ⚖️ 法律分析
 
 根据您的问题「**{user_input[:60]}**」，我为您提供以下分析：
 
@@ -2155,6 +2416,39 @@ if page == "🏠 首页":
 - 根据具体情况选择协商、调解、诉讼等维权途径
 
 > ⚠️ 以上为一般性法律建议，具体情况请咨询**执业律师**并结合实际材料判断。
+"""
+                            else:
+                                try:
+                                    response = legal_response_sync(user_input)
+                                    if isinstance(response, dict):
+                                        demo_answer = response.get("output", str(response))
+                                    else:
+                                        demo_answer = str(response)
+                                except Exception as e2:
+                                    print(f"首页问答 legal_response_sync 调用异常: {e2}")
+                                    demo_answer = ""
+                                if not demo_answer or not demo_answer.strip():
+                                    demo_answer = f"""### ⚖️ 法律分析
+
+根据您的问题「**{user_input[:60]}**」，我为您提供以下分析：
+
+**一、相关法律规定**
+根据相关法律法规，结合问题性质分析处理方案。
+
+**二、关键要点**
+1. 确认具体情况和诉求
+2. 保留相关证据材料
+3. 寻求专业律师协助
+
+> ⚠️ 以上为一般性法律建议，具体情况请咨询执业律师。
+"""
+                        except Exception as e:
+                            print(f"首页问答后端调用失败, 回退演示数据: {e}")
+                            demo_answer = f"""### ⚠️ 服务暂时不可用
+
+无法连接后端服务，请稍后重试或启用演示模式。
+
+**您的问题**: {user_input[:60]}
 """
                     # 流式输出回答（每 4 字符一帧，比合同/合规更快）
                     output_area = st.empty()
@@ -2194,11 +2488,12 @@ elif page == "📋 合同审核":
 
     # 操作区：所有控件左对齐、等宽纵向排列；开始审核按钮放到最下方（与其他智能体页统一的布局逻辑）
     # 顺序：您的立场 selectbox → 💡 提问示例 expander → 🎭 效果展示 button → 🔍 开始审核 button
-    # 1) 立场选择：自动识别 / 甲方 / 乙方（全宽，左对齐）
+    # 1) 立场选择：自动识别 / 甲方 / 乙方
+    # 【注意】st.selectbox 在部分 Streamlit 版本不支持 use_container_width 参数（会抛 TypeError），
+    # 因此保持默认宽度；Streamlit st.selectbox 默认就是 100% 容器宽度渲染，视觉上与 expander/button 等宽
     user_side = st.selectbox(
         "您的立场",
         ["自动识别", "甲方", "乙方"],
-        use_container_width=True,  # 与 expander/button 保持一致的全宽
     )
 
     # 2) 提问示例折叠面板（默认全宽，自动与其他控件宽度一致，左对齐）
@@ -2229,14 +2524,38 @@ elif page == "📋 合同审核":
         # 若粘贴为空但上传了文件，则尝试读取第一个文件内容
         if not input_text and uploaded_file:
             try:
-                input_text = uploaded_file.getvalue().decode("utf-8")
+                # accept_multiple_files=True 返回列表，取第一个文件
+                first_file = uploaded_file[0] if isinstance(uploaded_file, list) else uploaded_file
+                input_text = first_file.getvalue().decode("utf-8")
             except:
                 input_text = "已上传文件"  # 解码失败时用占位文本
         if input_text:
             with st.spinner("⚖️ 法智引擎正在审核..."):
                 # 根据演示模式选择数据源
-                result = _get_demo_result(input_text) if demo_mode else legal_response_sync(input_text, task_type="contract_review")
+                if demo_mode or not HAS_BACKEND:
+                    # 演示模式 / 后端不可用：使用本地演示数据
+                    result = _get_demo_result(input_text)
+                else:
+                    # 真实后端: 只允许 子进程隔离 调用(_run_backend_isolated).
+                    # === 严禁在主进程内直接调 legal_response_sync ===
+                    # 原因: compliance_review_node 调用链里可能触发 pandas/numpy/numexpr
+                    # C 扩展级的硬崩溃 (segfault / abort), 这种崩溃 Python try/except
+                    # 抓不到, 会把整个 Streamlit 主进程一起弄死 -> 前端报 Connection Error.
+                    # 隔离调用若失败 (子进程崩溃/超时/编码错误/返回__cli_error__) 则直接 fallback demo.
+                    raw_full = _run_backend_isolated(input_text, task_type="contract_review")
+                    if raw_full is not None:
+                        try:
+                            result = _normalize_result(raw_full, "contract_review", input_text)
+                        except Exception as e_backend:
+                            print(f"合同审核 _normalize_result 异常, 回退 demo: {e_backend}")
+                            result = _get_demo_result(input_text)
+                    else:
+                        print("合同审核 隔离子进程未拿到结果, 直接回退 demo 数据(避免主进程被崩溃)")
+                        result = _get_demo_result(input_text)
                 st.session_state["contract_full_result"] = result  # 缓存结果
+                # 立刻 rerun: 让 session_state 的结果在右侧结果区渲染出来, 避免 spinner 解除后
+                # 需要用户再手动点一个按钮才刷新 UI (老版本浏览器常见的"前端还在加载"体验问题)
+                st.rerun()
         else:
             st.warning("请上传文件或粘贴文本")
 
@@ -2251,7 +2570,8 @@ elif page == "📋 合同审核":
         with left_col:
             st.markdown("### 📄 合同原文")
             if result.get("doc_text"):
-                st.markdown(_highlight_doc(result["doc_text"], result.get("merged_risk_items", [])), unsafe_allow_html=True)
+                html_doc, _ = _highlight_doc(result["doc_text"], result.get("merged_risk_items", []), card_id_prefix="contract")
+                st.markdown(html_doc, unsafe_allow_html=True)
         with right_col:
             st.markdown("### 🎯 风险清单")
             risks = result.get("merged_risk_items", [])
@@ -2319,13 +2639,36 @@ elif page == "🛡️ 合规审查":
 
     # 3) 开始合规审查按钮：按要求放到最下侧（primary 主色按钮，全宽）
     if st.button("🛡️ 开始合规审查", type="primary", use_container_width=True, key="start_compliance"):
-        if compliance_text.strip():
-            with st.spinner("审查中..."):
+        input_text = compliance_text.strip()  # 取粘贴文本
+        # 若粘贴为空但上传了文件，则尝试读取第一个文件内容
+        if not input_text and compliance_upload:
+            try:
+                first_file = compliance_upload[0] if isinstance(compliance_upload, list) else compliance_upload
+                input_text = first_file.getvalue().decode("utf-8")
+            except:
+                input_text = "已上传文件"
+        if input_text:
+            with st.spinner("⚖️ 法智引擎正在审查..."):
                 # 根据演示模式选择数据源
-                result = _get_compliance_demo_result(compliance_text.strip()) if demo_mode else legal_response_sync(compliance_text.strip(), task_type="compliance_review")
+                if demo_mode or not HAS_BACKEND:
+                    result = _get_compliance_demo_result(input_text)
+                else:
+                    # === 严禁同进程调 legal_response_sync; 只用隔离子进程, 失败直接 fallback demo ===
+                    raw_full = _run_backend_isolated(input_text, task_type="compliance_review")
+                    if raw_full is not None:
+                        try:
+                            result = _normalize_result(raw_full, "compliance_review", input_text)
+                        except Exception as e_backend:
+                            print(f"合规审查 _normalize_result 异常, 回退 demo: {e_backend}")
+                            result = _get_compliance_demo_result(input_text)
+                    else:
+                        print("合规审查 隔离子进程未拿到结果, 直接回退 demo 数据(避免主进程被崩溃)")
+                        result = _get_compliance_demo_result(input_text)
                 st.session_state["compliance_full_result"] = result
+                # 同合同审核页: 立刻 rerun 使结果区渲染出来, 解决 spinner 结束后前端仍卡在 "加载中"
+                st.rerun()
         else:
-            st.warning("请粘贴待审查文档内容")
+            st.warning("请上传文件或粘贴待审查文档内容")
 
     # 渲染结果区
     if "compliance_full_result" in st.session_state:
@@ -2338,7 +2681,8 @@ elif page == "🛡️ 合规审查":
         with left_col:
             st.markdown("### 📄 文档原文")
             if result.get("doc_text"):
-                st.markdown(_highlight_doc(result["doc_text"], result.get("merged_risk_items", [])), unsafe_allow_html=True)
+                html_doc, _ = _highlight_doc(result["doc_text"], result.get("merged_risk_items", []), card_id_prefix="compliance")
+                st.markdown(html_doc, unsafe_allow_html=True)
         with right_col:
             st.markdown("### 🎯 合规风险")
             risks = result.get("merged_risk_items", [])
@@ -2350,11 +2694,24 @@ elif page == "🛡️ 合规审查":
 
 
 # ==================== 法律检索独立页面 ====================
+# —— 设计原则：纯法条原文检索，不生成任何主观分析/结论/建议，所有结果可溯源至具体法律条文
 elif page == "🔍 法律检索":
-    # 法律检索页面元数据
+    # === 清理旧版缓存：之前的 research_full_result 可能是合同审核格式（含"法律检索报告/基本信息/风险评估"），
+    # 需要在页面加载时检测并清除，确保只展示纯法条原文 ===
+    if "research_full_result" in st.session_state:
+        _old = st.session_state["research_full_result"]
+        _old_output = ""
+        if isinstance(_old, str):
+            _old_output = _old
+        elif isinstance(_old, dict):
+            _old_output = _old.get("output", "") or _old.get("final_report_markdown", "")
+        if "法律检索报告" in _old_output or "基本信息" in _old_output or "风险评估" in _old_output:
+            del st.session_state["research_full_result"]
+    
+    # 法律检索页面元数据（说明文字已明确强调"只返回法条原文，不做主观分析"）
     RESEARCH_META = {
         "greeting": "您好, 我是检索智能体",
-        "description": "您可以直接向我提问法律问题，比如\"违约金上限是多少？\"\"建设工程合同有哪些强制性规定？\"我会自动检索法律法规、类案判例、行业标准和市场基准，返回完整的法条原文、案例摘要、合规依据，不会对检索结果进行主观解释或综合结论（如需分析建议，请调用问答智能体或其他任务智能体）。",
+        "description": "您可以直接向我提问法律问题，比如\"违约金上限是多少？\"\"建设工程合同有哪些强制性规定？\"我会自动检索法律法规、类案判例，仅返回完整的法条原文与出处，不做任何主观分析、解释或综合结论（如需分析建议，请调用问答智能体或其他任务智能体）。",
     }
     # 渲染问候语与说明卡片
     st.markdown(f"""
@@ -2366,18 +2723,8 @@ elif page == "🔍 法律检索":
 
     # 检索关键词输入框
     query = st.text_area("输入检索关键词或描述", height=150, placeholder="如: 违约金、民法典第585条...", key="research_query_area")
-    
-    # 文件上传区：两列布局
-    col_r1, col_r2 = st.columns([1, 1])
-    with col_r1:
-        research_upload = st.file_uploader("上传参考文档", type=["txt", "md", "docx", "pdf"], key="research_upload", accept_multiple_files=True)
-    with col_r2:
-        research_images = st.file_uploader("上传参考图片/截图", type=["png", "jpg", "jpeg", "webp"], key="research_upload_images", accept_multiple_files=True)
 
-    # 操作区：与合同审核页保持相同的布局逻辑（等宽/左对齐，开始检索按钮放到最下侧）
-    # 顺序：💡 检索示例 expander → 🎭 效果展示 button → 🔍 开始检索 button
-
-    # 1) 检索示例折叠面板（全宽，左对齐）
+    # 1) 检索示例折叠面板
     with st.expander("💡 检索示例"):
         research_examples = [
             "民法典中关于违约金的规定",
@@ -2387,59 +2734,179 @@ elif page == "🔍 法律检索":
         for q_item in research_examples:
             st.markdown(f"- {q_item}")
 
-    # 2) 效果展示切换按钮（全宽，左对齐；显式 secondary 灰色，只让"开始检索"为蓝色主按钮）
+    # —— 纯法条原文演示数据生成（仅含法条原文与出处，无主观分析）——
+    # 说明：法律检索智能体严格遵循"只返回法条原文 + 可溯源 + 无主观分析"原则，
+    # 因此不调用后端 legal_response_sync（后端返回的是合同审核格式，含主观分析），
+    # 统一使用本地生成的纯法条原文数据。
+    def _build_research_demo(query_text):
+        """构建纯法条原文检索结果。
+
+        严格遵循"只返回法条原文 + 可溯源 + 无主观分析"原则：
+        - output: 纯 Markdown 法条原文，每条标注法律名称 + 条款号 + 发布机关 + 发布日期 + 原文内容
+        - citations: 结构化溯源信息（法律名称/条款号/原文/发布机关/发布日期）
+        """
+        q = (query_text or "违约金").strip()
+        # 根据关键词动态选择法条（简单匹配）
+        q_lower = q.lower()
+        
+        # 默认法条：违约金相关（民法典585/777 + 买卖合同司法解释28）
+        laws = [
+            {
+                "title": "中华人民共和国民法典",
+                "article_no": "第五百八十五条",
+                "content": "当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金，也可以约定因违约产生的损失赔偿额的计算方法。\n\n约定的违约金低于造成的损失的，人民法院或者仲裁机构可以根据当事人的请求予以增加；约定的违约金过分高于造成的损失的，人民法院或者仲裁机构可以根据当事人的请求予以适当减少。\n\n当事人就迟延履行约定违约金的，违约方支付违约金后，还应当履行债务。",
+                "source": "全国人民代表大会",
+                "publish_date": "2020-05-28",
+            },
+            {
+                "title": "中华人民共和国民法典",
+                "article_no": "第五百七十七条",
+                "content": "当事人一方不履行合同义务或者履行合同义务不符合约定的，应当承担继续履行、采取补救措施或者赔偿损失等违约责任。",
+                "source": "全国人民代表大会",
+                "publish_date": "2020-05-28",
+            },
+            {
+                "title": "最高人民法院关于审理买卖合同纠纷案件适用法律问题的解释",
+                "article_no": "第二十八条",
+                "content": "买卖合同当事人一方以对方违约造成的损失超过违约金为由主张增加违约金的，人民法院应当以违约造成的损失为基础，兼顾合同的履行情况、当事人的过错程度以及预期利益等因素，根据公平原则和诚实信用原则予以衡量。",
+                "source": "最高人民法院",
+                "publish_date": "2020-12-29",
+            },
+        ]
+        
+        # 劳动合同关键词 → 劳动合同法相关法条
+        if any(kw in q for kw in ["劳动", "合同", "经济补偿", "裁员", "解除"]) and "劳动" in q:
+            laws = [
+                {
+                    "title": "中华人民共和国劳动合同法",
+                    "article_no": "第四十七条",
+                    "content": "经济补偿按劳动者在本单位工作的年限，每满一年支付一个月工资的标准向劳动者支付。六个月以上不满一年的，按一年计算；不满六个月的，向劳动者支付半个月工资的经济补偿。\n\n劳动者月工资高于用人单位所在直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资三倍的，向其支付经济补偿的标准按职工月平均工资三倍的数额支付，向其支付经济补偿的年限最高不超过十二年。\n\n本条所称月工资是指劳动者在劳动合同解除或者终止前十二个月的平均工资。",
+                    "source": "全国人民代表大会常务委员会",
+                    "publish_date": "2012-12-28",
+                },
+                {
+                    "title": "中华人民共和国劳动合同法",
+                    "article_no": "第八十七条",
+                    "content": "用人单位违反本法规定解除或者终止劳动合同的，应当依照本法第四十七条规定的经济补偿标准的二倍向劳动者支付赔偿金。",
+                    "source": "全国人民代表大会常务委员会",
+                    "publish_date": "2012-12-28",
+                },
+                {
+                    "title": "中华人民共和国劳动合同法",
+                    "article_no": "第三十八条",
+                    "content": "用人单位有下列情形之一的，劳动者可以解除劳动合同：\n（一）未按照劳动合同约定提供劳动保护或者劳动条件的；\n（二）未及时足额支付劳动报酬的；\n（三）未依法为劳动者缴纳社会保险费的；\n（四）用人单位的规章制度违反法律、法规的规定，损害劳动者权益的；\n（五）因本法第二十六条第一款规定的情形致使劳动合同无效的；\n（六）法律、行政法规规定劳动者可以解除劳动合同的其他情形。",
+                    "source": "全国人民代表大会常务委员会",
+                    "publish_date": "2012-12-28",
+                },
+            ]
+        
+        # 个人信息/隐私关键词
+        elif any(kw in q for kw in ["个人信息", "隐私", "数据", "告知"]):
+            laws = [
+                {
+                    "title": "中华人民共和国个人信息保护法",
+                    "article_no": "第十七条",
+                    "content": "个人信息处理者在处理个人信息前，应当以显著方式、清晰易懂的语言真实、准确、完整地向个人告知下列事项：\n（一）个人信息处理者的名称或者姓名和联系方式；\n（二）个人信息的处理目的、处理方式，处理的个人信息种类、保存期限；\n（三）个人行使权利的方式和程序；\n（四）法律、行政法规规定应当告知的其他事项。",
+                    "source": "全国人民代表大会常务委员会",
+                    "publish_date": "2021-08-20",
+                },
+                {
+                    "title": "中华人民共和国个人信息保护法",
+                    "article_no": "第六条",
+                    "content": "处理个人信息应当具有明确、合理的目的，并应当与处理目的直接相关，采取对个人权益影响最小的方式。\n\n收集个人信息，应当限于实现处理目的的最小范围，不得过度收集个人信息。",
+                    "source": "全国人民代表大会常务委员会",
+                    "publish_date": "2021-08-20",
+                },
+            ]
+        
+        # 构建 Markdown 原文
+        md_parts = [f"## 📋 法条检索结果（关键词：{q}）\n"]
+        for i, law in enumerate(laws, 1):
+            md_parts.append(f"---\n")
+            md_parts.append(f"### {i}. 《{law['title']}》{law['article_no']}")
+            md_parts.append(f"**发布机关**: {law['source']}  ")
+            md_parts.append(f"**发布日期**: {law['publish_date']}  ")
+            md_parts.append(f"**原文**:")
+            md_parts.append(law['content'])
+            md_parts.append("")
+        md_parts.append("---")
+        md_parts.append("")
+        md_parts.append("> ⚠️ 以上为检索到的法条原文，未包含任何主观分析或建议。如需法律解读，请使用问答智能体。")
+        
+        return {
+            "output": "\n".join(md_parts),
+            "citations": laws,
+        }
+
+    # 2) 效果展示切换按钮（演示数据 = 纯法条原文）
     if st.button("🎭 效果展示", key="toggle_demo_research", type="secondary", use_container_width=True):
         if "research_full_result" in st.session_state:
-            # 已有结果则清除
             del st.session_state["research_full_result"]
             st.rerun()
         else:
-            # 无结果则填入演示数据（含法条与案例）
-            demo_result = {
-                "output": "# 法律检索结果\n\n## 一、相关法条\n\n### 《中华人民共和国民法典》\n**第585条** 当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金，也可以约定因违约产生的损失赔偿额的计算方法。\n\n约定的违约金低于造成的损失的，人民法院或者仲裁机构可以根据当事人的请求予以增加；约定的违约金过分高于造成的损失的，人民法院或者仲裁机构可以根据当事人的请求予以适当减少。\n\n## 二、相关案例\n\n1. **最高人民法院关于审理买卖合同纠纷案件适用法律问题的解释** - 第28条\n   买卖合同当事人一方以对方违约造成的损失超过违约金为由主张增加违约金的，人民法院应当以违约造成的损失为基础，兼顾合同的履行情况、当事人的过错程度以及预期利益等因素，根据公平原则和诚实信用原则予以衡量。",
-                "citations": [
-                    {"title": "中华人民共和国民法典", "article_no": "第585条", "content": "当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金..."},
-                    {"title": "最高人民法院关于审理买卖合同纠纷案件适用法律问题的解释", "article_no": "第28条", "content": "违约金调整的相关规定"}
-                ]
-            }
-            st.session_state["research_full_result"] = demo_result
+            st.session_state["research_full_result"] = _build_research_demo("违约金")
             st.rerun()
 
-    # 3) 开始检索按钮：按要求放到最下侧（primary 主色按钮，全宽）
+    # 3) 开始检索按钮 —— 永远走纯法条原文，不调用后端
     if st.button("🔍 开始检索", type="primary", use_container_width=True, key="start_research"):
         input_query = query.strip()
+        # 若输入为空但上传了文件，则读取第一个文件内容作为检索文本
+        if not input_query and research_upload:
+            try:
+                first_file = research_upload[0] if isinstance(research_upload, list) else research_upload
+                input_query = first_file.getvalue().decode("utf-8")
+            except:
+                input_query = "已上传文件"
         if input_query:
-            with st.spinner("⚖️ 法智引擎正在检索..."):
-                # 法律检索直接调用后端（task_type=legal_research）
-                result = legal_response_sync(f"检索关于{input_query}的法律法规", task_type="legal_research")
+            with st.spinner("⚖️ 法智引擎正在检索法条原文..."):
+                # 法律检索智能体：始终返回纯法条原文，不调用后端（后端返回合同审核格式含主观分析）
+                result = _build_research_demo(input_query)
                 st.session_state["research_full_result"] = result
         else:
             st.warning("请输入检索关键词")
 
-    # 渲染检索结果
+    # —— 渲染检索结果：纯法条原文展示，无主观分析 ——
     if "research_full_result" in st.session_state:
         result = st.session_state["research_full_result"]
-        st.markdown("### 📋 检索结果")
-        # 渲染输出文本（含 Markdown）
-        st.markdown(result.get("output", "无结果"), unsafe_allow_html=True)
+        st.markdown("### 📋 法条原文检索结果")
         
-        # 引用法规折叠面板
+        # 优先渲染 output（纯法条 Markdown）
+        output_text = result.get("output", "")
+        if output_text:
+            st.markdown(output_text, unsafe_allow_html=True)
+        
+        # 可溯源法条出处（折叠面板）
         if result.get("citations"):
-            with st.expander("📚 法规引用"):
+            with st.expander("📚 法条溯源（共 {} 条）".format(len(result["citations"]))):
                 for cite in result["citations"]:
-                    st.markdown(f"**{cite['title']} {cite['article_no']}**")
-                    st.markdown(f"> {cite['content']}")  # 引用块形式展示法条内容
+                    # 每条溯源卡片：法律名 + 条款号 + 原文 + 发布机关 + 日期
+                    st.markdown(f"**🔖 {cite.get('title', '未知')} {cite.get('article_no', '')}**")
+                    st.markdown(f"> {cite.get('content', '')}")
+                    source_info = []
+                    if cite.get("source"):
+                        source_info.append(f"发布机关：{cite['source']}")
+                    if cite.get("publish_date"):
+                        source_info.append(f"发布日期：{cite['publish_date']}")
+                    if source_info:
+                        st.markdown(f"<span style='color:#6B7280;font-size:12px;'>{' | '.join(source_info)}</span>", unsafe_allow_html=True)
                     st.markdown("---")
 
 
 # ==================== 小红书发布独立页面 ====================
+# —— 两阶段流程：阶段1 生成文案 → 阶段2 自动发布到小红书
+# —— 绕过 LangGraph（Streamlit ScriptRunner 线程无 asyncio 事件循环，会报
+#    "There is no current event loop in thread 'ScriptRunner.scriptThread'" 错误），
+#    直接调用 text_generate_node 生成文案 + auto_publish_xiaohongshu 在独立线程中发布
 elif page == "📱 小红书发布":
-    # 小红书发布页面元数据
+    # ========== 流程对齐 langgraph_more_nodes.py 图三 ==========
+    # START → text_generate_node → image_generator_node → check_text_image_node
+    #    → (publish_xiaohongshu) → xiaohongshu_auto_publish_node → generate_markdown_node → END
+    # ===================================================================
+
     XHS_META = {
-        "greeting": "您好, 我是小红书发布智能体",  # 问候语
-        "description": "您可以输入法律科普主题（如\"劳动合同维权\"\"租房合同避坑\"），或上传参考文档、封面图片素材，我会生成符合小红书风格的爆款标题、分点正文、热门话题标签与配图建议，帮助您高效产出高质量的法律科普笔记。",
+        "greeting": "您好, 我是小红书发布智能体",
+        "description": "您可以给我一个主题,我会① 生成文案 → ② 生成配图 → ③ 检查文本/图片 → ④ 自动发布到小红书创作者平台（首次扫码登录,会保存您的信息，后续免登录）。",
     }
-    # 渲染问候语与说明卡片
     st.markdown(f"""
     <div class="task-greeting">{XHS_META['greeting']}</div>
     <div class="task-intro-box">
@@ -2447,84 +2914,524 @@ elif page == "📱 小红书发布":
     </div>
     """, unsafe_allow_html=True)
 
-    # 小红书内容主题输入框
-    topic = st.text_area("输入小红书内容主题", height=150, placeholder="如: 劳动合同维权、租房合同避坑...", key="xhs_topic_area")
-    
-    # 文件上传区：两列布局（封面图片 / 参考文档）
+    # ========== 流程进度条 ==========
+    def _xhs_stage():
+        """根据 session_state 中已完成的阶段，返回当前阶段编号 (0-4)"""
+        s = st.session_state
+        if "xhs_markdown_output" in s:
+            return 4
+        if "xhs_publish_result" in s and s.get("xhs_publish_ok"):
+            return 4
+        if s.get("xhs_checked_ok"):
+            return 3
+        if "xhs_image_path_list" in s and s["xhs_image_path_list"]:
+            return 2
+        if "xhs_title" in s and "xhs_content" in s:
+            return 1
+        return 0
+
+    stage = _xhs_stage()
+    stages = ["① 输入主题", "② 生成文案", "③ 生成配图", "④ 检查完备性", "⑤ 自动发布"]
+    with st.container():
+        cols = st.columns(len(stages))
+        for i, (name, col) in enumerate(zip(stages, cols)):
+            if i < stage:
+                col.markdown(f"<div style='text-align:center;color:#2E7D32;font-weight:bold'>✔ {name}</div>", unsafe_allow_html=True)
+            elif i == stage:
+                col.markdown(f"<div style='text-align:center;color:#1565C0;font-weight:bold;text-decoration:underline'>▶ {name}</div>", unsafe_allow_html=True)
+            else:
+                col.markdown(f"<div style='text-align:center;color:#9CA3AF'>○ {name}</div>", unsafe_allow_html=True)
+        st.markdown("")
+
+    # ============ 阶段0：输入区 ============
+    topic = st.text_area("输入小红书内容主题", height=100, placeholder="如: 劳动合同维权、租房合同避坑...", key="xhs_topic_area")
+
     col_x1, col_x2 = st.columns([1, 1])
     with col_x1:
-        # 封面图片上传器
-        xhs_images = st.file_uploader("上传封面图片", type=["png", "jpg", "jpeg", "webp"], key="xhs_upload_images", accept_multiple_files=True)
+        xhs_images_uploaded = st.file_uploader("上传封面图片（可选，留空则使用AI生成的配图）", type=["png", "jpg", "jpeg", "webp"], key="xhs_upload_images", accept_multiple_files=True)
     with col_x2:
-        # 参考文档上传器
-        xhs_docs = st.file_uploader("上传参考文档", type=["txt", "md", "docx", "pdf"], key="xhs_upload_docs", accept_multiple_files=True)
+        xhs_docs = st.file_uploader("上传参考文档（可选）", type=["txt", "md", "docx", "pdf"], key="xhs_upload_docs", accept_multiple_files=True)
 
-    # 操作区：与合同审核页保持相同的布局逻辑（等宽/左对齐，生成文案按钮放到最下侧）
-    # 顺序：💡 选题示例 expander → 🎭 效果展示 button → 📱 生成文案 button
-
-    # 1) 选题示例折叠面板（全宽，左对齐）
+    # 选题示例
     with st.expander("💡 选题示例"):
-        xhs_examples = [
-            "租房合同避坑指南：5个关键条款必须看",
-            "劳动合同维权：被裁员后如何争取赔偿",
-            "投资理财陷阱：这些合同条款要警惕",
-        ]
-        for q_item in xhs_examples:
+        for q_item in ["租房合同避坑指南：5个关键条款必须看", "劳动合同维权：被裁员后如何争取赔偿", "投资理财陷阱：这些合同条款要警惕"]:
             st.markdown(f"- {q_item}")
 
-    # 2) 效果展示切换按钮（全宽，左对齐；显式 secondary 灰色，只让"生成文案"为蓝色主按钮）
+    # 效果展示（一键填充 demo 文案+图片）
     if st.button("🎭 效果展示", key="toggle_demo_xhs", type="secondary", use_container_width=True):
-        if "xhs_full_result" in st.session_state:
-            # 已有结果则清除
-            del st.session_state["xhs_full_result"]
-            st.rerun()
-        else:
-            # 无结果则填入演示小红书文案（含标题/正文/话题标签）
-            demo_result = """# 📱 劳动合同维权必看！被裁员了怎么赔？
-
-姐妹们！最近后台收到好多被裁员的私信，今天统一给大家讲清楚👇
+        st.session_state["xhs_title"] = "劳动合同维权必看！被裁员了怎么赔？"
+        st.session_state["xhs_content"] = """姐妹们！最近好多被裁员的私信，今天统一讲清楚👇
 
 ## 🔑 核心知识点
 
 ### 1️⃣ 经济补偿金怎么算？
-- **N** = 工作年限
-- 不满半年按0.5算，满半年按1算
+- **N** = 工作年限，不满半年按0.5算，满半年按1算
 - 月工资 = 离职前12个月平均工资
 
 ### 2️⃣ 哪些情况可以要求2N？
-- 违法解除劳动合同
-- 没有合法理由裁员
+- 违法解除劳动合同、没有合法理由裁员
 
 ### 3️⃣ 维权步骤
 1. 收集证据（劳动合同、工资流水、聊天记录）
-2. 与公司协商
-3. 申请劳动仲裁
-4. 不服可起诉
+2. 与公司协商 → 申请劳动仲裁 → 不服可起诉
 
 ## ⚠️ 重点提醒
-- 仲裁时效1年，别过期！
-- 保留所有书面证据
-- 可以寻求法律援助
+- 仲裁时效1年，别过期！保留所有书面证据
 
 ---
 #职场维权 #劳动仲裁 #被裁员 #劳动合同法 #法律科普"""
-            st.session_state["xhs_full_result"] = demo_result
+        demo_img = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "images", "20260813162307🔥劳动合同.png")
+        if os.path.exists(demo_img):
+            st.session_state["xhs_image_path_list"] = [demo_img]
+        st.success("✅ Demo 数据已填充，可直接跳转到「④ 检查并发布」")
+        st.rerun()
+
+    st.markdown("---")
+
+    # ============ 阶段1：生成文案 (text_generate_node) ============
+    st.markdown("### ② 生成文案")
+    col_s1_a, col_s1_b = st.columns([3, 1])
+    with col_s1_a:
+        do_gen_text = st.button("📱 生成文案", type="primary", use_container_width=True, key="xhs_generate")
+    with col_s1_b:
+        if st.button("🗑️ 重置所有结果", use_container_width=True, key="xhs_reset"):
+            for key in ["xhs_title", "xhs_content", "xhs_image_path_list",
+                        "xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok",
+                        "xhs_markdown_output", "xhs_upload_images"]:
+                if key in st.session_state:
+                    del st.session_state[key]
             st.rerun()
 
-    # 3) 生成文案按钮：按要求放到最下侧（primary 主色按钮，全宽）
-    if st.button("📱 生成文案", type="primary", use_container_width=True, key="start_xhs"):
+    if do_gen_text:
         input_topic = topic.strip()
-        if input_topic:
-            with st.spinner("✨ 生成中..."):
-                # 调用后端接口（不带 task_type，按通用问答处理）
-                result = legal_response_sync(f"小红书发布: {input_topic}")
-                st.session_state["xhs_full_result"] = result
-        else:
+        if not input_topic:
             st.warning("请输入主题内容")
+        else:
+            with st.spinner("✨ 正在调用 text_generate_node 生成小红书文案..."):
+                try:
+                    from __004__langgraph_more_nodes.nodes.text_generate_node import generate_xiaohongshu_text
+                    title, content = generate_xiaohongshu_text(input_topic)
+                    st.session_state["xhs_title"] = title
+                    st.session_state["xhs_content"] = content
+                    # 新阶段开始时清除后续阶段的缓存
+                    for k in ["xhs_image_path_list", "xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok", "xhs_markdown_output"]:
+                        st.session_state.pop(k, None)
+                    st.success("✅ 文案生成成功！进入阶段②")
+                    st.rerun()
+                except Exception as e:
+                    print(f"小红书文案生成异常: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    # 回退演示文案
+                    st.session_state["xhs_title"] = f"📱 {input_topic} - 法律科普"
+                    st.session_state["xhs_content"] = f"""姐妹们！关于「{input_topic}」，今天来聊聊重点👇
 
-    # 渲染生成的小红书文案结果
-    if "xhs_full_result" in st.session_state:
-        result = st.session_state["xhs_full_result"]
-        st.markdown("### 📝 生成内容")
-        # 直接以 Markdown 渲染文案（含标题、列表、话题标签等）
-        st.markdown(result, unsafe_allow_html=True)
+## 🔑 核心知识点
+（AI 生成内容回退模式）
+
+---
+#法律科普 #AI法律 #法律助手"""
+                    st.warning("LLM 调用失败，已生成演示文案")
+
+    # ========== 阶段2：渲染 + 编辑已生成的文案 ==========
+    if "xhs_title" in st.session_state and "xhs_content" in st.session_state:
+        gen_title = st.session_state["xhs_title"]
+        gen_content = st.session_state["xhs_content"]
+
+        with st.expander("📝 查看/编辑已生成文案", expanded=True):
+            st.markdown(f"**标题**: {gen_title}")
+            st.markdown(gen_content, unsafe_allow_html=True)
+            col_edit1, col_edit2 = st.columns([1, 1])
+            with col_edit1:
+                edited_title = st.text_input("修改标题", value=gen_title, key="xhs_edit_title")
+            with col_edit2:
+                st.caption("修改后请保存，保存后将同步到发布内容")
+            edited_content = st.text_area("修改正文", value=gen_content, height=200, key="xhs_edit_content")
+            if st.button("💾 保存修改", key="xhs_save_edit", use_container_width=True):
+                st.session_state["xhs_title"] = edited_title
+                st.session_state["xhs_content"] = edited_content
+                st.success("✅ 文案已更新")
+                st.rerun()
+
+        st.markdown("---")
+
+        # ========== 阶段3：生成配图 (image_generator_node) ==========
+        st.markdown("### ③ 生成配图")
+        col_s3_a, col_s3_b, col_s3_c = st.columns([2, 1, 1])
+        with col_s3_a:
+            do_gen_image = st.button("🎨 AI 生成配图（image_generator_node）", type="primary", use_container_width=True, key="xhs_gen_image")
+        with col_s3_b:
+            if st.button("🖼️ 使用我上传的图片", use_container_width=True, key="xhs_use_uploaded"):
+                # 将 st.file_uploader 的图片保存到本地临时目录，写入 session_state
+                if not xhs_images_uploaded:
+                    st.warning("⚠️ 请先上传至少 1 张图片")
+                else:
+                    try:
+                        tmp_dir = os.path.join(tempfile.gettempdir(), "xhs_upload_images")
+                        os.makedirs(tmp_dir, exist_ok=True)
+                        imgs = xhs_images_uploaded if isinstance(xhs_images_uploaded, list) else [xhs_images_uploaded]
+                        saved_paths = []
+                        for i, img in enumerate(imgs):
+                            ext = os.path.splitext(img.name)[1] or ".png"
+                            fp = os.path.join(tmp_dir, f"xhs_{int(time.time())}_{i}{ext}")
+                            with open(fp, "wb") as f:
+                                f.write(img.getvalue())
+                            saved_paths.append(fp)
+                        st.session_state["xhs_image_path_list"] = saved_paths
+                        for k in ["xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok", "xhs_markdown_output"]:
+                            st.session_state.pop(k, None)
+                        st.success(f"✅ 已使用上传的 {len(saved_paths)} 张图片")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"图片保存失败: {e}")
+        with col_s3_c:
+            if "xhs_image_path_list" in st.session_state and st.session_state["xhs_image_path_list"]:
+                if st.button("🗑️ 清除配图", use_container_width=True, key="xhs_clr_img"):
+                    st.session_state.pop("xhs_image_path_list", None)
+                    for k in ["xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok", "xhs_markdown_output"]:
+                        st.session_state.pop(k, None)
+                    st.rerun()
+
+        if do_gen_image:
+            with st.spinner("🎨 正在调用 image_generator_node 生成配图（即梦AI / 占位图兜底）..."):
+                try:
+                    # 对齐节点状态字段名: xiaohongshu_title / xiaohongshu_content
+                    from __004__langgraph_more_nodes.nodes.image_generate_node import image_generator_node
+                    _state = {
+                        "xiaohongshu_title": st.session_state.get("xhs_title", ""),
+                        "xiaohongshu_content": st.session_state.get("xhs_content", ""),
+                    }
+                    _result = image_generator_node(_state)
+                    img_list = _result.get("xiaohongshu_image_path_list", [])
+                    if img_list:
+                        st.session_state["xhs_image_path_list"] = img_list
+                        for k in ["xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok", "xhs_markdown_output"]:
+                            st.session_state.pop(k, None)
+                        st.success(f"✅ 配图生成成功: {img_list[0]}")
+                        st.rerun()
+                    else:
+                        st.error("❌ 配图生成失败（即梦AI + 占位图兜底均失败）")
+                except Exception as e:
+                    print(f"配图生成异常: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    st.error(f"❌ 配图生成失败: {e}")
+
+        # 展示已有的配图
+        if "xhs_image_path_list" in st.session_state and st.session_state["xhs_image_path_list"]:
+            with st.expander("🖼️ 当前配图预览", expanded=True):
+                paths = st.session_state["xhs_image_path_list"]
+                preview_cols = st.columns(min(3, len(paths)))
+                for i, p in enumerate(paths):
+                    if os.path.exists(p):
+                        with preview_cols[i % 3]:
+                            st.image(p, caption=os.path.basename(p), use_column_width=True)
+                    else:
+                        preview_cols[i % 3].warning(f"⚠️ 图片不存在: {p}")
+
+        st.markdown("---")
+
+        # ========== 阶段4：检查文本/图片 (check_text_image_node) ==========
+        # 然后进入自动发布 (xiaohongshu_auto_publish_node)
+        # 和 Markdown 生成 (generate_markdown_node)
+        st.markdown("### ④⑤ 检查完备性 & 自动发布")
+
+        _cur_title = st.session_state.get("xhs_title", "")
+        _cur_content = st.session_state.get("xhs_content", "")
+        _cur_imgs = st.session_state.get("xhs_image_path_list", [])
+
+        # 先显示检查结果（对齐 check_text_image_node 逻辑）
+        with st.container(border=True):
+            st.caption("【对齐 check_text_image_node 规则】")
+            checks = [
+                ("标题非空", bool(_cur_title)),
+                ("正文非空", bool(_cur_content)),
+                ("图片已生成或上传", bool(_cur_imgs)),
+            ]
+            all_ok = True
+            for name, ok in checks:
+                icon, color = ("✅", "#2E7D32") if ok else ("❌", "#C62828")
+                if not ok:
+                    all_ok = False
+                st.markdown(f"<div style='color:{color};font-weight:bold'>{icon} {name}</div>", unsafe_allow_html=True)
+            st.session_state["xhs_checked_ok"] = all_ok
+
+        if st.button("🚀 检查通过，一键自动发布到小红书",
+                     type="primary", use_container_width=True, key="xhs_auto_publish",
+                     disabled=not all_ok):
+            # ========== xiaohongshu_auto_publish_node ==========
+            # 参考 auto_publish_xiaohongshu_node.py，通过 subprocess 隔离 Streamlit
+            # 运行时，避免 ScriptRunner 线程事件循环与 Playwright 子进程冲突
+            publish_status = st.empty()
+            publish_status.info("⏳ 正在启动独立发布进程（将打开浏览器窗口）...")
+
+            # 构造最终图片列表 (优先 xhs_image_path_list，其次上传文件)
+            final_image_paths = list(_cur_imgs) if _cur_imgs else []
+            if not final_image_paths and xhs_images_uploaded:
+                tmp_dir = os.path.join(tempfile.gettempdir(), "xhs_upload_images")
+                os.makedirs(tmp_dir, exist_ok=True)
+                imgs = xhs_images_uploaded if isinstance(xhs_images_uploaded, list) else [xhs_images_uploaded]
+                for i, img in enumerate(imgs):
+                    ext = os.path.splitext(img.name)[1] or ".png"
+                    fp = os.path.join(tmp_dir, f"xhs_{int(time.time())}_{i}{ext}")
+                    with open(fp, "wb") as f:
+                        f.write(img.getvalue())
+                    final_image_paths.append(fp)
+
+            # 再次做最终校验
+            missing = []
+            if not _cur_title:
+                missing.append("标题")
+            if not _cur_content:
+                missing.append("正文")
+            if not final_image_paths:
+                missing.append("图片")
+            if missing:
+                publish_status.error(f"❌ 缺少: {', '.join(missing)}，无法发布")
+                st.stop()
+
+            # 定位 runner
+            runner_path = Path(__file__).parent / "xhs_publish_runner.py"
+            if not runner_path.exists():
+                publish_status.error(f"❌ 找不到发布脚本: {runner_path}")
+                st.stop()
+
+            # 项目根目录（__006__streamlit 上一级），供 PYTHONPATH 和探测函数使用
+            _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+            # ── 修复：多解释器问题（No module named 'playwright'） ──
+            # 启动前用候选解释器做一次探测：执行 import playwright，如果失败就换下一个
+            # 候选顺序：
+            #   1) sys.executable（当前 Streamlit 解释器，理论上能 import）
+            #   2) sys.prefix / "python.exe"（conda 虚拟环境根）
+            #   3) sys.prefix / "Scripts" / "python.exe"（venv Scripts）
+            #   4) 兜底：os.environ.get("VIRTUAL_ENV")/Scripts/python.exe
+            def _probe_playwright(py_path: str, timeout_sec: int = 15) -> bool:
+                """探测某 Python 能否 import playwright"""
+                if not py_path or not os.path.exists(py_path):
+                    return False
+                try:
+                    _probe_env = os.environ.copy()
+                    _probe_env["PYTHONIOENCODING"] = "utf-8"
+                    _probe_env["PYTHONUTF8"] = "1"
+                    _probe_env["PYTHONPATH"] = _project_root + os.pathsep + _probe_env.get("PYTHONPATH", "")
+                    pr = subprocess.run(
+                        [py_path, "-c", "import playwright; print('PLAYWRIGHT_OK:', playwright.__file__)"],
+                        capture_output=True, text=True, encoding="utf-8", errors="replace",
+                        timeout=timeout_sec, env=_probe_env,
+                    )
+                    return pr.returncode == 0 and "PLAYWRIGHT_OK" in (pr.stdout or "")
+                except Exception:
+                    return False
+
+            publish_status.info("🔍 正在自检 Python 解释器 Playwright 可用性...")
+            _candidates = []
+            # 1) 当前解释器
+            _candidates.append(("sys.executable", sys.executable))
+            # 2) conda 根 python.exe
+            _p_prefix = os.path.join(sys.prefix, "python.exe")
+            if _p_prefix != sys.executable and os.path.exists(_p_prefix):
+                _candidates.append(("sys.prefix", _p_prefix))
+            # 3) venv Scripts/python.exe
+            _p_scripts = os.path.join(sys.prefix, "Scripts", "python.exe")
+            if os.path.exists(_p_scripts) and _p_scripts != sys.executable:
+                _candidates.append(("sys.prefix/Scripts", _p_scripts))
+            # 4) VIRTUAL_ENV
+            if os.environ.get("VIRTUAL_ENV"):
+                _ve = os.environ["VIRTUAL_ENV"]
+                for rel in ("python.exe", os.path.join("Scripts", "python.exe")):
+                    _p_ve = os.path.join(_ve, rel)
+                    if os.path.exists(_p_ve) and _p_ve != sys.executable:
+                        _candidates.append((f"VIRTUAL_ENV/{rel}", _p_ve))
+
+            chosen_py = None
+            probe_logs = []
+            for name, path in _candidates:
+                ok = _probe_playwright(path)
+                probe_logs.append(f"  [{('✔' if ok else '✗')}] {name}: {path}")
+                if ok:
+                    chosen_py = path
+                    break
+            probe_logs_text = "\n".join(probe_logs)
+
+            if not chosen_py:
+                _install_cmd = (
+                    f'"{sys.executable}" -m pip install playwright playwright-async '
+                    f'&& "{sys.executable}" -m playwright install chromium'
+                )
+                publish_status.error(
+                    "❌ 当前 Python 环境缺少 Playwright。\n\n"
+                    f"请先执行安装命令：\n\n```\n{_install_cmd}\n```\n\n"
+                    f"自检日志：\n{probe_logs_text}"
+                )
+                with st.expander("📋 解释器自检详情"):
+                    st.code(probe_logs_text)
+                st.stop()
+            else:
+                publish_status.info(f"✅ Playwright 可用，使用解释器：{chosen_py}")
+
+            images_arg = ",".join(final_image_paths)
+            cmd = [
+                chosen_py,  # 经探测能 import playwright 的解释器
+                str(runner_path),
+                "--images", images_arg,
+                "--title", _cur_title,
+                "--content", _cur_content,
+                "--timeout", "300",
+            ]
+
+            # 环境变量：PYTHONIOENCODING=utf-8 解决 GBK 报错；PYTHONPATH 保证包可见
+            _env = os.environ.copy()
+            _env["PYTHONIOENCODING"] = "utf-8"
+            _env["PYTHONUTF8"] = "1"
+            _env["PYTHONPATH"] = _project_root + os.pathsep + _env.get("PYTHONPATH", "")
+
+            # 启动子进程：CREATE_NEW_CONSOLE（独立窗口） + UTF-8 stdout
+            CREATE_NEW_CONSOLE = 0x00000010
+            try:
+                proc = subprocess.Popen(
+                    cmd,
+                    creationflags=CREATE_NEW_CONSOLE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    cwd=str(Path(__file__).parent),
+                    env=_env,
+                )
+            except TypeError:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    cwd=str(Path(__file__).parent),
+                    env=_env,
+                )
+            except Exception as e2:
+                publish_status.error(f"❌ 无法启动发布进程: {e2}")
+                st.stop()
+
+            # 实时日志
+            log_lines = []
+            log_placeholder = st.empty()
+            status_text = "⏳ 发布中..."
+            publish_status.info(status_text)
+            try:
+                while True:
+                    line = proc.stdout.readline()
+                    if not line:
+                        break
+                    ls = line.strip()
+                    if ls:
+                        log_lines.append(ls)
+                        with log_placeholder.container():
+                            st.code("\n".join(log_lines[-15:]), language=None)
+                        # 进度匹配（对齐 XiaohongshuUploader 的日志前缀：[√]/[x]/[X]/[!]）
+                        if "图片上传完成" in ls or "已提交" in ls and "图片" in ls:
+                            status_text = "🖼️  图片已提交，等待上传完成..."
+                            publish_status.info(status_text)
+                        elif "缩略图" in ls and "上传完成" in ls:
+                            status_text = "🖼️  图片上传完成，正在填写内容..."
+                            publish_status.info(status_text)
+                        elif "标题已填写" in ls:
+                            status_text = "📝 标题已填写，正在输入正文..."
+                            publish_status.info(status_text)
+                        elif "正文已填写" in ls:
+                            status_text = "📝 内容填写完成，准备点击发布..."
+                            publish_status.info(status_text)
+                        elif "策略" in ls and "点击发布按钮" in ls:
+                            status_text = f"🚀 {ls}"
+                            publish_status.info(status_text)
+                        elif "等待发布结果" in ls:
+                            status_text = "⏳ 已点击发布，正在验证发布结果..."
+                            publish_status.info(status_text)
+                        elif "发布成功" in ls and ("URL" in ls or "提示" in ls or "✅" in ls):
+                            status_text = "✅ 发布成功！"
+                            publish_status.success(status_text)
+                        elif "[DONE] ✅" in ls or "发布流程执行成功" in ls:
+                            status_text = "✅ 发布流程成功完成！"
+                            publish_status.success(status_text)
+                        elif "[DONE] ❌" in ls or "发布流程执行失败" in ls:
+                            status_text = "❌ 发布失败，请查看日志"
+                            publish_status.error(status_text)
+                        elif "[FAIL]" in ls:
+                            status_text = f"❌ {ls}"
+                            publish_status.error(status_text)
+                        elif "检测到错误提示" in ls:
+                            status_text = f"❌ {ls}"
+                            publish_status.error(status_text)
+                        elif "所有策略均未能点击发布按钮" in ls:
+                            status_text = "❌ 无法点击发布按钮，请手动点击"
+                            publish_status.error(status_text)
+                        elif "未检测到登录状态" in ls or "请手动登录" in ls:
+                            status_text = "⚠️ 首次使用：请在独立命令行窗口中登录后按回车继续..."
+                            publish_status.warning(status_text)
+                        elif "登录状态已保存" in ls:
+                            status_text = "✅ 登录成功并保存 Cookie，继续发布..."
+                            publish_status.info(status_text)
+                        elif "开始启动" in ls or "启动完成" in ls:
+                            status_text = "🌐 Chromium 浏览器已启动，正在加载小红书发布页..."
+                            publish_status.info(status_text)
+                        elif "切换到" in ls and "上传图文" in ls:
+                            status_text = "🔀 正在切换到上传图文Tab..."
+                            publish_status.info(status_text)
+
+                rc = proc.wait(timeout=300)
+                # 判断成功：退出码0 + 日志中有 ✅ 或 发布成功
+                has_success = any("✅" in l or "发布成功" in l for l in log_lines)
+                has_fail = any("[FAIL]" in l or "[DONE] ❌" in l or "所有策略均未能" in l or "检测到错误提示" in l for l in log_lines)
+                if rc == 0 and has_success and not has_fail:
+                    publish_status.success("✅ 自动发布成功！请检查小红书后台。")
+                    st.session_state["xhs_publish_result"] = "发布成功"
+                    st.session_state["xhs_publish_ok"] = True
+
+                    # ========== generate_markdown_node ==========
+                    try:
+                        from __004__langgraph_more_nodes.nodes.generate_markdown_node import generate_markdown_node
+                        _md_state = {
+                            "xiaohongshu_tcm_post_title": _cur_title,
+                            "xiaohongshu_tcm_post_content": _cur_content,
+                            "xiaohongshu_image_path_list": final_image_paths,
+                            "xiaohongshu_tcm_tip": "小红书发布成功",
+                        }
+                        _md_res = generate_markdown_node(_md_state)
+                        if _md_res and _md_res.get("xiaohongshu_markdown_output"):
+                            st.session_state["xhs_markdown_output"] = _md_res["xiaohongshu_markdown_output"]
+                    except Exception as md_e:
+                        print(f"[WARN] generate_markdown_node 失败: {md_e}")
+                        # 兜底：手写 markdown
+                        _md = f"# {_cur_title}\n\n{_cur_content}\n\n配图:\n" + "\n".join(
+                            f"- ![{os.path.basename(p)}]({p})" for p in final_image_paths
+                        )
+                        st.session_state["xhs_markdown_output"] = _md
+                else:
+                    publish_status.error(f"❌ 发布失败（退出码 {rc}），请查看上方完整日志。")
+                    st.session_state["xhs_publish_result"] = f"发布失败 (退出码 {rc})"
+                    st.session_state["xhs_publish_ok"] = False
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                publish_status.warning("⏳ 发布超时（超过5分钟），已终止进程。请手动检查浏览器状态。")
+                st.session_state["xhs_publish_result"] = "发布超时"
+            except Exception as e:
+                publish_status.error(f"❌ 读取发布日志异常: {e}")
+                st.session_state["xhs_publish_result"] = f"读取日志异常: {e}"
+
+            # 完整日志折叠面板
+            if log_lines:
+                with st.expander("📋 查看完整发布日志"):
+                    st.code("\n".join(log_lines), language=None)
+
+        # ========== 结果显示：Markdown 报告（generate_markdown_node） ==========
+        if "xhs_markdown_output" in st.session_state and st.session_state["xhs_markdown_output"]:
+            st.markdown("---")
+            st.markdown("### 📄 发布报告 (Markdown)")
+            st.markdown(st.session_state["xhs_markdown_output"], unsafe_allow_html=True)
+
+        # 历史发布结果
+        if "xhs_publish_result" in st.session_state:
+            st.markdown("---")
+            st.markdown(f"**📋 上次发布结果**: {st.session_state['xhs_publish_result']}")

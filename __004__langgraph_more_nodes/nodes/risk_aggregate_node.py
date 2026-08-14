@@ -27,44 +27,38 @@ SEVERITY_WEIGHT = {
 
 def risk_aggregate_node(state: AgentState):
     """
-    风险聚合节点函数: 合并三路风险项, 计算综合评分与等级, 写入多个状态字段。
+    风险聚合节点函数: 合并四路(合同/合规/数值/资信)风险项, 计算综合评分与等级。
 
     作用:
-        (1) 读取三路风险项(contract_risk_items/compliance_risk_items/numeric_risk_items),
-            统一字段结构(source/clause/severity/description/suggestion/legal_basis);
-        (2) 按 description 前 50 字去重, 避免 LLM 与规则引擎重复报告同一风险;
-        (3) 采用扣分制计算综合风险评分(0-100, 越高越安全);
-        (4) 按阈值划分风险等级(Low/Medium/High);
-        (5) 特殊规则: 存在 critical 风险时强制降级, 不得为 Low;
-        (6) 输出 need_lawyer_review 标志(Medium/High 时需律师复核)。
+        (1) 读取四路风险项(contract_risk_items/compliance_risk_items/numeric_risk_items/
+            credit_risk_items), 统一字段结构;
+        (2) 资信风险额外处理: is_counterparty(用户对立方)=True 的风险增加扣分权重
+            (×1.3), 因为"对方的资信问题直接影响我方能否收到钱/货";
+        (3) 按 description 前 50 字去重, 避免重复报告同一风险;
+        (4) 额外读取甲乙双方的综合资信分(credit_score), 作为全局加分/扣分项:
+            任一方 < 60 分 → 额外扣分; 双方均 ≥ 90 分 → 小幅加分;
+        (5) 采用扣分制计算综合风险评分(0-100, 越高越安全);
+        (6) 按阈值划分风险等级(Low/Medium/High), 存在 critical 风险时强制不得为 Low;
+        (7) 输出 need_lawyer_review 标志。
 
     参数:
-        state (AgentState): LangGraph 共享状态字典。读取字段:
-                            - contract_risk_items (List[Dict], 可选): 合同审核风险项
-                            - compliance_risk_items (List[Dict], 可选): 合规审查风险项
-                            - numeric_risk_items (List[Dict], 可选): 数值校验风险项
-                            写入字段:
-                            - merged_risk_items (List[Dict]): 合并去重后的风险项
-                            - overall_risk_score (float): 综合风险评分(0-100)
-                            - risk_level (str): 风险等级(Low/Medium/High)
-                            - need_lawyer_review (bool): 是否需要律师复核
+        state (AgentState): 共享状态, 读取 4 路风险项 + party_a_credit_info/party_b_credit_info。
 
     返回值:
-        AgentState: 更新后的状态字典, 包含上述 4 个写入字段。
+        AgentState: 写入 merged_risk_items/overall_risk_score/risk_level/need_lawyer_review。
 
     可迁移性说明:
-        本节点的"多源聚合 + 去重 + 扣分制评分 + 等级划分"架构可迁移到任何多维度风险评估场景,
-        例如: 信用评分、安全审计、质量评估等。
-        扣分制权重(SEVERITY_WEIGHT)与等级阈值可根据业务调整。
-        "critical 强制降级"的兜底逻辑是合规场景的重要保障, 推荐保留。
+        本节点的"多源聚合 + 立场加权 + 全局分修正 + 去重 + 扣分制评分 + 等级划分"
+        架构可迁移到任何多维度风险评估场景, 例如供应链风控、信贷审批等。
     """
     # 打印节点开始日志
-    print("开始风险聚合")
+    print("开始风险聚合(含资信)")
 
-    # 从状态字典中读取三路风险项, 默认空列表
+    # 从状态字典中读取四路风险项, 默认空列表
     contract_risks = state.get("contract_risk_items", [])
     compliance_risks = state.get("compliance_risk_items", [])
     numeric_risks = state.get("numeric_risk_items", [])
+    credit_risks = state.get("credit_risk_items", [])  # 第 4 路: 资信风险(credit_check_node 输出)
 
     # all_risks 列表用于收集统一字段结构后的所有风险项
     all_risks = []
@@ -72,18 +66,14 @@ def risk_aggregate_node(state: AgentState):
     # 第一路: 合同审核风险项字段统一
     for r in contract_risks:
         all_risks.append({
-            # source 标识风险来源, 便于在报告中分类展示
             "source": "合同审核",
-            # clause: 相关条款, 从原风险项取, 默认空字符串
             "clause": r.get("clause", ""),
-            # severity: 严重程度, 默认 medium
             "severity": r.get("severity", "medium"),
-            # description: 风险描述
             "description": r.get("description", ""),
-            # suggestion: 修改建议, 优先取 suggestion, 其次取 remediation(兼容字段)
             "suggestion": r.get("suggestion", r.get("remediation", "")),
-            # legal_basis: 法律依据
             "legal_basis": r.get("legal_basis", ""),
+            # 合同/合规/数值三路: 无"对立方加权"概念, 设为 1.0 标准权重
+            "_weight_multiplier": 1.0,
         })
 
     # 第二路: 合规审查风险项字段统一(优先级最高, 涉及法律合规)
@@ -93,22 +83,44 @@ def risk_aggregate_node(state: AgentState):
             "clause": r.get("clause", ""),
             "severity": r.get("severity", "medium"),
             "description": r.get("description", ""),
-            # 合规风险的整改建议字段名为 remediation
             "suggestion": r.get("remediation", ""),
             "legal_basis": r.get("legal_basis", ""),
+            "_weight_multiplier": 1.0,
         })
 
     # 第三路: 数值校验风险项字段统一
     for r in numeric_risks:
         all_risks.append({
             "source": "数值校验",
-            # 数值风险的"条款"字段用 target_field 或 rule_id 替代(因数值校验不针对具体条款文本)
             "clause": r.get("target_field", r.get("rule_id", "")),
             "severity": r.get("severity", "medium"),
             "description": r.get("description", ""),
-            # 数值校验无修改建议, 置空
             "suggestion": "",
             "legal_basis": r.get("legal_basis", ""),
+            "_weight_multiplier": 1.0,
+        })
+
+    # 第四路: 资信审查风险项字段统一(新增) —— 含对立方加权
+    # 注意: 资信节点排在 party_identify 之后, 但 risk_aggregate 在新流程中也已
+    # 移到 credit_check 之后(见 langgraph_main.py 中 N8->credit_check->N7),
+    # 所以此处能拿到 credit_risk_items。
+    for r in credit_risks:
+        # 对立方加权: 如果该资信风险来自签约对手方, 风险与我方切身利益更相关
+        # 例: 用户是甲方, 乙方失信 = 我方拿不到货/款, 权重 ×1.3
+        is_cp = bool(r.get("is_counterparty", False))
+        multiplier = 1.3 if is_cp else 1.0
+        all_risks.append({
+            "source": "资信审查",
+            "clause": r.get("clause", ""),
+            "severity": r.get("severity", "medium"),
+            "description": r.get("description", ""),
+            "suggestion": r.get("suggestion", ""),
+            "legal_basis": r.get("legal_basis", ""),
+            # 保留两个展示字段, 便于最终报告在"资信"分类下显示甲方/乙方标签
+            "party_label": r.get("party_label", ""),
+            "credit_category": r.get("credit_category", ""),
+            # 权重倍率: 1.3(对方) / 1.0(自身 / Unknown)
+            "_weight_multiplier": multiplier,
         })
 
     # 去重阶段: 按 description 前 50 字作为去重键
@@ -128,25 +140,44 @@ def risk_aggregate_node(state: AgentState):
         merged.append(r)
 
     # 评分阶段: 计算综合风险评分(0-100, 越高越安全)
+    # ---------- 1) 基础分(无风险 95, 否则 100 起步扣分) ----------
     if not merged:
-        # 无风险时, 给予 95 分(留 5 分余量, 表示"未检出风险但不保证完美")
-        overall_score = 95
+        overall_score = 95.0
     else:
-        # 扣分制: 基础 100 分, 每个风险按严重程度扣分
-        # penalty 累计扣分值
-        penalty = 0
+        penalty = 0.0
         for r in merged:
-            # 取严重程度并转小写, 兼容大小写不一致
             sev = r.get("severity", "medium").lower()
-            # 从权重表取对应权重, 默认 40(medium)
             weight = SEVERITY_WEIGHT.get(sev, 40)
-            # 扣分 = 权重 * 系数(0.15)
-            # 系数 0.15 是经验值, 控制"单个风险的扣分力度"
-            # 例: critical 风险扣 15 分(100*0.15), low 风险扣 1.5 分(10*0.15)
-            penalty += weight * 0.15
-        # 最终分数 = max(10, 100 - penalty), 最低不低于 10 分(避免负分)
-        # max(10, ...) 保证分数始终在合理范围
-        overall_score = max(10, 100 - penalty)
+            # 基础扣分 = 严重程度权重 × 系数(0.15)
+            base_penalty = weight * 0.15
+            # 乘风险项自身的权重倍率: 对立方资信风险 ×1.3, 其它 ×1.0
+            # 从 r 中取 _weight_multiplier, 缺失则用默认 1.0(保证向前兼容)
+            multiplier = float(r.get("_weight_multiplier", 1.0))
+            penalty += base_penalty * multiplier
+        overall_score = max(10.0, 100.0 - penalty)
+
+    # ---------- 2) 全局资信分修正(基于甲乙双方 credit_score 做额外微调) ----------
+    # 这能体现"即使条款写得再完美, 对方是老赖也很难全身而退"的现实情况
+    extra_mod = 0.0  # 正=加分, 负=扣分
+    a_score = None
+    b_score = None
+    a_info = state.get("party_a_credit_info") or {}
+    b_info = state.get("party_b_credit_info") or {}
+    if isinstance(a_info, dict) and isinstance(a_info.get("credit_score"), (int, float)):
+        a_score = float(a_info["credit_score"])
+    if isinstance(b_info, dict) and isinstance(b_info.get("credit_score"), (int, float)):
+        b_score = float(b_info["credit_score"])
+    # (a) 任一方资信分 < 60 -> 每差 10 分扣 2 分, 上限扣 10 分
+    for s in [a_score, b_score]:
+        if s is not None and s < 60:
+            gap = (60 - s) / 10.0  # 差几个 10 分段
+            extra_mod -= min(10.0, gap * 2.0)
+    # (b) 双方都有分且均 >= 90 -> 加 3 分(优质对手组合, 商业环境好)
+    if a_score is not None and b_score is not None and a_score >= 90 and b_score >= 90:
+        extra_mod += 3.0
+    # (c) 应用修正, 并钳制到 10~100
+    if extra_mod != 0.0:
+        overall_score = max(10.0, min(100.0, overall_score + extra_mod))
 
     # 等级划分阶段: 按阈值将分数转为等级
     # 阈值与 XMind 主架构设计一致: >=81 Low / 61-80 Medium / <60 High

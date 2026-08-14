@@ -15,12 +15,12 @@ serverAddress = "0.0.0.0"
 serverPort = 8501
 
 [theme]
-# 科技感深蓝 + 红底主题
-base = "dark"
+# 浅色专业主题 - 清晰简约大气
+base = "light"
 primaryColor = "#1976D2"
-backgroundColor = "#450a0a"
-secondaryBackgroundColor = "#7f1d1d"
-textColor = "#ffffff"
+backgroundColor = "#FAFBFC"
+secondaryBackgroundColor = "#F1F5F9"
+textColor = "#1F2937"
 font = "sans serif"
 
 [client]

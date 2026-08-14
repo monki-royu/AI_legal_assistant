@@ -1,5 +1,5 @@
 """
-本地 data_demo 目录下法律 docx 批量转 txt
+本地 data/raw 目录下法律 docx 批量转 txt
 不依赖 python-docx，直接解析 docx (zip) 内的 word/document.xml
 输出: __001__clawler/法律法规/<同名>.txt
 支持断点续跑: 已存在的 txt 跳过
@@ -11,7 +11,7 @@
 # 解析 XML。docx_to_text 函数遍历 <w:body> 下所有元素，对 <w:p> 段落拼接其内所有 <w:t> 文本
 # 片段，对 <w:tbl> 表格插入 "[表格]" 标记，最终以换行符拼接为完整文本。batch_convert 函数负责
 # 批量遍历输入目录，对每个 docx 调用 docx_to_text 转换并写出 txt，已存在且非空的 txt 会被跳过，
-# 实现断点续跑。主程序入口固定读取项目根目录下的 data_demo，输出到 __001__clawler/法律法规/，
+# 实现断点续跑。主程序入口固定读取项目根目录下的 data/raw，输出到 __001__clawler/法律法规/，
 # 供后续的知识图谱抽取脚本消费。
 import os  # 导入 os 模块，用于路径拼接、目录创建与文件存在性判断
 import re  # 导入 re 模块，正则表达式支持（本文件中实际未直接使用，保留以备扩展）
@@ -178,9 +178,9 @@ def batch_convert(input_dir: str, output_dir: str):
 
 
 if __name__ == "__main__":
-    # 输入：优先 data/sample，若该目录无 .docx 则回退到旧目录 data_demo（兼容过渡期）
+    # 输入：优先 data/sample，若该目录无 .docx 则回退到旧目录 data/raw（兼容过渡期）
     in_dir = os.path.join(root_dir, "data", "sample")
-    fallback_dir = os.path.join(root_dir, "data_demo")
+    fallback_dir = os.path.join(root_dir, "data", "raw")
     if not any(f.lower().endswith(".docx") for f in (os.listdir(in_dir) if os.path.isdir(in_dir) else [])):
         if os.path.isdir(fallback_dir) and any(f.lower().endswith(".docx") for f in os.listdir(fallback_dir)):
             in_dir = fallback_dir

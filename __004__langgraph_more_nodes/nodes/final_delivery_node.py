@@ -64,6 +64,8 @@ def final_delivery_node(state: AgentState):
     need_review = state.get("need_lawyer_review", False)
     # 读取合同类型(如"买卖"/"租赁"), 默认"未分类"
     contract_type = state.get("contract_type", "未分类")
+    # 读取任务类型, 用于区分报告标题(合同审核/合规审查/法律检索)
+    task_type = state.get("task_type", "contract_review")
 
     # 风险等级映射
     # 将英文风险等级映射为中文展示文案, 若未匹配则原样返回 level
@@ -82,8 +84,14 @@ def final_delivery_node(state: AgentState):
     # 构建报告
     # 创建行列表, 逐行追加报告内容, 最后用 "\n".join 拼接为完整 Markdown
     lines = []
-    # 报告主标题
-    lines.append(f"# 法智引擎 - 合同审核报告\n")
+    # 报告主标题（根据任务类型动态切换）
+    _title_map = {
+        "contract_review": "合同审核报告",
+        "compliance_review": "合规审查报告",
+        "legal_research": "法律检索报告",
+    }
+    _report_title = _title_map.get(task_type, "法律分析报告")
+    lines.append(f"# 法智引擎 - {_report_title}\n")
     # "基本信息"小节标题
     lines.append(f"## 📋 基本信息\n")
     # 输出合同类型

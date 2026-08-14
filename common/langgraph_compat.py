@@ -89,6 +89,72 @@ class _GraphVisualizer:
             import matplotlib.patches as mpatches         # 局部导入 patches（虽然本实现未直接使用 mpatches，保留以备扩展自定义形状）
             import io                                     # 局部导入 io，用于创建内存字节缓冲区保存 PNG
 
+            # ============== 中文字体自动探测与设置 ==============
+            # 解决 RuntimeWarning: Glyph XXXX missing from current font
+            # 两阶段探测:
+            #   阶段 1 (Windows 直读): 直接读取 C:\Windows\Fonts 里的 msyh.ttc / simhei.ttf /
+            #            simsun.ttc, 用 fontManager.addfont 强塞到 matplotlib 字库.
+            #            这是比 family name 匹配更可靠的办法: 很多 Anaconda matplotlib 的
+            #            fontManager.ttflist 默认根本不扫描系统字体目录, 即使系统安装了
+            #            微软雅黑也读不到.
+            #   阶段 2 (家族名匹配): 若阶段 1 失败, 再从已注册 family name 匹配中文字体.
+            from matplotlib import rcParams
+            import os as _os
+            import warnings as _warnings
+            _cn_font_fp_candidates = []               # (ttf/ttc 绝对路径, 期望 family 名) 元组列表
+            if _os.name == "nt":
+                _win_font_dir = _os.path.join(_os.environ.get("SystemRoot", r"C:\Windows"), "Fonts")
+                # 顺序按显示效果: 微软雅黑 > 黑体 > 宋体; 含常规/粗体/bold 多份
+                _cn_font_fp_candidates += [
+                    (_os.path.join(_win_font_dir, "msyh.ttc"),   "Microsoft YaHei"),
+                    (_os.path.join(_win_font_dir, "msyhbd.ttc"), "Microsoft YaHei"),
+                    (_os.path.join(_win_font_dir, "msyhl.ttc"),  "Microsoft YaHei"),
+                    (_os.path.join(_win_font_dir, "simhei.ttf"), "SimHei"),
+                    (_os.path.join(_win_font_dir, "simsun.ttc"), "SimSun"),
+                ]
+            # macOS 常见字体路径兜底
+            elif _os.name == "posix":
+                _cn_font_fp_candidates += [
+                    ("/System/Library/Fonts/PingFang.ttc", "PingFang SC"),
+                    ("/System/Library/Fonts/STHeiti Medium.ttc", "Heiti SC"),
+                    ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", "WenQuanYi Micro Hei"),
+                    ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", "Noto Sans CJK SC"),
+                ]
+            _picked_family = None
+            try:
+                from matplotlib.font_manager import fontManager, FontProperties
+                # ---- 阶段 1: 按文件路径 addfont ----
+                for _fp, _family in _cn_font_fp_candidates:
+                    if _os.path.isfile(_fp):
+                        try:
+                            fontManager.addfont(_fp)  # matplotlib >=3.2 支持
+                            _picked_family = _family
+                            break
+                        except Exception:
+                            continue
+                # ---- 阶段 2: 按 family 名匹配 ----
+                if not _picked_family:
+                    _cn_family_candidates = [
+                        "Microsoft YaHei", "SimHei", "SimSun",
+                        "Source Han Sans CN", "Noto Sans CJK SC",
+                        "PingFang SC", "Heiti SC",
+                        "WenQuanYi Micro Hei", "WenQuanYi Zen Hei",
+                        "Arial Unicode MS", "DejaVu Sans",
+                    ]
+                    _installed_families_lower = {f.name.lower() for f in fontManager.ttflist}
+                    for _cand in _cn_family_candidates:
+                        if _cand.lower() in _installed_families_lower:
+                            _picked_family = _cand
+                            break
+                # ---- 应用 ----
+                if _picked_family:
+                    if _picked_family not in rcParams["font.sans-serif"]:
+                        rcParams["font.sans-serif"] = [_picked_family] + list(rcParams["font.sans-serif"])
+                    rcParams["axes.unicode_minus"] = False
+            except Exception:
+                # 字体探测任何失败都静默跳过, 不影响主流程
+                _picked_family = None
+
             fig, ax = plt.subplots(figsize=(14, 10))      # 创建 14×10 英寸的画布与坐标轴，尺寸足够容纳较多节点
             ax.set_xlim(0, 10)                            # 设置 x 轴范围 0~10，所有节点固定在 x=5 的纵线上
             ax.set_ylim(0, 10)                            # 设置 y 轴范围 0~10，从下到上排列节点
@@ -122,7 +188,21 @@ class _GraphVisualizer:
                                 style='italic')           # 在中点偏右处写红色斜体小字标签，标识条件分支
 
             buf = io.BytesIO()                            # 创建内存字节缓冲区，用于接收 savefig 输出
-            plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')  # 把当前图保存为 PNG 写入缓冲区，dpi=100，bbox_inches='tight' 去除多余白边
+            # 最后一层兜底: 阶段 1/2 都没找到中文字体时, 至少屏蔽掉 savefig 阶段喷出来的
+            # "Glyph XXXX missing from current font" RuntimeWarning 噪音, 不影响流程图生成.
+            # 使用 warnings.catch_records 上下文管理器, 只抑制本绘图函数内部该特定类警告
+            with _warnings.catch_warnings():
+                _warnings.filterwarnings(
+                    "ignore",
+                    message=r"Glyph \d+ missing from current font",
+                    category=RuntimeWarning,
+                )
+                _warnings.filterwarnings(
+                    "ignore",
+                    message=r"Glyph .* missing from current font",
+                    category=RuntimeWarning,
+                )
+                plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')  # 把当前图保存为 PNG 写入缓冲区，dpi=100，bbox_inches='tight' 去除多余白边
             plt.close()                                  # 关闭画布释放内存，避免 matplotlib 资源泄漏
             return buf.getvalue()                        # 取出缓冲区的字节流返回给调用方写入文件
         except Exception:

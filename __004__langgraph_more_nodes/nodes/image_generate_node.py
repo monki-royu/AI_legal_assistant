@@ -224,12 +224,12 @@ def image_generator_node(state: AgentState):
     # 从 state 读取正文内容(当前未直接使用, 保留以备扩展)
     content = state.get('xiaohongshu_content', '')
 
-    # 确保 picture 目录存在, exist_ok=True 表示已存在时不报错
-    os.makedirs(get_file_path("picture"), exist_ok=True)
+    # 确保 assets/images 目录存在, exist_ok=True 表示已存在时不报错
+    os.makedirs(get_file_path("assets/images"), exist_ok=True)
     # 根据标题生成安全的文件名
     file_name = sanitize_title_for_filename(title)
     # 拼接图片完整输出路径
-    output_path = os.path.join(get_file_path("picture"), file_name)
+    output_path = os.path.join(get_file_path("assets/images"), file_name)
 
     # 先尝试即梦AI
     # 初始化图片路径为 None, 用于判断是否生成成功

@@ -41,6 +41,9 @@
 # asyncio 标准库:提供异步IO支持,本文件中 legal_response/ legal_response_stream 使用 async/await 语法,
 # 配合 graph.ainvoke 异步执行图,避免阻塞主线程(尤其重要于 Web 服务场景下高并发请求)
 import asyncio
+import sys
+import os
+import json
 
 # 使用兼容层(Python 3.8环境)
 # 从 common.langgraph_compat 兼容层导入 StateGraph 类与 START/END 常量
@@ -73,6 +76,8 @@ from __004__langgraph_more_nodes.nodes.legal_research_node import legal_research
 from __004__langgraph_more_nodes.nodes.risk_aggregate_node import risk_aggregate_node
 # 甲乙方识别节点:识别合同主体,写入 party_a/party_b/user_side
 from __004__langgraph_more_nodes.nodes.party_identify_node import party_identify_node
+# 相对方资信查询节点:在甲乙方识别后,调用企查查API检索工商/司法/经营资信,生成 credit_risk_items
+from __004__langgraph_more_nodes.nodes.credit_check_node import credit_check_node
 # 最终交付节点:组装最终报告 markdown 与 output 文本
 from __004__langgraph_more_nodes.nodes.final_delivery_node import final_delivery_node
 # LLM直接输出节点:other 类型任务的兜底回答节点
@@ -107,6 +112,13 @@ from __004__langgraph_more_nodes.nodes.check_cypher_node import check_cypher_nod
 from __004__langgraph_more_nodes.nodes.run_cypher_node import run_cypher_node
 # 答案生成节点:基于 cypher_results 生成自然语言答案 neo4j_answer
 from __004__langgraph_more_nodes.nodes.neo4j_answer_generate_node import neo4j_answer_generate_node
+
+# 检索链路拆分子节点（意图分解→基础层→增强查询→融合→输出）
+from __004__langgraph_more_nodes.nodes.retrieval_intent_decompose_node import retrieval_intent_decompose_node
+from __004__langgraph_more_nodes.nodes.retrieval_base_layer_node import retrieval_base_layer_node
+from __004__langgraph_more_nodes.nodes.retrieval_enhance_query_node import retrieval_enhance_query_node
+from __004__langgraph_more_nodes.nodes.retrieval_fusion_sort_node import retrieval_fusion_sort_node
+from __004__langgraph_more_nodes.nodes.retrieval_output_node import retrieval_output_node
 
 # 状态与工具
 # 从 agent_state.py 导入共享状态类型 AgentState,作为 StateGraph 的状态模式
@@ -168,10 +180,12 @@ def build_graph():
     graph_builder.add_node(numeric_validate_node.__name__, numeric_validate_node)
     # 注册法律检索节点:N6 检索相关法规与案例
     graph_builder.add_node(legal_research_node.__name__, legal_research_node)
-    # 注册风险聚合节点:N7 合并三路风险并计算综合评分
+    # 注册风险聚合节点:N7 合并四路(合同/合规/数值/资信)风险并计算综合评分
     graph_builder.add_node(risk_aggregate_node.__name__, risk_aggregate_node)
-    # 注册甲乙方识别节点:N8 识别合同主体
+    # 注册甲乙方识别节点:N8 识别合同主体(为资信查询提供名称)
     graph_builder.add_node(party_identify_node.__name__, party_identify_node)
+    # 注册相对方资信查询节点:N8.5 (在 party_identify 之后, risk_aggregate 之前, 因为资信风险要被聚合)
+    graph_builder.add_node(credit_check_node.__name__, credit_check_node)
     # 注册最终交付节点:N9 组装最终报告
     graph_builder.add_node(final_delivery_node.__name__, final_delivery_node)
     # 注册LLM直接输出节点:other 任务的兜底回答节点
@@ -206,6 +220,13 @@ def build_graph():
     graph_builder.add_node(run_cypher_node.__name__, run_cypher_node)
     # 注册答案生成节点:基于查询结果生成自然语言答案
     graph_builder.add_node(neo4j_answer_generate_node.__name__, neo4j_answer_generate_node)
+
+    # 检索链路拆分子节点注册
+    graph_builder.add_node(retrieval_intent_decompose_node.__name__, retrieval_intent_decompose_node)
+    graph_builder.add_node(retrieval_base_layer_node.__name__, retrieval_base_layer_node)
+    graph_builder.add_node(retrieval_enhance_query_node.__name__, retrieval_enhance_query_node)
+    graph_builder.add_node(retrieval_fusion_sort_node.__name__, retrieval_fusion_sort_node)
+    graph_builder.add_node(retrieval_output_node.__name__, retrieval_output_node)
 
     # ==================== 边: START -> 小红书意图识别 ====================
     # 添加图的入口边:从 START 哨兵节点指向小红书意图识别节点
@@ -303,7 +324,7 @@ def build_graph():
             "contract_review_path": doc_extract_node.__name__,
             "compliance_review_path": doc_extract_node.__name__,
             # 法律检索直接进入检索节点
-            "legal_research_path": legal_research_node.__name__,
+            "legal_research_path": retrieval_intent_decompose_node.__name__,
             # 法律问答进入实体抽取节点
             "legal_qa_path": extract_entity_from_user_input_node.__name__,
             # 兜底链路进入LLM直接输出节点
@@ -340,9 +361,12 @@ def build_graph():
         # 默认(合同审核)也进入法律检索节点
         return "legal_research"
 
-    # 添加普通边:数值校验 -> 法律检索(注:此处使用普通边而非条件边,因两条路径下一跳相同)
-    # 该边会覆盖 after_numeric_validate_router 的潜在分流(简化实现)
-    graph_builder.add_edge(numeric_validate_node.__name__, legal_research_node.__name__)
+    # N5c数值校验后 → 检索5节点链路（替换原来的单legal_research_node节点）
+    graph_builder.add_edge(numeric_validate_node.__name__, retrieval_intent_decompose_node.__name__)
+    graph_builder.add_edge(retrieval_intent_decompose_node.__name__, retrieval_base_layer_node.__name__)
+    graph_builder.add_edge(retrieval_base_layer_node.__name__, retrieval_enhance_query_node.__name__)
+    graph_builder.add_edge(retrieval_enhance_query_node.__name__, retrieval_fusion_sort_node.__name__)
+    graph_builder.add_edge(retrieval_fusion_sort_node.__name__, retrieval_output_node.__name__)
 
     # 合规审查路径: doc_extract -> compliance_review -> numeric_validate
     # (通过intent_router路由到doc_extract, 然后在contract_classify后判断)
@@ -364,14 +388,15 @@ def build_graph():
     # 注意: langgraph_compat支持覆盖边, 但为安全起见我们保留contract_review走contract_classify
     # compliance_review也走doc_extract但会跳过合同分类(在contract_classify_node中task_type不是contract_review时简单跳过)
 
-    # 添加普通边:法律检索 -> 风险聚合(N6 -> N7)
-    # 风险聚合节点会合并三路风险项并计算综合评分
-    graph_builder.add_edge(legal_research_node.__name__, risk_aggregate_node.__name__)
-    # 添加普通边:风险聚合 -> 甲乙方识别(N7 -> N8)
-    graph_builder.add_edge(risk_aggregate_node.__name__, party_identify_node.__name__)
-    # 添加普通边:甲乙方识别 -> 最终交付(N8 -> N9)
-    graph_builder.add_edge(party_identify_node.__name__, final_delivery_node.__name__)
-    # 添加普通边:最终交付 -> END(N9 -> 结束)
+    # 检索输出 → 甲乙方识别（先识别主体名称，才能做资信查询）
+    graph_builder.add_edge(retrieval_output_node.__name__, party_identify_node.__name__)
+    # 甲乙方识别 → 相对方资信查询（N8 → N8.5：用识别的甲乙名称去企查查查资信）
+    graph_builder.add_edge(party_identify_node.__name__, credit_check_node.__name__)
+    # 资信查询 → 风险聚合（N8.5 → N7：把第4路资信风险项 credit_risk_items 交给聚合节点统一评分）
+    graph_builder.add_edge(credit_check_node.__name__, risk_aggregate_node.__name__)
+    # 风险聚合 → 最终交付（N7 → N9：含4路风险的综合评分驱动报告生成）
+    graph_builder.add_edge(risk_aggregate_node.__name__, final_delivery_node.__name__)
+    # 最终交付 → END（N9 → 结束）
     graph_builder.add_edge(final_delivery_node.__name__, END)
 
     # 合规审查专用路径: legal_research直接到final_delivery(跳过risk_aggregate)
@@ -555,13 +580,14 @@ def legal_response_full(input: str, **kwargs):
         "output": result.get("output", ""),
         # 文档全文(供前端展示原文对照)
         "doc_text": result.get("doc_text", ""),
-        # 合并去重后的风险项(供风险卡片渲染)
+        # 合并去重后的风险项(供风险卡片渲染,含第4路资信风险)
         "merged_risk_items": result.get("merged_risk_items", []),
-        # 三路独立风险项(供细分展示)
+        # 四路独立风险项(供细分展示)
         "contract_risk_items": result.get("contract_risk_items", []),
         "compliance_risk_items": result.get("compliance_risk_items", []),
         "numeric_risk_items": result.get("numeric_risk_items", []),
-        # 综合风险评分(0-100,用于风险等级条形图)
+        "credit_risk_items": result.get("credit_risk_items", []),
+        # 综合风险评分(0-100,用于风险等级条形图,含资信分修正)
         "overall_risk_score": result.get("overall_risk_score", 0),
         # 风险等级标签(用于颜色标识:Low绿/Medium黄/High红)
         "risk_level": result.get("risk_level", "Unknown"),
@@ -570,6 +596,11 @@ def legal_response_full(input: str, **kwargs):
         # 甲乙方名称(用于合同信息卡片)
         "party_a": result.get("party_a", ""),
         "party_b": result.get("party_b", ""),
+        # 甲乙双方资信详情(企查查返回的完整结构:基本信息/股权/失信/被执行人/异常/处罚/评分/等级/mock)
+        "party_a_credit_info": result.get("party_a_credit_info", {}),
+        "party_b_credit_info": result.get("party_b_credit_info", {}),
+        # 资信查询状态(True=至少一方真实API成功, False=使用模拟数据)
+        "credit_check_success": result.get("credit_check_success", False),
         # 合同类型(用于合同信息卡片)
         "contract_type": result.get("contract_type", ""),
         # 是否需要律师复核(用于提示横幅)
@@ -638,14 +669,20 @@ async def legal_response_stream(input: str, **kwargs):
     # 构造末尾数据包:done=True 标识流式结束,full_result 携带前端需要的结构化字段
     final_data = {
         "done": True,  # 流式结束标志,前端据此停止接收
-        "full_result": {  # 完整结构化结果
-            "output": output_text,                                # 完整文本(与流式拼接结果一致)
-            "doc_text": result.get("doc_text", ""),               # 文档全文
-            "merged_risk_items": result.get("merged_risk_items", []),  # 合并风险项
+        "full_result": {  # 完整结构化结果(与 legal_response_full 保持字段对齐,便于前端复用解析逻辑)
+            "output": output_text,                                    # 完整文本(与流式拼接结果一致)
+            "doc_text": result.get("doc_text", ""),                   # 文档全文
+            "merged_risk_items": result.get("merged_risk_items", []),  # 合并风险项(含资信)
+            "credit_risk_items": result.get("credit_risk_items", []),  # 第4路资信风险项
             "overall_risk_score": result.get("overall_risk_score", 0),  # 综合风险评分
-            "risk_level": result.get("risk_level", "Unknown"),    # 风险等级
+            "risk_level": result.get("risk_level", "Unknown"),        # 风险等级
             "need_lawyer_review": result.get("need_lawyer_review", False),  # 是否需律师复核
-            "citations": result.get("citations", []),             # 法规引用
+            "citations": result.get("citations", []),                 # 法规引用
+            "party_a": result.get("party_a", ""),                      # 甲方名称
+            "party_b": result.get("party_b", ""),                      # 乙方名称
+            "party_a_credit_info": result.get("party_a_credit_info", {}),  # 甲方资信详情
+            "party_b_credit_info": result.get("party_b_credit_info", {}),  # 乙方资信详情
+            "credit_check_success": result.get("credit_check_success", False),  # 真实API是否成功
             "final_report_markdown": result.get("final_report_markdown", ""),  # Markdown报告
         }
     }
@@ -654,22 +691,99 @@ async def legal_response_stream(input: str, **kwargs):
     yield f"__DATA_END__{json.dumps(final_data, ensure_ascii=False)}__DATA_END__"
 
 
-if __name__ == "__main__":
-    # 测试: 合同审核
-    # 构造一份测试合同文本,包含典型合同要素(标的、数量、单价、总价、付款比例、违约金、管辖等)
-    # 用于在命令行直接运行本文件时验证合同审核链路是否正常工作
-    test_contract = (
-        "甲方A公司向乙方B公司采购电脑100台，单价5000元，总价50万元；"
-        "付款比例：预付款50%，货到验收后付款40%，质保10%一年后付；"
-        "违约金每日千分之三；争议解决由甲方所在地法院管辖。"
-    )
+def _run_cli():
+    """
+    Subprocess 隔离 CLI 入口.
 
-    # 打印分隔线与测试标题(便于在控制台输出中定位测试结果)
-    print("=" * 60)
-    print("测试: 合同审核")
-    print("=" * 60)
-    # 同步调用图,强制指定 task_type 为 contract_review 走合同审核链路
-    # 这样可绕过意图路由节点的 LLM 分类,直接验证合同审核链路本身
-    result = legal_response_sync(test_contract, task_type="contract_review")
-    # 打印结果前1000字符(避免输出过长刷屏);若无输出则打印"无输出"提示
-    print(result[:1000] if result else "无输出")
+    设计目标:
+        让前端 app.py 可以通过 subprocess 启动独立 Python 进程调用后端 LangGraph,
+        防止 langchain / pandas / C 扩展 (如 numpy/pyarrow) 引起的进程级硬崩溃
+        (segfault / OOM) 把 Streamlit 主进程一起带死。崩溃时前端可以 catch
+        CalledProcessError/TimeoutExpired 并安全回退 demo 数据。
+
+    命令行参数:
+        --input_file  包含用户输入文本的临时文件路径 (推荐,避免长文本 shell 转义问题)
+        --input       用户输入文本 (若未提供 input_file 则使用本字段)
+        --task_type   任务类型: contract_review / compliance_review / legal_research / ...
+        --mode        返回模式:
+                        full  → 输出 legal_response_full 的结构化 JSON(默认,前端推荐)
+                        sync  → 输出 legal_response_sync 的纯文本字符串
+
+    输出:
+        stdout: 单行 JSON (mode=full) 或 纯文本 (mode=sync)
+        stderr: 原有的节点执行 print 日志(保留原有终端输出体验,让用户可追踪进度)
+        exit_code: 0 = 成功; 非 0 = 失败 (前端据此判定 fallback)
+    """
+    import argparse
+    import traceback
+
+    # ========== Windows 中文 GBK 环境保护 ==========
+    # 即使前端已经设置了 PYTHONIOENCODING=utf-8, 这里仍做一次 belt-and-suspenders 兜底:
+    # 用 sys.stdout.reconfigure 强制 encoding=utf-8, errors=replace, 这样任何节点的 print
+    # (含 emoji / 箭头符号 \u25b6 / 中文字符) 都不会再抛 UnicodeEncodeError.
+    # stderr 同样处理 (traceback 打印的报错含中英文混合, 也可能超 GBK)
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        # 极少数嵌入运行环境没有 reconfigure, 降级不改
+        pass
+
+    parser = argparse.ArgumentParser(description="法智引擎 LangGraph 后端 CLI(隔离进程入口)")
+    parser.add_argument("--input_file", type=str, default="", help="用户输入文本所在的临时文件路径(UTF-8)")
+    parser.add_argument("--input", type=str, default="", help="用户输入文本(若未用--input_file则使用本字段)")
+    parser.add_argument("--task_type", type=str, default="contract_review", help="任务类型,默认 contract_review")
+    parser.add_argument("--mode", type=str, default="full", choices=["full", "sync"], help="返回模式: full=结构化JSON, sync=纯文本")
+    args = parser.parse_args()
+
+    # ---- 读取用户输入: 文件优先 ----
+    if args.input_file:
+        try:
+            with open(args.input_file, "r", encoding="utf-8") as f:
+                user_input = f.read()
+        except Exception as e:
+            # 读文件失败立刻写 JSON 错误到 stdout 并退出,防止被当作空输入
+            sys.stdout.write(json.dumps({"__cli_error__": f"读取 input_file 失败: {e}"}, ensure_ascii=False))
+            sys.stdout.write("\n")
+            sys.exit(2)
+    else:
+        user_input = args.input
+
+    if not user_input.strip():
+        sys.stdout.write(json.dumps({"__cli_error__": "用户输入为空"}, ensure_ascii=False))
+        sys.stdout.write("\n")
+        sys.exit(3)
+
+    kwargs = {"task_type": args.task_type}
+
+    try:
+        if args.mode == "sync":
+            # sync 模式: 直接把字符串打印到 stdout(不用 JSON 包,与原有接口行为一致)
+            result_text = legal_response_sync(user_input, **kwargs)
+            # 确保始终为字符串类型;即使后端返回空串""也是合法的(前端_normalize_result会兜底)
+            if not isinstance(result_text, str):
+                result_text = str(result_text) if result_text else ""
+            sys.stdout.write(result_text)
+            sys.stdout.write("\n")
+        else:
+            # full 模式: 结构化 dict -> JSON 单行 -> stdout
+            result_dict = legal_response_full(user_input, **kwargs)
+            # 若 output 为空字符串,按 project_memory 要求,保证前端拿到的 home_qa_answer 非空
+            # legal_response_full 中 output 字段来自 graph output, 若为 "" 则在 demo 模式下由前端再兜底一次,
+            # 这里只负责把 graph 返回的结果如实序列化.ensure_ascii=False 保证中文不被转义为 \uXXXX
+            line = json.dumps(result_dict, ensure_ascii=False, default=str)
+            sys.stdout.write(line)
+            sys.stdout.write("\n")
+        sys.exit(0)
+    except Exception as e:
+        # Python 级异常: 打印堆栈到 stderr(便于调试), 写错误 JSON 到 stdout 并退出非 0 码
+        traceback.print_exc(file=sys.stderr)
+        sys.stdout.write(json.dumps({"__cli_error__": f"后端执行异常: {type(e).__name__}: {e}"}, ensure_ascii=False))
+        sys.stdout.write("\n")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    _run_cli()

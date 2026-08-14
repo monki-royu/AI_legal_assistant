@@ -58,8 +58,13 @@ def intent_router_node(state: AgentState):
     # 打印日志, 标记节点开始执行(便于调试与流程追踪)
     print("开始意图路由")
 
+    # 优先使用前端已传入的 task_type，避免 LLM 误判覆盖
+    existing_task_type = state.get("task_type", "")
+    if existing_task_type and existing_task_type in {"contract_review", "compliance_review", "legal_research", "legal_qa", "xiaohongshu"}:
+        print(f"完成意图路由: {existing_task_type} (使用前端传入)")
+        return {"task_type": existing_task_type}
+
     # 从状态字典中取出用户输入文本, 若 "input" 键不存在则默认为空字符串
-    # state.get(key, default) 是 dict 的安全取值方法, 避免 KeyError
     user_input = state.get("input", "")
 
     # 构造意图分类的提示词(prompt), 使用 f-string 将用户输入动态嵌入

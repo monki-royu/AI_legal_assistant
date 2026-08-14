@@ -58,6 +58,10 @@ class AgentState(TypedDict, total=False):
     # 文档全文:doc_extract_node 解析 uploaded_doc_path 后得到的纯文本内容
     # 后续 clause_split_node 会基于此切分条款, contract_ai_review_node 会基于此做风险审查
     doc_text: str                       # 文档全文
+    # MinerU 结构化 JSON: doc_extract_mineru_node 输出的多模态解析结果
+    # 含 pages → blocks → {type, content, bbox} 结构, 支持文字/表格/图片/坐标
+    # MinerU 不可用时自动降级为纯文本包装的 fallback JSON
+    doc_structured_json: Dict           # MinerU结构化JSON{metadata, pages:[{page_idx, blocks:[{type,content,bbox}]}]}
     # 切分后的条款列表:clause_split_node 输出
     # 每个元素是一个字典,包含条款id(序号)、title(标题)、text(正文)、bbox(可选,文本坐标框,用于PDF定位)
     # 该结构便于逐条审核,并在最终报告中按条款定位风险点
@@ -80,6 +84,11 @@ class AgentState(TypedDict, total=False):
     numeric_risk_items: List[Dict]      # 数值校验风险项
 
     # ==================== 检索 ====================
+    # ===== 检索链路中间字段（5节点拆分后用于节点间传递） =====
+    retrieval_query: str                # 意图分解后的查询字符串
+    retrieval_keywords: List[str]       # 意图分解后的关键词列表
+    base_citations: List[Dict]          # 基础层检索结果（FAISS+本地法规）
+    enhance_citations: List[Dict]       # 增强层检索结果（LLM补充检索）
     # 检索结果上下文:legal_research_node 输出
     # 通过 FAISS/Neo4j 等检索系统召回的相关法规、案例文本,会作为最终报告的依据
     research_context: str               # 检索结果上下文
@@ -111,6 +120,19 @@ class AgentState(TypedDict, total=False):
     # 用户立场:标识当前审核请求代表甲方还是乙方
     # 取值 A/B/Unknown,会影响风险评分的偏向性(如对甲方不利的条款若用户是甲方则风险加权)
     user_side: str                      # 用户立场: A / B / Unknown
+
+    # ==================== 相对方资信(企查查API) ====================
+    # 甲方资信查询结果:credit_check_node 通过企查查API检索甲方的工商/司法/经营等资信信息
+    # 包含基本信息、股权结构、失信记录、被执行人、经营异常、行政处罚等字段
+    party_a_credit_info: Dict           # 甲方资信信息{basic_info, shareholders, dishonest, executed, abnormal, penalties, credit_score, ...}
+    # 乙方资信查询结果:同上,检索乙方的资信信息
+    party_b_credit_info: Dict           # 乙方资信信息{basic_info, shareholders, dishonest, executed, abnormal, penalties, credit_score, ...}
+    # 资信风险项列表:credit_check_node 根据甲乙双方资信情况生成的独立风险项
+    # 每个风险项含 source(资信审查)/party(甲方/乙方)/severity/description/suggestion 等字段
+    credit_risk_items: List[Dict]       # 资信风险项
+    # 资信查询状态标志:标识是否成功调用了企查查API(用于降级判断和报告中显示)
+    # True=API查询成功, False=API不可用(使用模拟数据或跳过)
+    credit_check_success: bool          # 资信查询是否成功(True/False)
 
     # ==================== 交付产物 ====================
     # 最终报告(Markdown格式):final_delivery_node 输出,可直接在前端以Markdown渲染展示

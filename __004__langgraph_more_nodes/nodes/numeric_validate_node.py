@@ -23,7 +23,7 @@ import yaml
 from __004__langgraph_more_nodes.agent_state import AgentState
 
 # 从 common.path_utils 导入 root_dir, 即项目根目录的绝对路径
-# 用于定位 numeric_validation_rules 目录下的 YAML 规则文件
+# 用于定位 config/rules 目录下的 YAML 规则文件
 from common.path_utils import root_dir
 
 
@@ -32,7 +32,7 @@ def _load_rules():
     内部辅助函数: 加载两份 YAML 规则文件, 合并为统一的规则列表。
 
     作用:
-        从项目根目录的 numeric_validation_rules 子目录下读取
+        从项目根目录的 config/rules 子目录下读取
         contract_review.yaml 与 compliance_review.yaml 两份规则文件,
         解析其中的规则列表并合并返回。支持两种 YAML 结构:
         (1) {"rules": [...]} 标准结构;

@@ -80,6 +80,15 @@ class Config:
         # # 记忆轮次
         self.history_num = 5                                # 多轮对话保留的历史轮数上限，超过该值的旧消息会被截断，控制 Context 长度防止超 token 限制
 
+        # 企查查API相关(相对方资信查询)
+        # 优先使用 MCP Bearer Token 模式 (Authorization 请求头)
+        # 若 QICHACHA_AUTHORIZATION 为空, 则降级为旧版开放平台 AppKey + SecretKey(MD5 签名)模式
+        self.QICHACHA_AUTHORIZATION = os.getenv("QICHACHA_AUTHORIZATION")  # 企查查 MCP 完整鉴权串,如 "Bearer xxxxx"
+        self.QICHACHA_APP_KEY = os.getenv("QICHACHA_APP_KEY")    # 企查查开放平台 AppKey(兼容模式),未配置时资信节点会降级为模拟数据
+        self.QICHACHA_SECRET_KEY = os.getenv("QICHACHA_SECRET_KEY")  # 企查查开放平台 SecretKey(签名用,兼容模式)
+        self.QICHACHA_BASE_URL = os.getenv("QICHACHA_BASE_URL", "https://agent.qcc.com/mcp")  # MCP 默认 Base URL, 兼容模式默认 https://api.qcc.com/api
+        self.QICHACHA_TIMEOUT = int(os.getenv("QICHACHA_TIMEOUT", "10"))  # 企查查 API 单次请求超时秒数,默认 10 秒(资信查询不应阻塞主流程过久)
+
 
 if __name__ == "__main__":
     conf = Config()                                       # 仅在直接运行本文件时实例化 Config，用于本地自测；被 import 时不会执行，避免重复构造

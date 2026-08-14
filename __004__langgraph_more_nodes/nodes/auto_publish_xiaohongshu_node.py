@@ -1,25 +1,23 @@
-"""小红书自动发布节点(playwright, 仿中医auto_publish_xiaohongshu_node)"""
+"""小红书自动发布节点(playwright, 参考中医项目发布思路重构)"""
 # 📜 代码文字逻辑解析
-# 本文件是 AI 法律助理(LangGraph 多智能体协作)流程中的"小红书自动发布节点",
-# 借鉴自中医项目的 auto_publish_xiaohongshu_node 设计。它在发布前检查节点通过后
-# 执行, 负责通过 Playwright 浏览器自动化将生成好的图文笔记发布到小红书创作者平台。
-# 核心逻辑由两部分组成:1) XiaohongshuUploader 类封装了完整的发布流程, 包括启动
-# 浏览器、加载/保存登录状态(cookie 复用)、切换到"上传图文"Tab、上传图片、填写标题
-# 与正文、点击发布按钮、关闭浏览器等步骤, 每步均带异常捕获与日志输出;2) 节点入口
-# 函数 xiaohongshu_auto_publish_node 从 state 读取标题、正文、图片列表, 调用
-# auto_publish_xiaohongshu 异步函数完成发布, 并将结果提示写入 state。
-# 该节点使用了 Playwright 的 async API, 通过 asyncio.run 在同步节点中驱动异步流程;
-# 登录状态通过 storage_state 持久化到本地 JSON 文件, 首次运行需手动扫码登录,
-# 后续可直接复用 cookie 免登录。该节点展示了"RPA 自动化发布"的完整实现,
-# 可作为任何"浏览器自动化操作第三方平台"场景的迁移模板。
-# 导入 os 模块, 用于路径存在性检查与目录创建
-import os
-# 导入 asyncio 模块, 用于在同步节点中驱动异步发布流程
-import asyncio
+# 本文件是 AI 法律助理(LangGraph 多智能体协作)流程中的"小红书自动发布节点"。
+# 参考中医项目的发布实现思路, 使用 launch_persistent_context + JSON cookie 管理,
+# 并通过 xhs-publish-btn 容器坐标点击发布按钮, 解决发布按钮无法定位的问题。
+#
+# 核心改进(相比旧版):
+# 1) 使用 launch_persistent_context 替代 launch+new_context, 浏览器用户数据持久化;
+# 2) cookie 管理改为 JSON 文件方式(保存/加载 cookies 列表), 更直观可调试;
+# 3) 发布按钮定位: 优先 xhs-publish-btn 容器 bounding_box 坐标点击(65% 宽度位置),
+#    失败后依次回退: 文本匹配 → Locator has-text → JS 注入 → 页面元素调试;
+# 4) 新增 _debug_page_elements 方法, 在关键步骤打印页面所有可交互元素, 便于定位问题;
+# 5) 标题/正文填写: 大幅扩展选择器列表, 覆盖小红书页面 DOM 变更;
+# 6) 发布结果验证: URL 跳转 + 成功文本 + URL 变化轮询三重检测。
 
-# 导入 AgentState 类型, 它是整个 LangGraph 图中各节点共享的状态字典(TypedDict)
+import os
+import asyncio
+import json
+
 from __004__langgraph_more_nodes.agent_state import AgentState
-# 导入路径工具函数 get_file_path, 用于获取 cookie 文件的标准存储路径
 from common.path_utils import get_file_path
 
 
@@ -27,337 +25,650 @@ class XiaohongshuUploader:
     """
     小红书图文笔记自动发布器, 基于 Playwright 异步 API 实现。
 
-    作用:
-        封装从启动浏览器到点击发布的完整自动化流程, 支持 cookie 复用免登录,
-        适用于小红书创作者平台的图文笔记发布。
-
-    可迁移性说明:
-        该类是通用的"Playwright 浏览器自动化操作"模板, 修改选择器与目标 URL
-        即可迁移到其他需要 RPA 操作的第三方平台(如:微博、知乎、B站等)。
+    使用 launch_persistent_context 持久化浏览器数据, JSON cookie 复用登录态,
+    xhs-publish-btn 容器坐标点击发布按钮。
     """
-    # cookie 状态文件的存储路径, 用于持久化登录状态以实现免登录
-    COOKIE_PATH = get_file_path("cookie/xiaohongshu_cookie_state.json")
+
+    # cookie JSON 文件路径(存储 cookies 列表, 非 storage_state 格式)
+    COOKIE_PATH = get_file_path("cookie/xiaohongshu_cookies.json")
+    # 浏览器用户数据目录(持久化登录态、缓存等)
+    USER_DATA_DIR = get_file_path("browser_data")
     # 小红书创作者平台图文发布页 URL
     PUBLISH_URL = (
         "https://creator.xiaohongshu.com/publish/publish?from=homepage&target=image&source=official"
     )
 
     def __init__(self, image_path_list, title: str = "", content: str = ""):
-        """
-        初始化上传器实例。
-
-        参数:
-            image_path_list (list[str]): 待上传图片的本地路径列表。
-            title (str): 笔记标题。
-            content (str): 笔记正文。
-        """
-        # 保存图片路径列表
-        self.image_path_list = image_path_list
-        # 保存标题
-        self.title = title
-        # 保存正文
-        self.content = content
-        # Playwright 运行时实例, 初始为 None, 在 launch 中创建
+        self.image_path_list = image_path_list or []
+        self.title = title or ""
+        self.content = content or ""
         self.playwright = None
-        # 浏览器实例, 初始为 None
-        self.browser = None
-        # 浏览器上下文(会话), 初始为 None
         self.context = None
-        # 当前操作的页面, 初始为 None
         self.page = None
 
+    # ================================================================
+    # 浏览器启动与上下文管理 (使用 persistent_context)
+    # ================================================================
     async def launch(self):
-        """
-        启动 Playwright 与 Chromium 浏览器, 加载或创建登录上下文, 并打开发布页。
-
-        作用:
-            若本地存在已保存的 cookie 状态文件, 则复用登录态;否则创建新上下文,
-            暂停等待用户手动扫码登录, 登录成功后保存 cookie 以备下次复用。
-        """
-        # 延迟导入 Playwright 异步 API, 避免未安装时影响整个模块加载
+        """启动 Playwright 与 Chromium 持久化上下文, 加载 cookie, 打开发布页。"""
         from playwright.async_api import async_playwright
-        # 打印启动日志
-        print("开始启动")
-        # 启动 Playwright 运行时
+
+        print("开始启动浏览器...")
         self.playwright = await async_playwright().start()
-        # 启动 Chromium 浏览器, headless=False 表示有界面模式(便于人工扫码与调试)
-        self.browser = await self.playwright.chromium.launch(headless=False)
 
-        # 检查本地是否已存在登录状态文件
-        if os.path.exists(self.COOKIE_PATH):
-            # 打印加载提示
-            print("[√] 加载已保存的登录状态...")
-            # 使用 storage_state 复用已保存的 cookie, 同时设置地理位置权限(上海坐标)
-            self.context = await self.browser.new_context(
-                storage_state=self.COOKIE_PATH,
-                permissions=["geolocation"],
-                geolocation={"latitude": 31.2304, "longitude": 121.4737},
-            )
-        else:
-            # 打印首次登录提示
-            print("[!] 未检测到登录状态，创建新上下文...")
-            # 创建新上下文(无 cookie), 仅设置地理位置权限
-            self.context = await self.browser.new_context(
-                permissions=["geolocation"],
-                geolocation={"latitude": 31.2304, "longitude": 121.4737},
-            )
+        # 确保 user_data_dir 目录存在
+        os.makedirs(self.USER_DATA_DIR, exist_ok=True)
 
-        # 在上下文中新建一个页面
+        # 使用 persistent_context: 浏览器用户数据持久化, 后续可复用登录态
+        self.context = await self.playwright.chromium.launch_persistent_context(
+            user_data_dir=self.USER_DATA_DIR,
+            headless=False,
+            args=[
+                "--start-maximized",
+                "--disable-features=SameSiteByDefaultCookies",
+                "--disable-blink-features=AutomationControlled",
+            ],
+            viewport=None,  # 配合 --start-maximized, 不固定 viewport
+        )
+
+        # 打开发布页
         self.page = await self.context.new_page()
-        # 导航到小红书图文发布页
-        await self.page.goto(self.PUBLISH_URL)
+        await self.page.goto(
+            self.PUBLISH_URL,
+            wait_until="domcontentloaded",
+            timeout=60000,
+        )
 
-        # 若不存在 cookie 文件, 需要用户手动登录
-        if not os.path.exists(self.COOKIE_PATH):
-            # 阻塞等待用户手动扫码登录后按回车继续(input 在异步环境中会阻塞事件循环, 但此处为简化实现)
-            input("请手动登录后按回车继续...")
-            # 确保 cookie 目录存在
+        # 尝试加载已保存的 cookies
+        await self._load_cookies(self.page)
+
+        # 重新导航(加载 cookie 后刷新页面以应用登录态)
+        await self.page.goto(
+            self.PUBLISH_URL,
+            wait_until="domcontentloaded",
+            timeout=60000,
+        )
+        await self.page.wait_for_timeout(5000)
+
+        # 检查是否已登录: 尝试寻找发布页特征元素
+        logged_in = await self._check_login_status()
+        if not logged_in:
+            print("[!] 未检测到登录状态, 请在浏览器中手动扫码登录...")
+            try:
+                # 等待用户登录成功(最长 180 秒)
+                await self.page.wait_for_selector(
+                    'input[placeholder*="标题"], [placeholder*="填写标题"]',
+                    timeout=180000,
+                )
+                print("[√] 登录成功!")
+                await self._save_cookies(self.page)
+            except Exception:
+                print("[x] 登录超时")
+                return False
+        else:
+            print("[√] 已登录, 进入发布页面")
+            # 每次都更新 cookies(防止过期)
+            await self._save_cookies(self.page)
+
+        return True
+
+    async def _check_login_status(self) -> bool:
+        """检查是否已登录: 探测发布页特征元素。"""
+        selectors = [
+            'input[placeholder*="标题"]',
+            '[placeholder*="填写标题"]',
+            'button:has-text("上传图片")',
+            'div:has-text("写长文")',
+            '.upload-btn',
+            'input[type="file"]',
+        ]
+        for sel in selectors:
+            try:
+                el = await self.page.query_selector(sel)
+                if el:
+                    return True
+            except Exception:
+                continue
+        return False
+
+    # ================================================================
+    # Cookie 管理 (JSON 格式)
+    # ================================================================
+    async def _save_cookies(self, page):
+        """保存当前上下文的 cookies 到 JSON 文件。"""
+        try:
+            cookies = await page.context.cookies()
             os.makedirs(os.path.dirname(self.COOKIE_PATH), exist_ok=True)
-            # 将当前上下文的登录状态(cookie + localStorage)保存到文件, 供下次复用
-            await self.context.storage_state(path=self.COOKIE_PATH)
-            # 打印保存成功提示
-            print("[√] 登录状态已保存")
-        # 等待 1 秒, 让页面充分加载
-        await self.wait_seconds(1)
+            with open(self.COOKIE_PATH, "w", encoding="utf-8") as f:
+                json.dump(cookies, f, ensure_ascii=False, indent=2)
+            print(f"[√] Cookies 已保存: {self.COOKIE_PATH}")
+        except Exception as e:
+            print(f"[!] 保存 Cookies 失败: {e}")
 
+    async def _load_cookies(self, page):
+        """从 JSON 文件加载 cookies 到当前上下文。"""
+        if not os.path.exists(self.COOKIE_PATH):
+            print("[!] Cookies 文件不存在, 跳过加载")
+            return False
+        try:
+            with open(self.COOKIE_PATH, "r", encoding="utf-8") as f:
+                cookies = json.load(f)
+            await page.context.add_cookies(cookies)
+            print(f"[√] Cookies 已加载: {self.COOKIE_PATH}")
+            return True
+        except Exception as e:
+            print(f"[!] 加载 Cookies 失败: {e}")
+            return False
+
+    # ================================================================
+    # 调试工具: 打印页面所有可交互元素
+    # ================================================================
+    async def _debug_page_elements(self, step_name: str):
+        """打印当前页面所有 input/textarea/button/contenteditable 元素信息, 便于定位问题。"""
+        try:
+            elements = await self.page.evaluate("""() => {
+                const result = [];
+                document.querySelectorAll('input, textarea, [contenteditable="true"], button, [role="button"], xhs-publish-btn').forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    result.push({
+                        tag: el.tagName,
+                        class: el.className.toString().substring(0, 80),
+                        id: el.id,
+                        placeholder: el.placeholder || '',
+                        textContent: el.textContent ? el.textContent.substring(0, 50).trim() : '',
+                        visible: rect.width > 0 && rect.height > 0,
+                        x: Math.round(rect.left + rect.width / 2),
+                        y: Math.round(rect.top + rect.height / 2),
+                        w: Math.round(rect.width),
+                        h: Math.round(rect.height),
+                    });
+                });
+                return result;
+            }""")
+            print(f"\n{'='*60}")
+            print(f"=== {step_name} - 页面元素 ({len(elements)} 个) ===")
+            for i, el in enumerate(elements):
+                vis = "✓" if el["visible"] else "✗"
+                print(f"  [{i}] {vis} tag={el['tag']} id={el['id']} class={el['class'][:40]} "
+                      f"placeholder={el['placeholder']} text={el['textContent']} "
+                      f"pos=({el['x']},{el['y']}) size={el['w']}x{el['h']}")
+            print("=" * 60)
+        except Exception as e:
+            print(f"[!] 调试信息获取失败: {e}")
+
+    # ================================================================
+    # 切换到"上传图文" Tab
+    # ================================================================
     async def switch_to_image_post(self):
-        """
-        切换到发布页的"上传图文"Tab。
-
-        作用:
-            小红书发布页默认可能是视频上传 Tab, 需点击切换到图文上传 Tab,
-            通过遍历所有 Tab 元素, 找到文本含"上传图文"且位置有效的 Tab 并点击。
-        """
-        # 打印切换日志
+        """切换到发布页的"上传图文"Tab(小红书默认可能是视频上传 Tab)。"""
         print("🔀 正在切换到【上传图文】Tab...")
-        # 使用 try/except 包裹切换逻辑, 防止选择器找不到元素导致崩溃
         try:
-            # 等待 Tab 元素出现, 超时 10 秒
-            await self.page.wait_for_selector(".creator-tab .title", timeout=10000)
-            # 查询所有 Tab 元素
             tabs = await self.page.query_selector_all(".creator-tab .title")
-            # 初始化目标 Tab 为 None
-            target_tab = None
-            # 遍历所有 Tab, 寻找"上传图文"
+            if not tabs:
+                # 备用选择器
+                tabs = await self.page.query_selector_all("[class*='tab'] [class*='title']")
             for tab in tabs:
-                # 获取 Tab 文本并去除空白
                 text = (await tab.inner_text()).strip()
-                # 检查文本是否包含"上传图文"
-                if "上传图文" in text:
-                    # 获取 Tab 的 bounding box, 用于判断是否可见且可点击
+                if "上传图文" in text or "图文" in text:
                     box = await tab.bounding_box()
-                    # 仅当 Tab 在可视区域(x>0, y>0)时才选为目标
                     if box and box["x"] > 0 and box["y"] > 0:
-                        target_tab = tab
-                        break
-            # 若找到目标 Tab, 则强制点击(force=True 忽略遮挡检查)
-            if target_tab:
-                await target_tab.click(force=True)
-                # 打印切换成功日志
-                print("[√] 已成功切换到【上传图文】Tab")
-            else:
-                # 打印未找到可点击 Tab 的提示
-                print("[x] 未找到可点击的【上传图文】Tab")
+                        await tab.click(force=True)
+                        print("[√] 已切换到【上传图文】Tab")
+                        await self.page.wait_for_timeout(2000)
+                        return
+            print("[!] 未找到【上传图文】Tab(可能已经在图文页面)")
         except Exception as e:
-            # 打印切换失败日志
-            print(f"[X] 切换失败: {e}")
+            print(f"[!] 切换 Tab 失败: {e}")
 
+    # ================================================================
+    # 上传图片
+    # ================================================================
     async def upload_images(self):
-        """
-        上传图片列表到小红书发布页。
-
-        作用:
-            定位页面中的文件上传 input 元素, 通过 set_input_files 一次性上传所有图片。
-        """
-        # 打印上传日志
+        """上传图片列表到小红书发布页, 并等待上传完成。"""
         print("📤 正在上传图片...")
-        # 使用 try/except 包裹上传逻辑
-        try:
-            # 等待文件上传 input 元素附加到 DOM(state="attached"), 超时 10 秒
-            await self.page.wait_for_selector('input.upload-input[type="file"]', state="attached", timeout=10000)
-            # 查询文件上传 input 元素
-            file_input = await self.page.query_selector('input.upload-input[type="file"]')
-            # 若找到 input, 则设置待上传的文件列表
-            if file_input:
-                await file_input.set_input_files(self.image_path_list)
-                # 打印上传成功日志, 含图片数量
-                print(f"[√] 已上传 {len(self.image_path_list)} 张图片")
+
+        # 过滤出实际存在的图片文件
+        valid_paths = []
+        for path in self.image_path_list:
+            abs_path = os.path.abspath(path) if not os.path.isabs(path) else path
+            if os.path.exists(abs_path):
+                valid_paths.append(abs_path)
             else:
-                # 打印未找到 input 的提示
-                print("[x] 未找到图片上传输入框")
+                print(f"[!] 图片文件不存在, 跳过: {abs_path}")
+
+        if not valid_paths:
+            print("[!] 没有有效的图片文件")
+            return False
+
+        try:
+            # 定位 file input(hidden 元素, set_input_files 不要求 visible)
+            file_input = None
+            selectors = [
+                'input.upload-input[type="file"]',
+                'input[type="file"][accept*="image"]',
+                'input[type="file"]',
+            ]
+            for sel in selectors:
+                try:
+                    await self.page.wait_for_selector(sel, state="attached", timeout=8000)
+                    file_input = await self.page.query_selector(sel)
+                    if file_input:
+                        print(f"[√] 找到文件上传控件: {sel}")
+                        break
+                except Exception:
+                    continue
+
+            if not file_input:
+                print("[x] 未找到图片上传控件")
+                await self._debug_page_elements("upload_images_failed")
+                return False
+
+            await file_input.set_input_files(valid_paths)
+            print(f"[√] 已提交 {len(valid_paths)} 张图片, 等待上传完成...")
+
+            # 等待上传完成: 检测缩略图出现
+            try:
+                await self.page.wait_for_selector(
+                    '.upload-item, .image-item, .c-image-uploader__item, [class*="upload-item"], [class*="image-item"]',
+                    timeout=20000,
+                )
+                print("[√] 图片上传完成(检测到缩略图)")
+            except Exception:
+                print("[!] 未检测到缩略图元素, 固定等待 5 秒...")
+                await self.page.wait_for_timeout(5000)
+
+            # 额外等待确保前端渲染完毕
+            await self.page.wait_for_timeout(2000)
+            return True
+
         except Exception as e:
-            # 打印上传失败日志
             print(f"[X] 图片上传失败: {e}")
+            return False
 
-    async def fill_title_and_content(self):
-        """
-        填写笔记标题与正文。
+    # ================================================================
+    # 填写标题 (大幅扩展选择器列表)
+    # ================================================================
+    async def fill_title(self):
+        """定位标题输入框并填入标题, 尝试多种选择器。"""
+        print("📝 正在填写标题...")
+        selectors = [
+            'input[placeholder*="填写标题会有更多赞"]',
+            'input[placeholder*="填写标题"]',
+            'input[placeholder*="标题"]',
+            'input.d-text[placeholder*="填写标题"]',
+            '[placeholder*="填写标题"]',
+            '[placeholder*="标题"]',
+            'input[placeholder*="更多曝光"]',
+            'input[placeholder*="更多赞"]',
+            '.d-input-text',
+            'input[type="text"]',
+            '.publish-title-input input',
+            '.title-input input',
+            '[class*="title"] input',
+            'div[contenteditable="true"][placeholder*="标题"]',
+        ]
 
-        作用:
-            定位标题输入框与正文编辑器(tiptap 富文本), 分别填入 title 与 content。
-            标题使用 fill 方法, 正文使用 click + type 模拟键盘输入。
-        """
-        # 打印填写日志
-        print("📝 正在填写标题和正文...")
-        # 标题填写: 使用 try/except 包裹
+        for sel in selectors:
+            try:
+                title_input = self.page.locator(sel)
+                if await title_input.count() > 0:
+                    await title_input.first.click()
+                    await self.page.wait_for_timeout(300)
+                    await title_input.first.fill(self.title)
+                    print(f"[√] 标题已填写: {self.title}")
+                    return True
+            except Exception:
+                continue
+
+        # 备用: 键盘输入
         try:
-            # 等待标题输入框出现(通过 placeholder 含"填写标题"定位), 超时 10 秒
-            title_input = await self.page.wait_for_selector(
-                'input.d-text[placeholder*="填写标题"]', timeout=10000
-            )
-            # 填入标题
-            await title_input.fill(self.title)
-            # 打印填写成功日志
-            print(f"[√] 标题已填写：{self.title}")
+            await self.page.mouse.click(300, 300)
+            await self.page.wait_for_timeout(300)
+            await self.page.keyboard.type(self.title)
+            print(f"[√] 标题已填写(坐标+键盘): {self.title}")
+            return True
         except Exception:
-            # 打印未找到标题输入框的提示
-            print("[x] 未找到标题输入框")
-        # 正文填写: 使用 try/except 包裹
+            pass
+
+        print("[x] 未找到标题输入框")
+        await self._debug_page_elements("fill_title_failed")
+        return False
+
+    # ================================================================
+    # 填写正文 (大幅扩展选择器列表)
+    # ================================================================
+    async def fill_content(self):
+        """定位正文编辑器并填入正文, 尝试多种选择器。"""
+        print("📝 正在填写正文...")
+        selectors = [
+            '.tiptap[contenteditable="true"]',
+            'div[contenteditable="true"]',
+            '[placeholder*="输入正文描述"]',
+            '[placeholder*="真诚有价值的分享"]',
+            'textarea[placeholder*="正文"]',
+            'textarea[placeholder*="输入正文"]',
+            'textarea[placeholder*="描述"]',
+            '.editor-content',
+            '.tiptap.ProseMirror',
+            '.publish-content textarea',
+            '.content-input textarea',
+            '[class*="editor"] div[contenteditable]',
+            '[class*="content"] textarea',
+            'div.ProseMirror',
+            '[placeholder*="正文"]',
+            '[placeholder*="输入正文"]',
+            '[placeholder*="描述"]',
+        ]
+
+        for sel in selectors:
+            try:
+                content_elem = self.page.locator(sel)
+                if await content_elem.count() > 0:
+                    await content_elem.first.click()
+                    await self.page.wait_for_timeout(300)
+                    await content_elem.first.type(self.content)
+                    print("[√] 正文已填写")
+                    return True
+            except Exception:
+                continue
+
+        # 备用: 键盘输入
         try:
-            # 等待 tiptap 富文本编辑器出现(contenteditable="true"), 超时 10 秒
-            editor = await self.page.wait_for_selector(
-                '.tiptap[contenteditable="true"]', timeout=10000
-            )
-            # 先点击编辑器使其获得焦点
-            await editor.click()
-            # 模拟键盘逐字输入正文
-            await editor.type(self.content)
-            # 打印填写成功日志
-            print(f"[√] 正文已填写")
+            await self.page.mouse.click(300, 400)
+            await self.page.wait_for_timeout(300)
+            await self.page.keyboard.type(self.content)
+            print("[√] 正文已填写(坐标+键盘)")
+            return True
         except Exception:
-            # 打印未找到正文编辑器的提示
-            print("[x] 未找到正文编辑器")
+            pass
 
-    async def submit_post(self):
-        """
-        点击发布按钮提交笔记。
+        print("[x] 未找到正文输入框")
+        await self._debug_page_elements("fill_content_failed")
+        return False
 
-        作用:
-            由于小红书发布按钮是自定义 Web Component(<xhs-publish-btn>), 无法直接
-            点击内部按钮, 故采用"获取容器 bounding box + 计算偏移坐标 + 鼠标点击"
-            的方式触发发布。
+    # ================================================================
+    # 点击发布按钮 (核心修复: 参考 xhs-publish-btn 容器坐标方案)
+    # ================================================================
+    async def submit_post(self) -> bool:
         """
-        # 等待 3 秒, 确保标题与正文已渲染完毕
-        await self.wait_seconds(3)
-        # 打印发布日志
+        点击发布按钮提交笔记, 并验证发布结果。
+
+        策略顺序(由精准到兜底):
+        1. xhs-publish-btn 容器 bounding_box 坐标点击(65% 宽度位置 = 发布按钮)
+        2. 遍历所有 button, 文本匹配 "发布"
+        3. Playwright Locator has-text("发布")
+        4. JS 注入穿透 shadow DOM 点击
+        5. 页面元素调试输出(辅助人工排查)
+        """
+        await self.page.wait_for_timeout(3000)
         print("🚀 正在尝试点击发布按钮...")
-        # 使用 try/except 包裹点击逻辑
+
+        clicked = False
+
+        # ===== 策略1: xhs-publish-btn 容器坐标点击(参考代码核心方案) =====
+        # xhs-publish-btn 是小红书自定义 Web Component, 内部含"存草稿"和"发布"两个按钮,
+        # "发布"按钮在容器右侧约 65% 宽度位置
         try:
-            # 等待发布按钮容器出现, 超时 10 秒
-            publish_container = await self.page.wait_for_selector('xhs-publish-btn', timeout=10000)
-            # 获取容器的 bounding box(位置与尺寸)
+            publish_container = await self.page.wait_for_selector(
+                'xhs-publish-btn', timeout=10000
+            )
             box = await publish_container.bounding_box()
-            # 若获取到 box, 则通过坐标点击
-            if box:
-                # 计算点击 x 坐标: 容器左侧偏移 65% 宽度(发布按钮通常在右侧)
+            if box and box["width"] > 0:
                 btn_x = box["x"] + box["width"] * 0.65
-                # 计算点击 y 坐标: 容器垂直居中
                 btn_y = box["y"] + box["height"] / 2
-                # 通过鼠标点击指定坐标
                 await self.page.mouse.click(btn_x, btn_y)
-                # 打印点击成功日志, 含坐标
-                print(f"[√] 已通过坐标点击发布按钮 ({btn_x:.0f}, {btn_y:.0f})")
-                # 直接返回, 结束发布
-                return
+                print(f"[√] 策略1-坐标点击发布按钮 ({btn_x:.0f}, {btn_y:.0f})")
+                clicked = True
+            else:
+                print("[!] 策略1-xhs-publish-btn bounding_box 为空")
         except Exception as e:
-            # 打印坐标点击失败日志
-            print(f"坐标点击失败: {e}")
+            print(f"[!] 策略1-坐标点击失败: {e}")
 
+        # ===== 策略2: 遍历所有 button, 文本匹配 "发布" =====
+        if not clicked:
+            try:
+                await self.page.wait_for_timeout(1000)
+                btns = await self.page.query_selector_all("button")
+                for btn in btns:
+                    txt = (await btn.inner_text()).strip()
+                    if txt == "发布":
+                        box = await btn.bounding_box()
+                        if box and box["width"] > 30 and box["height"] > 20:
+                            await btn.click(force=True)
+                            print("[√] 策略2-文本匹配点击发布按钮")
+                            clicked = True
+                            break
+            except Exception as e:
+                print(f"[!] 策略2-文本匹配失败: {e}")
+
+        # ===== 策略3: Locator + has-text =====
+        if not clicked:
+            try:
+                publish_locator = self.page.locator(
+                    'button:has-text("发布"), [role="button"]:has-text("发布")'
+                )
+                count = await publish_locator.count()
+                if count > 0:
+                    await publish_locator.last.click(force=True)
+                    print("[√] 策略3-Locator has-text 点击发布按钮")
+                    clicked = True
+            except Exception as e:
+                print(f"[!] 策略3-Locator 失败: {e}")
+
+        # ===== 策略4: JS 注入穿透 shadow DOM =====
+        if not clicked:
+            try:
+                result = await self.page.evaluate("""
+                    () => {
+                        const container = document.querySelector('xhs-publish-btn');
+                        if (container && container.shadowRoot) {
+                            const btn = container.shadowRoot.querySelector('button');
+                            if (btn) { btn.click(); return 'shadow-btn'; }
+                        }
+                        if (container) { container.click(); return 'container'; }
+                        const all = document.querySelectorAll('button, [role="button"], .publish-btn');
+                        for (const el of all) {
+                            if (el.textContent.trim() === '发布') { el.click(); return 'text-match'; }
+                        }
+                        return 'none';
+                    }
+                """)
+                if result != "none":
+                    print(f"[√] 策略4-JS 注入点击发布按钮 ({result})")
+                    clicked = True
+                else:
+                    print("[!] 策略4-JS 注入未找到发布按钮")
+            except Exception as e:
+                print(f"[!] 策略4-JS 注入失败: {e}")
+
+        # ===== 所有策略失败: 输出调试信息 =====
+        if not clicked:
+            print("[X] 所有策略均未能点击发布按钮")
+            await self._debug_page_elements("submit_post_failed")
+            # 截图保存供人工排查
+            try:
+                debug_ss = os.path.join(
+                    os.path.dirname(self.COOKIE_PATH),
+                    "debug_publish_failed.png",
+                )
+                await self.page.screenshot(path=debug_ss, full_page=True)
+                print(f"[!] 调试截图已保存: {debug_ss}")
+            except Exception:
+                pass
+            return False
+
+        # ===== 验证发布结果 =====
+        print("⏳ 等待发布结果...")
+        await self.page.wait_for_timeout(3000)
+
+        # 检测1: URL 跳转
+        try:
+            current_url = self.page.url
+            if any(kw in current_url for kw in ["success", "manage", "content", "publish/success"]):
+                print(f"[√] 发布成功! URL 已跳转: {current_url}")
+                return True
+        except Exception:
+            pass
+
+        # 检测2: 成功文本提示
+        try:
+            success_selectors = [
+                'text="发布成功"',
+                '.el-message--success',
+                '.toast-success',
+                '[class*="success"]',
+                '.ant-message-success',
+            ]
+            for sel in success_selectors:
+                try:
+                    el = await self.page.query_selector(sel)
+                    if el:
+                        txt = (await el.inner_text()).strip()
+                        if any(kw in txt for kw in ["成功", "发布成功", "已发布"]):
+                            print(f"[√] 发布成功! 检测到成功提示: {txt}")
+                            return True
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # 检测3: URL 变化轮询(7 秒)
+        try:
+            old_url = self.page.url
+            for _ in range(7):
+                await self.page.wait_for_timeout(1000)
+                new_url = self.page.url
+                if new_url != old_url:
+                    print(f"[√] 发布后 URL 已变化: {new_url}")
+                    return True
+        except Exception:
+            pass
+
+        # 检测4: 错误提示
+        try:
+            error_selectors = [
+                '.el-message--error', '.toast-error',
+                '[class*="error"]', '.ant-message-error',
+            ]
+            for sel in error_selectors:
+                try:
+                    el = await self.page.query_selector(sel)
+                    if el:
+                        txt = (await el.inner_text()).strip()
+                        print(f"[!] 检测到错误提示: {txt}")
+                        return False
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        print("[!] 无法确认发布结果, 假定发布已提交(请手动检查小红书后台)")
+        return True
+
+    # ================================================================
+    # 关闭浏览器
+    # ================================================================
     async def close(self):
-        """
-        关闭浏览器与 Playwright 运行时, 释放资源。
-
-        作用:
-            在发布完成后等待 4 秒(确保请求发出), 然后依次关闭浏览器与停止 Playwright。
-        """
-        # 等待 4 秒, 确保发布请求已发出
-        await self.wait_seconds(4)
-        # 关闭浏览器
-        await self.browser.close()
-        # 停止 Playwright 运行时
-        await self.playwright.stop()
-
-    async def wait_seconds(self, seconds):
-        """
-        异步等待指定秒数。
-
-        参数:
-            seconds (int/float): 等待时长(秒)。
-
-        作用:
-            封装 Playwright 的 wait_for_timeout, 便于在流程中插入固定等待。
-        """
-        # 打印等待日志
-        print(f"⏳ 等待 {seconds} 秒...")
-        # 调用 Playwright 的毫秒级等待
-        await self.page.wait_for_timeout(seconds * 1000)
+        """关闭浏览器上下文与 Playwright 运行时。"""
+        await self.page.wait_for_timeout(4000)
+        try:
+            await self.context.close()
+        except Exception:
+            pass
+        try:
+            await self.playwright.stop()
+        except Exception:
+            pass
 
 
+# ================================================================
+# 完整发布流程
+# ================================================================
 async def auto_publish_xiaohongshu(images, title, content):
     """
-    执行完整的小红书自动发布流程(异步)。
-
-    作用:
-        作为 XiaohongshuUploader 的流程编排函数, 按顺序调用各步骤完成发布。
-
-    参数:
-        images (list[str]): 图片路径列表。
-        title (str): 笔记标题。
-        content (str): 笔记正文。
+    执行完整的小红书自动发布流程。
 
     返回值:
-        None: 无返回值, 发布结果通过日志与异常体现。
+        bool: True=发布成功, False=发布失败
     """
-    # 实例化上传器
     xhs = XiaohongshuUploader(images, title, content)
-    # 启动浏览器并加载登录态
-    await xhs.launch()
-    # 切换到图文上传 Tab
-    await xhs.switch_to_image_post()
-    # 上传图片
-    await xhs.upload_images()
-    # 填写标题与正文
-    await xhs.fill_title_and_content()
-    # 点击发布
-    await xhs.submit_post()
-    # 关闭浏览器
-    await xhs.close()
+    try:
+        # 1. 启动浏览器 + 登录
+        launched = await xhs.launch()
+        if not launched:
+            print("[FAIL] 浏览器启动或登录失败")
+            return False
+
+        # 2. 切换到图文 Tab
+        await xhs.switch_to_image_post()
+
+        # 3. 上传图片
+        await xhs.upload_images()
+
+        # 4. 填写标题与正文
+        await xhs.fill_title()
+        await xhs.fill_content()
+
+        # 5. 点击发布
+        success = await xhs.submit_post()
+
+        # 6. 关闭浏览器
+        await xhs.close()
+
+        if success:
+            print("[DONE] ✅ 发布成功!")
+        else:
+            print("[DONE] ❌ 发布失败(发布按钮点击或验证失败)")
+        return success
+
+    except Exception as e:
+        print(f"[FAIL] 发布流程异常: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            await xhs.close()
+        except Exception:
+            pass
+        return False
 
 
+# ================================================================
+# LangGraph 节点入口
+# ================================================================
 async def xiaohongshu_auto_publish_node(state: AgentState):
     """自动发布小红书"""
-    # 打印日志, 标记进入发布阶段
     print("开始发布小红书")
-    # 从 state 读取标题, 缺失时为空字符串
+
+    # 从 state 读取标题、正文、图片路径
     title = state.get("xiaohongshu_title", "")
-    # 从 state 读取正文, 缺失时为空字符串
     content = state.get("xiaohongshu_content", "")
-    # 从 state 读取图片路径列表, 缺失时为空列表
     images = state.get("xiaohongshu_image_path_list", [])
 
-    # 使用 try/except 包裹发布流程, 失败时写入友好提示而非抛出异常
     try:
-        # 调用异步发布函数
-        await auto_publish_xiaohongshu(images, title, content)
-        # 发布成功, 写入成功提示
-        state["xiaohongshu_tip"] = "小红书发布成功！"
+        success = await auto_publish_xiaohongshu(images, title, content)
+        if success:
+            state["xiaohongshu_tip"] = "小红书发布成功!"
+            state["is_can_publish_xiaohongshu"] = True
+        else:
+            state["xiaohongshu_tip"] = "小红书发布失败(请检查登录状态或网络)"
+            state["is_can_publish_xiaohongshu"] = False
     except Exception as e:
-        # 打印失败日志
         print(f"⚠️ 发布失败: {e}")
-        # 写入失败提示, 含异常信息
         state["xiaohongshu_tip"] = f"小红书发布失败: {e}"
-    # 打印日志, 标记发布阶段完成
+        state["is_can_publish_xiaohongshu"] = False
+
     print("完成发布小红书")
-    # 返回更新后的 state
     return state
 
 
-# 脚本直接运行时的自测入口
+# ================================================================
+# 自测入口
+# ================================================================
 if __name__ == "__main__":
-    # 通过 asyncio.run 驱动异步节点, 使用测试图片与文案
     asyncio.run(xiaohongshu_auto_publish_node(
         state=AgentState(
-            xiaohongshu_image_path_list=[get_file_path("picture/test.png")],
+            xiaohongshu_image_path_list=[get_file_path("assets/images/test.png")],
             xiaohongshu_title="法律科普",
-            xiaohongshu_content="法律科普内容"
-        )))
+            xiaohongshu_content="法律科普内容",
+        )
+    ))

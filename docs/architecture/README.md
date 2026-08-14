@@ -1,116 +1,445 @@
-# AI_legal_assistant
+# 法智引擎 — AI 法律助理
 
-当前中国法律服务市场存在显著的结构性错配：全国 83 万执业律师资源向头部集中，中小微企业与普通群众的长尾法律需求长期处于供给真空；同时金税四期、新《公司法》等监管政策落地，企业合规压力持续攀升，但传统法律科技仅能实现法条检索，通用 AI 又缺乏专业法律深度，难以满足实际业务需求。 恰逢国家 "人工智能 +" 行动推进与 AI 领域立法完善，技术与政策窗口期叠加，本项目基于 RAG 检索增强生成与多智能体协作技术，打造覆盖合同审核、类案检索、风险评估、文书生成、合规检查的 AI 法律助理平台，面向政府、中小企业、律师及个人用户提供普惠化法律服务。
+## 1 项目背景
+
+当前国内法律服务市场存在严重结构性供需错配：全国 83 万执业律师资源高度集中于头部机构，中小微企业、普通民众的长尾法律咨询长期存在供给真空；叠加金税四期、新《公司法》等新规落地，企业合规审查需求激增。传统法律工具仅支持基础法条检索，通用大模型缺少法律专业深度，无法落地真实风控场景。
+
+伴随国家 “人工智能 +” 行动落地、垂直大模型技术日趋成熟，政策与技术双重窗口叠加，本人自主研发人机协同法律 AI 平台「法智引擎」。项目依托 RAG 检索增强、LangGraph 多智能体协同架构搭建整体体系，全程严格遵循《律师法》划分人机权责，确立 “AI 前置辅助、律师终审签章” 的合规运行模式。平台一站式覆盖合同审核、合规风险筛查、法律检索、智能问答、普法内容自动化发布五大场景，有效降低法律服务使用成本、统一风险审查标准，弥补传统法律服务效率低、覆盖范围有限、定价门槛高的行业短板。
+
+> **设计铁律**：AI 做前置审查 / 辅助生成 / 风险提示 · 律师做最终决策 / 签章交付
+> 依据《律师法》第 13/28 条，AI 辅助审查不替代律师专业判断，最终法律文件须经执业律师审核签章。
 
 ---
 
-## 项目架构
+## 2 系统架构
+
+### 2.1 整体架构
+
+系统采用前后端分离架构，前端基于 Streamlit 构建 Web 界面，后端基于 LangGraph 编排多智能体工作流，知识层由 Neo4j 图数据库与 FAISS 向量索引构成。
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      前端 (Streamlit)                         │
+│  首页问答 · 合同审核 · 合规审查 · 法律检索 · 小红书发布       │
+├─────────────────────────────────────────────────────────────┤
+│                    后端 API 接口层                             │
+│  legal_response        (异步, 返回纯文本)                      │
+│  legal_response_sync   (同步, 返回纯文本)                      │
+│  legal_response_full   (同步, 返回完整结构化数据)               │
+│  legal_response_stream (异步生成器, 流式输出)                   │
+├─────────────────────────────────────────────────────────────┤
+│                 LangGraph 多智能体编排层                       │
+│  StateGraph(AgentState) · 32 个节点 · 条件路由 · 循环重试      │
+├──────────────┬──────────────┬───────────────────────────────┤
+│  LLM 服务层   │  检索服务层    │       知识层                   │
+│  ChatOpenAI  │  FAISS 向量   │  Neo4j 图数据库               │
+│  (OpenAI兼容) │  本地法规库    │  FAISS 实体索引               │
+│              │  Embedding    │  图谱元数据 JSON               │
+├──────────────┴──────────────┴───────────────────────────────┤
+│              外部数据服务层                                    │
+│  企查查 MCP API (工商/失信/被执行/经营异常/行政处罚)           │
+├──────────────────────────────────────────────────────────────┤
+│                    公共基础设施层                              │
+│  Config(.env) · path_utils · langgraph_compat · qichacha   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 目录结构
 
 ```
 AI_legal_assistant/
-├── __006__streamlit/          # Streamlit 前端应用
-│   └── app.py                 # 主应用入口（法智引擎 v5）
-├── __004__langgraph_more_nodes/ # LangGraph 多智能体后端
-├── numeric_validation_rules/   # 数值校验规则（YAML）
-│   ├── contract_review.yaml
-│   └── compliance_review.yaml
-├── .streamlit/
-│   └── config.toml            # Streamlit 正式部署配置
-├── requirements.txt           # Python 依赖
-├── README.md
-└── Record_of_ideas.md         # 开发思路记录
+├── __006__streamlit/                    # 前端应用
+│   └── app.py                           # Streamlit 主入口 (法智引擎 v5)
+├── __004__langgraph_more_nodes/         # 后端 LangGraph 多智能体
+│   ├── langgraph_main.py                # 主编排: 节点注册 + 边定义 + 条件路由 + API接口
+│   ├── agent_state.py                   # AgentState 共享状态定义 (TypedDict, 50+ 字段)
+│   └── nodes/                           # 31 个节点函数 (见 2.3 节)
+├── __003__create_neo4j_database/        # 知识图谱构建
+│   ├── __001__graph_importer.py         # 图谱数据导入 Neo4j
+│   ├── __002__export_metadata.py        # 导出图谱元数据 JSON (供 Cypher 生成参考)
+│   └── __003__vector_index.py           # 构建 FAISS 实体向量索引
+├── __002__extract_information/          # 信息抽取
+│   ├── __000__extract_graph_data_utils.py  # 图谱数据抽取工具
+│   └── __001__extract_law_data.py       # 从法规文本抽取实体关系三元组
+├── __001__clawler/                      # 数据采集
+│   ├── __000__获取网页内容通用方法.py     # 通用网页抓取
+│   ├── __001__local_docx_to_txt.py      # DOCX 转 TXT
+│   ├── __002__crawl_law_database.py     # 法律法规数据库爬虫
+│   └── 法律法规/                        # 12 部法律 TXT 文本 (民法典/公司法/刑法等)
+├── common/                              # 公共模块
+│   ├── config.py                        # 配置管理 (读取 .env, 单例模式)
+│   ├── llm.py                           # LLM 客户端 (ChatOpenAI, 模块级单例)
+│   ├── embedding_model.py               # Embedding 模型 (SentenceTransformer, 单例)
+│   ├── neo4j_manager.py                 # Neo4j 数据访问层 (Neo4jClient)
+│   ├── qichacha_client.py               # 企查查 MCP API 客户端 (资信查询, 三级降级)
+│   ├── langgraph_compat.py              # LangGraph 兼容层 (Python 3.8 轻量 StateGraph)
+│   ├── ouput_graph_utils.py             # 图可视化工具 (导出 PNG)
+│   └── path_utils.py                    # 路径工具 (相对路径→绝对路径)
+├── config/
+│   └── rules/                           # 数值校验规则
+│       ├── contract_review.yaml         # 合同审核规则 (金额/比例/期限等)
+│       └── compliance_review.yaml       # 合规审查规则 (法规符合性)
+├── data/
+│   ├── raw/                             # 原始法规 DOCX 文件
+│   └── sample/                          # 测试合同样本
+├── docs/
+│   ├── architecture/README.md           # 本文件
+│   ├── flowcharts/                      # 交互式流程图 (HTML)
+│   └── record/                          # 开发记录与商业计划书
+├── .streamlit/config.toml              # Streamlit 部署配置
+├── requirements.txt                     # Python 依赖
+└── .env                                 # 环境变量 (API Key, Neo4j 连接等, 不入库)
 ```
 
-## 前端界面设计
+### 2.3 节点清单
 
-### 主题配色
+后端共注册 32 个节点，按功能分组如下：
 
-| 色系 | 色值 | 用途 |
+| 分组 | 节点文件 | 节点函数 | 功能 |
+|------|---------|---------|------|
+| **意图路由** | intent_router_node.py | intent_router_node | 基于 LLM 对用户输入分类，输出 task_type |
+| | xiaohongshu_publish_intent_node.py | xiaohongshu_publish_intent_node | START 后首个节点，前置过滤小红书发布意图 |
+| **文档处理** | doc_extract_node.py | doc_extract_node | 解析上传文档 (txt/md/docx) 为纯文本 |
+| | contract_classify_node.py | contract_classify_node | 基于 LLM 判定合同类型 (买卖/租赁/借贷等) |
+| | clause_split_node.py | clause_split_node | 将合同文本切分为结构化条款列表 |
+| | numeric_extract_node.py | numeric_extract_node | 正则 + LLM 抽取合同关键数值 (单价/数量/总价等) |
+| **风险审查** | contract_ai_review_node.py | contract_ai_review_node | 基于 LLM 审查合同条款风险，输出 contract_risk_items |
+| | compliance_review_node.py | compliance_review_node | 对照法规检测合规性，输出 compliance_risk_items |
+| | numeric_validate_node.py | numeric_validate_node | 基于 YAML 规则校验数值一致性与合理性，输出 numeric_risk_items |
+| **检索 (5节点链)** | retrieval_intent_decompose_node.py | retrieval_intent_decompose_node | LLM 提取检索词与关键词 |
+| | retrieval_base_layer_node.py | retrieval_base_layer_node | FAISS 向量检索 + 本地法规 TXT 关键词匹配 |
+| | retrieval_enhance_query_node.py | retrieval_enhance_query_node | 基础层结果不足时 LLM 补充检索 |
+| | retrieval_fusion_sort_node.py | retrieval_fusion_sort_node | 去重、排序、拼装上下文、计算质量分 |
+| | retrieval_output_node.py | retrieval_output_node | 写入标准字段，确保类型安全 |
+| | legal_research_node.py | legal_research_node | 原单节点检索 (已弃用，保留注册兼容) |
+| **后处理** | risk_aggregate_node.py | risk_aggregate_node | 合并四路风险项（合同/合规/数值/资信），计算综合评分与等级 |
+| | party_identify_node.py | party_identify_node | 识别合同甲乙方主体，判定用户立场 |
+| | credit_check_node.py | credit_check_node | 调用企查查 MCP API 查询甲乙双方资信（工商/失信/被执行/经营异常/行政处罚） |
+| | final_delivery_node.py | final_delivery_node | 组装 Markdown 报告，写入 output |
+| | llm_direct_out_node.py | llm_direct_out_node | 非法律意图的 LLM 兜底回答 |
+| **法律问答** | extract_entity_from_user_input_node.py | extract_entity_from_user_input_node | 从用户问题抽取法律实体/概念/法规名 |
+| | match_entity_from_neo4j_node.py | match_entity_from_neo4j_node | 在知识图谱中匹配相关实体 |
+| | generate_neo4j_cypher_node.py | generate_neo4j_cypher_node | 基于匹配实体生成 Cypher 查询语句 |
+| | check_cypher_node.py | check_cypher_node | 校验 Cypher 语法合法性 |
+| | run_cypher_node.py | run_cypher_node | 在 Neo4j 上执行 Cypher 查询 |
+| | neo4j_answer_generate_node.py | neo4j_answer_generate_node | 基于查询结果生成自然语言答案 |
+| | legal_qa_intent_node.py | legal_qa_intent_node | 法律问答意图判断 (由 intent_router 分流) |
+| **小红书** | text_generate_node.py | text_generate_node | 生成小红书标题与正文文案 |
+| | image_generate_node.py | image_generator_node | 调用极梦文生图 API 生成配图 |
+| | check_text_image_node.py | check_text_image_node | 校验文案与图片是否可发布 |
+| | auto_publish_xiaohongshu_node.py | xiaohongshu_auto_publish_node | 调用 Playwright 自动发布到小红书 |
+| | generate_markdown_node.py | generate_markdown_node | 整理发布结果为 Markdown 存档 |
+
+---
+
+## 3 LangGraph 多智能体编排
+
+### 3.1 图拓扑
+
+图从 START 出发，首先经过小红书意图前置过滤，再进入主意图路由，按 task_type 分流到五条业务链路或兜底链路。
+
+```
+START → xiaohongshu_publish_intent_node
+         │
+         ├─ is_xiaohongshu_publish_intent=True
+         │   → text_generate → image_generate → check_text_image
+         │     ├─ is_can_publish=True → auto_publish → generate_markdown → END
+         │     └─ is_can_publish=False → END
+         │
+         └─ is_xiaohongshu_publish_intent=False
+             → intent_router_node
+               ├─ contract_review  → doc_extract → contract_classify → clause_split
+              │                     → numeric_extract → contract_ai_review → compliance_review
+              │                     → numeric_validate → retrieval(5节点) → party_identify
+              │                     → credit_check(企查查) → risk_aggregate → final_delivery → END
+              │
+              ├─ compliance_review → doc_extract → contract_classify → clause_split
+              │                     → numeric_extract → contract_ai_review → compliance_review
+              │                     → numeric_validate → retrieval(5节点) → party_identify
+              │                     → credit_check(企查查) → risk_aggregate → final_delivery → END
+              │
+              ├─ legal_research   → retrieval_intent_decompose → retrieval_base_layer
+              │                     → retrieval_enhance_query → retrieval_fusion_sort
+              │                     → retrieval_output → party_identify → credit_check
+              │                     → risk_aggregate → final_delivery → END
+               │
+               ├─ legal_qa         → extract_entity → match_entity(Neo4j) → generate_cypher
+               │                     → check_cypher
+               │                     ├─ is_all_validate=True  → run_cypher → answer_generate → END
+               │                     ├─ retry_count<3         → generate_cypher (循环)
+               │                     └─ retry_count≥3         → answer_generate (降级) → END
+               │
+               └─ other            → llm_direct_out → END
+```
+
+> **注**：合同审核与合规审查当前共享同一条串行链路。代码注释（langgraph_main.py:340）说明理想架构中 contract_ai_review 与 compliance_review 应并行执行，当前在轻量兼容层中以串行模拟。
+
+### 3.2 条件路由
+
+| 路由节点 | 判断字段 | 路由分支 |
+|---------|---------|---------|
+| xiaohongshu_publish_intent_node | is_xiaohongshu_publish_intent | publish_xiaohongshu_intent / intent_router |
+| intent_router_node | task_type | contract_review_path / compliance_review_path / legal_research_path / legal_qa_path / llm_direct |
+| check_text_image_node | is_can_publish_xiaohongshu | publish_xiaohongshu / END |
+| check_cypher_node | is_all_validate_cypher + cypher_retry_count | run_cypher / generate_neo4j_cypher (循环) / generate_answer (降级) |
+
+### 3.3 节点复用
+
+以下节点被多条业务链路复用，通过 AgentState 共享状态，避免重复计算：
+
+| 复用节点 | 调用方链路 | 读取字段 | 写入字段 |
+|---------|-----------|---------|---------|
+| 检索5节点链路 | 合同审核、合规审查、法律检索 | doc_text / contract_type / input | citations / research_context / quality_score |
+| risk_aggregate | 合同审核、合规审查、法律检索 | contract_risk_items / compliance_risk_items / numeric_risk_items / credit_risk_items | overall_risk_score / risk_level / merged_risk_items |
+| party_identify | 合同审核、合规审查、法律检索 | doc_text | party_a / party_b / user_side |
+| credit_check | 合同审核、合规审查、法律检索 | party_a / party_b / user_side | party_a_credit_info / party_b_credit_info / credit_risk_items / credit_check_success |
+| final_delivery | 合同审核、合规审查、法律检索 | 全部风险项 + 检索结果 + 甲乙方 | output / final_report_markdown |
+
+### 3.4 状态管理
+
+AgentState（TypedDict, total=False）是所有节点间的数据总线，所有字段可选，不同链路只写入自身路径相关字段。主要字段分组：
+
+| 分组 | 字段 | 说明 |
 |------|------|------|
-| 深红渐变 | `#450a0a → #7f1d1d → #991b1b` | 主背景大面积底色 |
-| 科技深蓝 | `#0D47A1` | 按钮、高亮、选中态主色 |
-| 科技蓝 | `#1976D2` | 交互元素、边框高亮 |
-| 科技浅蓝 | `#42A5F5` | 文字高亮、悬浮态 |
-| 浅红文字 | `#fecaca` | 正文文字（确保红色背景上可读性） |
+| 输入 | input, uploaded_doc_path, task_type, review_mode, custom_rules | 用户输入与任务控制 |
+| 文档解析 | doc_text, doc_clauses, contract_type | 文档提取与条款切分结果 |
+| 数值 | extracted_numerics | 合同关键数值字典 |
+| 风险项 | contract_risk_items, compliance_risk_items, numeric_risk_items, credit_risk_items | 四路独立风险检测结果（合同/合规/数值/资信） |
+| 检索中间态 | retrieval_query, retrieval_keywords, base_citations, enhance_citations | 5节点链路内部传递 |
+| 检索结果 | research_context, citations, quality_score | 最终检索输出 |
+| 风险聚合 | overall_risk_score, risk_level, merged_risk_items | 综合评分与合并清单 |
+| 甲乙方 | party_a, party_b, user_side | 合同主体识别 |
+| 资信查询 | party_a_credit_info, party_b_credit_info, credit_check_success | 甲乙双方企查查资信详情与查询状态 |
+| 交付 | output, final_report_markdown, need_lawyer_review | 最终产物 |
+| 小红书 | is_xiaohongshu_publish_intent, xiaohongshu_title, xiaohongshu_content, xiaohongshu_image_path_list, is_can_publish_xiaohongshu | 小红书链路状态 |
+| 法律问答 | user_input_entities, matched_entities, cypher_query, is_all_validate_cypher, cypher_retry_count, cypher_results, neo4j_answer | 知识图谱RAG状态 |
 
-### 页面结构
+### 3.5 API 接口
 
-所有任务页面遵循统一布局模式：
+langgraph_main.py 对外暴露四个接口，适配不同调用场景：
+
+| 接口 | 签名 | 返回值 | 适用场景 |
+|------|------|--------|---------|
+| legal_response | async def legal_response(input, **kwargs) | str | Web 服务异步调用，返回纯文本 |
+| legal_response_sync | def legal_response_sync(input, **kwargs) | str | 脚本/CLI 同步调用，返回纯文本 |
+| legal_response_full | def legal_response_full(input, **kwargs) | dict | 前端卡片渲染，返回完整结构化数据 (风险项/引用/评分等) |
+| legal_response_stream | async def legal_response_stream(input, **kwargs) | AsyncGenerator | Streamlit 流式输出，逐块 yield 文本 + 末尾 JSON 数据包 |
+
+---
+
+## 4 数据流水线
+
+项目包含完整的数据采集→抽取→入库→检索流水线：
 
 ```
-┌─────────────────────────────────────────┐
-│  侧边栏（深红渐变 + 科技蓝高亮选中态）      │
-│  ┌───────────────────────────────────┐  │
-│  │  任务问候语（如：您好, 我是合同审核智能体）│
-│  │  任务介绍框（半透明深色背景 + 科技蓝左边框）│
-│  ├───────────────────────────────────┤  │
-│  │  文本输入区（大文本框）               │  │
-│  │  上传按钮区（文档上传 + 图片上传）      │  │
-│  │  操作按钮（开始审核/检索 + 提问示例）    │  │
-│  │  效果展示按钮（可切换显示/隐藏）        │  │
-│  ├───────────────────────────────────┤  │
-│  │  结果展示区                         │  │
-│  │  ├── 评分概览（风险评分圆环 + 等级）   │  │
-│  │  ├── 原文高亮（风险段落彩色标注）      │  │
-│  │  ├── 风险清单（统计卡片 + 风险详情卡）  │  │
-│  │  └── 完整报告（可展开）               │  │
-│  └───────────────────────────────────┘  │
-└─────────────────────────────────────────┘
+__001__clawler               __002__extract_information     __003__create_neo4j_database
+法规网站爬取 ──→ TXT/DOCX ──→ 实体关系三元组抽取 ──→ Neo4j 图谱导入 + FAISS 索引构建
+     │                              │                           │
+     │                              │                           ├─ legal_metadata.json (图谱元数据)
+     │                              │                           ├─ nero4j_embedding_faiss.index (向量索引)
+     │                              │                           └─ nero4j_embedding_faiss_id2text.pkl (ID映射)
+     │                              │
+     └─ 法律法规/*.txt ──────────────└→ 检索基础层 (本地法规关键词匹配)
 ```
 
-### 五大功能页面
+### 4.1 数据采集 (__001__clawler)
 
-#### 1. 首页（智能问答）
-- 问候语："您好, 我是法智引擎"
-- 中央大输入框 + 深度思考开关 + 发送按钮
-- 五色快捷卡片（法律研究 / 深度报告 / 类案分析 / 法条检索 / 文书起草）
-- 五色任务类型选择卡（智能问答 / 合同审核 / 合规审查 / 法律检索 / 小红书发布）
+- 爬取法律法规数据库，输出 12 部法律的 TXT 文本（民法典、公司法、刑法、劳动合同法等）
+- 存放于 `__001__clawler/法律法规/`，作为检索基础层的本地法规数据源
 
-#### 2. 合同审核
-- 智能体名称："您好, 我是合同审核智能体"
-- 任务介绍：围绕主体资格、内容合法性、商业对等性、文本质量与签署程序五个维度审查
-- 支持文档上传（txt/md/docx/pdf）+ 图片上传 + 文本粘贴
-- 两个演示按钮：`💡 提问示例`（展开查看）+ `🎭 效果展示`（可切换）
-- 结果展示：风险评分 + 原文高亮标注 + 风险清单（采纳/不采纳/修改）
+### 4.2 信息抽取 (__002__extract_information)
 
-#### 3. 合规审查
-- 智能体名称："您好, 我是合规审查智能体"
-- 任务介绍：围绕合规义务识别、法规监管、内部制度、重点领域及审查闭环五个维度
-- 同合同审核布局风格，适配合规审查场景
+- 从法规文本中抽取法律实体（法规名、条款号、法律概念）及实体间关系
+- 输出三元组数据，供图谱导入使用
 
-#### 4. 法律检索
-- 智能体名称："您好, 我是检索智能体"
-- 任务介绍：输出完整的法条原文、案例全文、监管文件正文等可追溯、可审计、可落地的检索结果
-- 同合同审核布局风格，适配法律检索场景
+### 4.3 知识图谱构建 (__003__create_neo4j_database)
 
-#### 5. 小红书发布
-- 智能体名称："您好, 我是小红书发布智能体"
-- 任务介绍：生成符合小红书风格的法律科普内容
-- 同合同审核布局风格，适配内容创作场景
+- **图谱导入**：将三元组数据导入 Neo4j，建立法律实体关系图谱
+- **元数据导出**：导出图谱模式层（标签/关系类型/属性）为 JSON，供 Cypher 生成节点作为 schema 参考
+- **向量索引构建**：基于 SentenceTransformer (bge-m3) 对实体名向量化，构建 FAISS 索引，用于实体召回
 
-### 交互特性
+### 4.4 检索策略
 
-#### 风险卡片操作
-每个风险卡片提供三个操作按钮：
+检索5节点链路采用三层降级策略：
 
-| 按钮 | 行为 |
-|------|------|
-| ✅ 采纳 | 标记该风险已采纳，显示成功状态 |
-| ❌ 不采纳 | 标记该风险不采纳，显示警告状态 |
-| ✏️ 修改 | 弹出文本输入框，用户可输入修改意见，确认后保存修改内容，支持"重新修改" |
+| 层级 | 数据源 | 触发条件 | 说明 |
+|------|--------|---------|------|
+| 第一层：FAISS 向量检索 | FAISS 实体索引 | 默认 | 基于 embedding_model 对查询向量化，近邻搜索召回相关实体 |
+| 第二层：本地法规匹配 | 法律法规/*.txt | 第一层结果不足 | 关键词匹配本地法规文本，补充检索结果 |
+| 第三层：LLM 伪检索 | LLM | 前两层均不足 | LLM 基于知识生成引用，作为兜底降级 |
 
-#### 效果展示按钮（可切换）
-- 首次点击：加载演示数据并展示完整审核结果
-- 再次点击：清除演示数据，收起结果区域
-- 状态持久化于 `st.session_state`
+---
 
-## 部署配置
+## 5 公共基础设施
 
-### 环境要求
-- Python 3.10+
-- 依赖见 [requirements.txt](requirements.txt)
+### 5.1 配置管理 (common/config.py)
 
-### 启动命令
+Config 类集中管理所有外部依赖配置，通过 python-dotenv 读取 `.env` 文件：
+
+| 配置项 | 环境变量 | 用途 |
+|--------|---------|------|
+| MODEL_API_KEY | MODEL_API_KEY | 大模型 API 密钥 |
+| MODEL_BASE_URL | MODEL_BASE_URL | 大模型服务地址 (OpenAI 兼容) |
+| MODEL_NAME | MODEL_NAME | 模型名称 (如 deepseek-chat) |
+| NEO4J_URI | NEO4J_URI | Neo4j 连接 URI |
+| NEO4J_USER | NEO4J_USER | Neo4j 用户名 |
+| NEO4J_PASSWORD | NEO4J_PASSWORD | Neo4j 密码 |
+| JIMENG_AK / JIMENG_SK | JIMENG_AK / JIMENG_SK | 极梦文生图 API 密钥 |
+| QICHACHA_AUTHORIZATION | QICHACHA_AUTHORIZATION | 企查查 MCP Bearer Token (优先模式) |
+| QICHACHA_APP_KEY / QICHACHA_SECRET_KEY | QICHACHA_APP_KEY / QICHACHA_SECRET_KEY | 企查查开放平台 AppKey/SecretKey (兼容模式, MD5 签名) |
+| EMBEDDING_MODEL_PATH | EMBEDDING_MODEL_PATH | 本地 Embedding 模型路径 |
+
+### 5.2 LLM 客户端 (common/llm.py)
+
+模块级单例 `my_llm`，基于 LangChain ChatOpenAI 封装，兼容任何 OpenAI 协议的推理服务（DeepSeek、通义、智谱等）。所有节点通过 `from common.llm import my_llm` 获取共享实例。
+
+### 5.3 Embedding 模型 (common/embedding_model.py)
+
+模块级单例 `embedding_model`，基于 SentenceTransformer 加载本地 bge-m3 模型。供 FAISS 向量检索与实体召回使用。
+
+### 5.4 Neo4j 数据访问层 (common/neo4j_manager.py)
+
+Neo4jClient 类封装了连接管理、Cypher 执行、元数据导出、语法校验等能力。核心方法：
+
+- `run_cypher(query)` — 单条查询，返回 dict 列表
+- `run_multiple_cypher(queries)` — 批量事务执行，带 tqdm 进度条
+- `export_tcm_metadata_to_json()` — 导出图谱模式层 JSON
+- `validate_cypher(query)` — EXPLAIN 语法预检
+
+### 5.5 LangGraph 兼容层 (common/langgraph_compat.py)
+
+为兼容 Python 3.8 环境（无法安装 langgraph 0.2+）自研的轻量 StateGraph 实现，API 与官方完全兼容：
+
+- StateGraph / START / END 常量
+- add_node / add_edge / add_conditional_edges / compile
+- CompiledGraph.invoke (同步) / ainvoke (异步)
+- 固定边取第一条出边执行（不支持真并行），条件边通过 router 函数动态路由
+- 内置 _GraphVisualizer 支持 matplotlib 简易绘图
+
+> 未来升级 Python 3.9+ 后，只需将 `from common.langgraph_compat import StateGraph, START, END` 切换为 `from langgraph.graph import StateGraph, START, END` 即可无缝迁移。
+
+### 5.6 路径工具 (common/path_utils.py)
+
+`get_file_path(relative_path)` 函数将工程内相对路径转换为绝对路径，基于 `__file__` 向上回溯定位工程根目录，确保不同工作目录下均可正确访问资源文件。
+
+### 5.7 企查查客户端 (common/qichacha_client.py)
+
+QiChaChaClient 类封装企查查 MCP API，为 credit_check_node 提供企业资信查询能力，覆盖 10 个资信维度（工商基本/股东/失信/被执行/经营异常/行政处罚/知识产权/招投标/司法判例/历史变更）。采用三级降级策略确保服务可用性：
+
+| 模式 | 鉴权方式 | 触发条件 |
+|------|---------|---------|
+| MCP Bearer Token (优先) | `QICHACHA_AUTHORIZATION` 请求头 | 默认优先，响应为 SSE 流 |
+| AppKey + MD5 签名 (兼容) | `QICHACHA_APP_KEY` / `QICHACHA_SECRET_KEY` 字典序拼接 MD5 | Bearer Token 缺失或 401/403 时降级 |
+| Mock 模拟数据 (兜底) | 无 | 两种鉴权均缺失或请求失败时，基于公司名 hash 生成定制化数据 |
+
+核心方法 `query_company_credit(company_name)` 返回包含 basic_info / shareholders / dishonest / executed / abnormal / penalties / credit_score / risk_level / mock 标志的字典。资信查询节点绝不会因第三方服务中断而阻塞合同审核主流程。
+
+---
+
+## 6 前端设计
+
+### 6.1 技术方案
+
+前端基于 Streamlit 构建，通过 `st.markdown(unsafe_allow_html=True)` 注入全局 CSS 覆盖默认样式，实现红底蓝高亮的现代化 UI 风格。
+
+### 6.2 页面结构
+
+| 页面 | 智能体名称 | 核心功能 |
+|------|-----------|---------|
+| 首页 (智能问答) | 法智引擎 | 中央大输入框 + 深度思考开关 + 五色快捷卡片 + 五色任务选择卡 |
+| 合同审核 | 合同审核智能体 | 文档上传 + 文本粘贴 → 风险评分 + 原文高亮 + 风险卡片 (采纳/不采纳/修改) |
+| 合规审查 | 合规审查智能体 | 同合同审核布局，适配合规审查场景 |
+| 法律检索 | 检索智能体 | 检索法条原文/案例/监管文件，输出可追溯引用 |
+| 小红书发布 | 小红书发布智能体 | 生成法律科普文案 + 配图 + 自动发布 |
+
+### 6.3 后端集成
+
+前端启动时尝试导入后端接口（legal_response_sync / legal_response_full / legal_response_stream）：
+
+- **后端可用** (HAS_BACKEND=True)：调用 LangGraph 多智能体处理真实请求
+- **后端不可用** (HAS_BACKEND=False)：自动切换演示模式，使用内置演示数据展示界面
+- 侧边栏提供演示模式开关，可手动强制启用
+
+### 6.4 交互特性
+
+- **流式输出**：legal_response_stream 逐块 yield 文本 (chunk_size=4, 间隔 20ms)，末尾附带 JSON 数据包
+- **风险卡片三态交互**：采纳 / 不采纳 / 修改，状态持久化于 st.session_state
+- **文档高亮**：按风险严重程度 (critical/high/medium/low) 四色标注原文段落
+- **点击高亮跳转风险卡片**：左侧合同高亮段落可点击，通过纯 CSS 锚点 (`<a href="#risk-card-...">`) 平滑滚动至右侧对应风险卡片，并触发蓝色闪烁动画。采用字段加权关键词匹配（clause=3 > description=2 > legal_basis=1 > suggestion=0.5）+ 停用词过滤精确定位段落，若一段命中多个风险项则跳转至最严重项
+- **效果展示切换**：首次点击加载演示数据，再次点击清除
+
+---
+
+## 7 数值校验规则
+
+数值校验规则存放于 `config/rules/`，采用 YAML 格式，由 numeric_validate_node 加载执行：
+
+### 7.1 合同审核规则 (contract_review.yaml)
+
+依据《企业内部控制应用指引第16号——合同管理》，从商业视角校验：
+
+- **金额准确性**：单价×数量=小计、大小写金额一致、附件金额一致
+- **比例合理性**：违约金比例、保证金比例、预付款比例上限校验
+- **期限合规性**：付款期限、交货期限、保修期限合理性
+
+### 7.2 合规审查规则 (compliance_review.yaml)
+
+从法规符合性视角校验，全局约束：不得降级或覆盖合规审查的违规结论。
+
+### 7.3 设计原则
+
+- 数值校验使用确定性 Python 代码执行，不依赖 LLM
+- 合规风险不可降级，合同风险可降级
+- 风险项带 severity 字段 (critical/high/medium/low)，在报告中按严重程度排序
+
+---
+
+## 8 技术栈
+
+| 层级 | 技术 | 说明 |
+|------|------|------|
+| 前端 | Streamlit + 自定义 CSS | Web 界面，红底蓝高亮主题 |
+| 后端编排 | LangGraph (兼容层) | 多智能体状态图编排，32 节点 |
+| 大模型 | OpenAI 兼容接口 (ChatOpenAI) | 支持 DeepSeek/通义/智谱等 |
+| 向量检索 | FAISS (faiss-cpu) | 实体向量近邻搜索 |
+| 知识图谱 | Neo4j (neo4j Python Driver) | 法律实体关系图谱 |
+| Embedding | sentence-transformers (bge-m3) | 文本向量化 |
+| 图像生成 | 火山引擎极梦文生图 | 小红书配图生成 |
+| 自动发布 | Playwright | 小红书平台自动发布 |
+| 资信查询 | 企查查 MCP API | 甲乙双方工商/司法/经营资信核验 |
+| 数据处理 | pandas, numpy, openpyxl | 法规数据处理 |
+| 配置管理 | python-dotenv | .env 环境变量 |
+
+---
+
+## 9 部署
+
+### 9.1 环境要求
+
+- Python 3.8+ (兼容层支持 3.8，官方 LangGraph 需 3.9+)
+- Neo4j 5.17+ (法律问答链路依赖，不可用时降级为 LLM 直答)
+- 依赖见 [requirements.txt](../../requirements.txt)
+
+### 9.2 环境配置
+
+在项目根目录创建 `.env` 文件：
+
+```env
+MODEL_API_KEY=your_api_key
+MODEL_BASE_URL=https://api.deepseek.com/v1
+MODEL_NAME=deepseek-chat
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_password
+JIMENG_AK=your_ak
+JIMENG_SK=your_sk
+QICHACHA_AUTHORIZATION=Bearer your_mcp_token
+QICHACHA_APP_KEY=your_app_key
+QICHACHA_SECRET_KEY=your_secret_key
+EMBEDDING_MODEL_PATH=path/to/bge-m3
+```
+
+### 9.3 启动命令
 
 ```bash
 # 安装依赖
@@ -118,42 +447,27 @@ pip install -r requirements.txt
 
 # 启动 Streamlit 服务
 python -m streamlit run __006__streamlit/app.py --server.port 8501
-
-# 或使用部署配置（自动读取 .streamlit/config.toml）
-python -m streamlit run __006__streamlit/app.py
 ```
 
-### 部署配置文件
+### 9.4 部署配置
 
-项目根目录 `.streamlit/config.toml` 包含正式部署配置：
+`.streamlit/config.toml` 配置：
 
-- **服务端口**：8501
-- **主题**：dark 模式，主色 `#1976D2`（科技蓝）
-- **背景色**：`#450a0a`（深红）
-- **最大上传**：200MB
-- **安全**：启用 XSRF 保护，关闭 CORS
-- **日志**：info 级别
+- 服务端口：8501
+- 主题：dark 模式，主色 #1976D2 (科技蓝)
+- 背景色：#450a0a (深红)
+- 最大上传：200MB
+- 安全：启用 XSRF 保护，关闭 CORS
 
-### 后端集成
+---
 
-前端自动检测后端 `__004__langgraph_more_nodes` 是否可用：
-- **后端可用**：调用 LangGraph 多智能体处理真实请求
-- **后端不可用**：自动切换演示模式，使用内置演示数据展示界面效果
-- **侧边栏演示模式开关**：可手动强制启用演示模式
+## 10 流程图文档
 
-## 技术栈
+项目包含两套交互式流程图，位于 `docs/flowcharts/`，均支持深色/浅色主题切换（右上角按钮，通过 `data-theme` 属性 + CSS 变量实现，localStorage 持久化用户偏好）：
 
-| 层级 | 技术 |
+| 文件 | 说明 |
 |------|------|
-| 前端 | Streamlit + 自定义 CSS |
-| 后端 | LangGraph + RAG |
-| 向量检索 | FAISS / Milvus |
-| 知识图谱 | Neo4j |
-| 大模型 | OpenAI 兼容接口 |
-| 嵌入模型 | sentence-transformers (bge-m3) |
-
-## 设计原则
-
-> **AI 做前置审查辅助生成风险提示 · 律师做最终决策签章交付**
-
-依据《律师法》第 13/28 条，AI 辅助审查不替代律师专业判断，最终法律文件须经执业律师审核签章。
+| 00_index.html | 首页导航，链接到各智能体流程图 |
+| 01_architecture.html ~ 06_xiaohongshu.html | 6 个独立页面，分别展示总架构和各智能体详情 |
+| 节点式流程图.html | 节点式交互流程图 (6 Tab 切换)，展示节点复用关系与调用结构 |
+| style.css | 共用样式表，定义深色/浅色双主题、节点卡片、导航栏等基础样式 |
