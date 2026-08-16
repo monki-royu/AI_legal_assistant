@@ -1,0 +1,302 @@
+📋 节点功能详解（按代码顺序）
+N0 — 小红书前置过滤
+复制
+输入:  state["input"] = "发一篇小红书关于民法典"
+处理:  LLM 判断是否真的是发布意图
+输出:  state["is_xiaohongshu_publish_intent"] = True/False
+路由:  True → text_generate_node (小红书链路)
+       False → intent_router_node (主路由)
+N0.5 — 企查查预判定（Phase 2 新增）
+复制
+输入:  state["task_type"], state["doc_text"]
+处理:  三层触发判定:
+       ① task_type 是否属于触发类型
+       ② doc_text 中是否能提取到企业名
+       ③ 缓存是否有已有结果
+       如果触发 → 调用 QiChaChaClient 预查
+输出:  state["credit_precheck_done"] = True/False
+       state["credit_precheck_citations"] = [...]
+路由:  全部路径统一走向 credit_precheck → 再按 task_type 二次路由
+N1 — 意图路由 (已优化：带锁定+数据源决策)
+复制
+输入:  state["input"], state["task_type"] (前端传入可选)
+处理:  LLM 分类 → 查白名单 → 模糊匹配 → 兜底
+
+       然后根据 task_type 决定:
+       ┌──────────────────┬────────┬──────────────┬──────────┐
+       │ task_type         │ locked │ sources       │ skip    │
+       ├──────────────────┼────────┼──────────────┼──────────┤
+       │ law_query         │ True   │ ["laws"]      │ True    │
+       │ case_search       │ True   │ ["cases"]     │ True    │
+       │ contract_review   │ True   │ ["*"]         │ False   │
+       │ compliance_review │ True   │ ["*"]         │ False   │
+       │ legal_qa          │ False  │ ["*"]         │ False   │
+       │ legal_document_gen│ True   │ ["laws",      │ False   │
+       │                   │        │  "cases"]     │         │
+       │ legal_research    │ False  │ ["*"]         │ False   │
+       │ xiaohongshu       │ True   │ []            │ True    │
+       │ other             │ False  │ ["*"]         │ False   │
+       └──────────────────┴────────┴──────────────┴──────────┘
+
+输出:  state["task_type"], state["intent_locked"],
+       state["mounted_sources"], state["skip_fusion"]
+
+路由:  全部统一 → credit_precheck_node
+N2 — 文档提取
+复制
+输入:  state["uploaded_doc_path"] (文件路径)
+处理:  根据文件后缀调用不同解析器:
+       .txt → 直接读取
+       .docx → python-docx 提取
+       .pdf → MinerU 多模态解析(文字块/表格块/图片块)
+       失败 → 降级为纯文本提取
+输出:  state["doc_text"] = "全文纯文本..."
+       state["doc_structured"] = {pages: [{blocks: [...]}]} (MinerU)
+N3 — 合同分类
+复制
+输入:  state["doc_text"]
+处理:  LLM 判断合同类型(买卖/租赁/劳动/借贷/建设工程/服务...)
+输出:  state["contract_type"] = "买卖合同"
+N4 — 条款切分
+复制
+输入:  state["doc_text"]
+处理:  按 "第X条" 正则切分条款
+       每条款: {id, title, text, bbox(坐标)}
+输出:  state["doc_clauses"] = [{id:1, title:"第一条...", text:"..."}, ...]
+N5a — 合同审核 AI
+复制
+输入:  state["doc_clauses"], state["extracted_numerics"],
+       state["citations"] (检索结果), state["user_side"]
+处理:  LLM 逐条款审查:
+       ① 是否违反法律法规
+       ② 是否存在不公平条款
+       ③ 数值是否合理
+       每条风险: {clause_id, severity, title, description,
+                  legal_basis, suggestion}
+输出:  state["contract_risk_items"] = [...]
+N5b — 合规审查
+复制
+输入:  state["doc_text"], state["contract_type"]
+处理:  LLM 对照行业合规要求审查
+       更侧重于：资质/许可/数据合规/行业特定要求
+输出:  state["compliance_risk_items"] = [...]
+N5c — 数值校验
+复制
+输入:  state["extracted_numerics"] = {单价, 数量, 总价, 违约金比例...}
+处理:  校验数值逻辑一致性:
+       单价 × 数量 ≈ 总价?
+       违约金比例是否合法(≤30%)?
+       付款比例之和是否=100%?
+输出:  state["numeric_risk_items"] = [...]
+检索智能体子图（5 节点串联）
+复制
+① retrieval_intent_decompose:
+   输入: state["retrieval_query"]
+   处理: LLM 将用户问题分解为关键词列表
+   输出: state["retrieval_keywords"] = ["违约金", "买卖合同", ...]
+
+② retrieval_base_layer (核心引擎):
+   输入: state["retrieval_query"], state["retrieval_keywords"],
+         state["task_type"], state["contract_type"],
+         state["mounted_sources"]  (← 来自意图路由)
+         state["skip_fusion"]
+         state["doc_text"] (企业名提取)
+
+   处理: 根据 mounted_sources 过滤:
+     ["laws"] 时 → 只查 L0-L2 (法规)
+     ["cases"] 时 → 只查 L4 (案例)
+     ["*"] 时 → 全部5路
+
+   每路的内部降级:
+     L0: Neo4j 实体匹配 (精确最高, score=1.0)
+       ↓ 无匹配/Neo4j未连接
+     L1: FAISS 向量检索 (语义相似, score≈0.8-0.95)
+       ↓ 索引缺失/异常
+     L2: 本地法规关键词扫描
+          ├ L2.1 精确匹配 (score=0.9)
+          ├ L2.2 时效过滤 (标注已废止)
+          ├ L2.3 模糊匹配 (2字滑窗, score=0.6)
+          └ L2.4 单字兜底 (score=0.3)
+
+   L3 行业标准:
+     ├ L3.0 编号精确匹配 (GB/JGJ...)
+     ├ L3.1a 关键词精确匹配
+     ├ L3.1b 模糊匹配
+     └ L3.2 FAISS语义降级
+
+   L4 案例:
+     ├ L4.0 Neo4j Case节点匹配
+     └ L4.3 LLM类案总结
+
+   L5 司法解释:
+     ├ 编号匹配 → 关键词 → FAISS 降级
+     (复用行业检索机制)
+
+   共享: 企查查资信
+     ├ 从 doc_text 提取企业名
+     ├ MCP → AppKey+MD5 → Mock 三级降级
+     └ 仅在 contract_review/compliance_review/task_type 触发
+
+   输出: state["base_citations"] = [...]
+
+③ retrieval_enhance_query:
+   输入: state["base_citations"]
+   处理: 如果 base_citations 不足 3 条
+         → LLM 直接生成"伪检索"内容做补充
+   输出: state["enhance_citations"] = [...]
+
+④ retrieval_fusion_sort:
+   输入: state["base_citations"], state["enhance_citations"],
+         state["skip_fusion"]
+   处理:
+     skip_fusion=True? → 直接返回(单源直查, 性能最优)
+     skip_fusion=False? → RRF倒数排名融合
+           K=60, score = Σ 1/(K+rank)
+           去重: (title|article_no|content[:40])
+           4规则冲突消解: 上位法优先/新法优先/特别法优先/已废止降权
+           质量分计算:
+             来源丰富度(30%) + 法条时效性(25%)
+             + 关键词覆盖率(25%) + 结果多样性(20%)
+
+     quality_score >= 0.85?
+       Yes → ✅ 达标, 直接返回(跳过北大法宝MCP, 节省成本)
+       No  → quality_retry_count < 3?
+               Yes → 🔄 重试(递增重试计数)
+               No  → ⚠️ human_intervention_needed=True
+                        → 前端提示"是否调用北大法宝MCP?"
+                           ├ 确认 → get_beida_mcp_client().search_all()
+                           └ 拒绝 → 返回现有低质量结果
+
+   输出: state["citations"], state["research_context"],
+         state["quality_score"], state["quality_gate_passed"],
+         state["quality_retry_count"],
+         state["human_intervention_needed"]
+
+⑤ retrieval_output:
+   输入: state["citations"]
+   处理: 格式化引用列表为上下文字符串
+   输出: state["research_context"] (字符串)
+N8 — 甲乙方识别
+复制
+输入:  state["doc_text"]
+处理:  正则 + LLM 提取甲方乙方
+       (从合同首部提取)
+输出:  state["party_a"] = "XX科技有限公司"
+       state["party_b"] = "YY建筑有限公司"
+       state["user_side"] = "party_a" 或 "party_b"
+N8.5 — 企查查资信查询 (Phase 2)
+复制
+输入:  state["party_a"], state["party_b"]
+处理:  调用 QiChaChaClient 查询双方资信
+       获取: 工商/失信/被执行/经营异常/行政处罚/信用评分
+       三级降级: MCP → AppKey+MD5签名 → Mock数据
+输出:  state["credit_risk_items"] = [...]
+       state["party_a_credit_info"] = {basic_info, dishonest, ...}
+       state["party_b_credit_info"] = {...}
+       state["credit_check_success"] = True/False
+N7 — 风险聚合
+复制
+输入:  contract_risk_items + compliance_risk_items +
+       numeric_risk_items + credit_risk_items
+处理:  合并去重 → 按 severity 排序
+       计算 overall_risk_score = 加权平均
+       判定 risk_level = Low(<30) / Medium(30-70) / High(>70)
+输出:  state["merged_risk_items"], state["overall_risk_score"],
+       state["risk_level"]
+N9 — 最终交付
+复制
+输入:  所有风险项, citations, party info
+处理:  组装 Markdown 格式报告
+       包含: 风险总览 → 条款分析 → 法规引用 → 修改建议
+       判定 need_lawyer_review (高风险时 True)
+输出:  state["output"], state["final_report_markdown"],
+       state["need_lawyer_review"]
+🎯 独立链路
+案例检索链路
+复制
+credit_precheck → case_search_node → END
+
+case_search_node 内部:
+  读: state["input"], state["retrieval_keywords"]
+  处理: L4.0 Neo4j Case节点实体匹配
+        ↓ 无结果
+        L4.3 LLM类案总结
+  写: state["case_search_results"] = [...]
+      (前端直接渲染)
+法规查询链路
+复制
+credit_precheck → law_query_node → END
+
+law_query_node 内部:
+  读: state["input"]
+  处理: L0 Neo4j实体匹配
+        ↓ 无匹配
+        L1 FAISS向量检索
+        ↓ 索引缺失
+        L2 本地法规关键词扫描
+  写: state["law_query_results"] = [...]
+      (前端直接渲染)
+法律问答链路（知识图谱 RAG）
+复制
+credit_precheck → extract_entity → match_entity_from_neo4j
+  → generate_neo4j_cypher → check_cypher
+    ├ 通过 → run_cypher → neo4j_answer_generate → END
+    ├ 失败 retry<3 → 回退 generate_neo4j_cypher (重试环)
+    └ 失败 retry≥3 → neo4j_answer_generate (已有实体回答) → END
+文书生成链路（7 节点法条校验重试环）
+复制
+credit_precheck → doc_case_analyze → doc_template_match
+  → doc_clause_fill → doc_law_validate
+    ├ need_refill & retry<3 → 回退 doc_clause_fill (重试环)
+    └ 通过 → doc_risk_advisor → doc_case_recommend
+      → doc_final_delivery → END
+📊 数据流核心路径总结
+复制
+用户输入 "看看这个合同违约金合不合理"
+  ↓ app.py
+state = {"input": "看看这个合同违约金合不合理",
+         "task_type": ""  (首页问答, 需 LLM 识别)}
+  ↓
+intent_router → task_type="contract_review"
+               intent_locked=True, mounted_sources=["*"], skip_fusion=False
+  ↓
+credit_precheck → 发现 task_type=contract_review,
+                   尝试从 doc_text 提取企业名(如果有)
+  ↓
+doc_extract → party_identify → contract_classify="买卖合同"
+  → clause_split → numeric_extract
+  → contract_ai_review → compliance_review → numeric_validate
+  ↓ (写入 retrieval_query="违约金 买卖合同 法律")
+  ↓
+┌─── 检索智能体 ──────────────────────────────────────────┐
+│ retrieval_intent_decompose → ["违约金", "买卖合同", "法律"]│
+│                                                          │
+│ retrieval_base_layer:                                    │
+│   L0: Neo4j→民法典第584条 ✅ (score=1.0)                 │
+│   ↓ 不足3条                                               │
+│   L1: FAISS→补充法条 ✅ (score=0.92)                      │
+│   ↓ 仍不足                                                │
+│   L2: 本地法规→兜底 ✅ (score=0.7)                        │
+│   L3: 行业→买卖合同司法解释 ✅ (score=0.85)               │
+│   L4: 案例→LLM类案总结 ✅                                 │
+│   L5: 司法解释→命中 ✅                                    │
+│   企查查: 从doc_text→XX公司→Mock数据 ✅                  │
+│                                                          │
+│ retrieval_enhance_query: 基础层已充足,跳过                │
+│                                                          │
+│ retrieval_fusion_sort:                                    │
+│   skip_fusion=False → RRF融合                             │
+│   去重 → 冲突消解 → quality_score=0.91                   │
+│   0.91 >= 0.85 → ✅ 达标, 跳过北大法宝MCP                 │
+│                                                          │
+│ retrieval_output: 格式化上下文                            │
+└──────────────────────────────────────────────────────────┘
+  ↓ citations + research_context
+  ↓
+credit_check → 查 XX科技有限公司 资信 → Mock数据
+  ↓ credit_risk_items
+risk_aggregate → 合并4路风险 → score=45 → level=Medium
+  ↓ merged_risk_items
+final_delivery → 组装Markdown报告
+  ↓ output
+前端渲染: 风险卡片 + 引用列表 + Markdown报告

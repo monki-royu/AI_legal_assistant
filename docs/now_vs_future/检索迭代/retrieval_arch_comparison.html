@@ -1,0 +1,388 @@
+<style>
+:root {
+  --text: #1a1a2e;
+  --text-muted: #6b7280;
+  --surface: #ffffff;
+  --surface-muted: #f5f5f7;
+  --border: #e5e7eb;
+  --brand: #7c3aed;
+  --brand-light: #ede9fe;
+  --chart-series-1: #2563eb;
+  --chart-series-2: #0891b2;
+  --chart-series-3: #059669;
+  --chart-series-4: #d97706;
+  --radius: 8px;
+  --radius-card: 12px;
+  --spacer-4: 4px;
+  --spacer-8: 8px;
+  --spacer-12: 12px;
+  --spacer-16: 16px;
+  --spacer-20: 20px;
+  --spacer-24: 24px;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-metric: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --weight-medium: 500;
+  --weight-strong: 600;
+}
+:root[data-widget-theme="dark"] {
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --surface: #1f2937;
+  --surface-muted: #111827;
+  --border: #374151;
+  --brand: #a78bfa;
+  --brand-light: #312e81;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: var(--spacer-16); background: var(--surface); font-family: var(--font-sans); color: var(--text); }
+
+.comparison-header {
+  text-align: center;
+  margin-bottom: var(--spacer-20);
+}
+.comparison-header h1 {
+  font-size: var(--font-sans);
+  font-weight: var(--weight-strong);
+  margin: 0 0 var(--spacer-4) 0;
+  color: var(--text);
+}
+.comparison-header p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacer-20);
+}
+
+.arch-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--spacer-20);
+  display: flex;
+  flex-direction: column;
+}
+.arch-card.current {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
+}
+
+.arch-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  margin-bottom: var(--spacer-12);
+}
+.arch-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--weight-strong);
+  text-transform: uppercase;
+}
+.badge-current {
+  background: var(--brand);
+  color: white;
+}
+.badge-ideal {
+  background: var(--chart-series-3);
+  color: white;
+}
+.arch-title h2 {
+  font-size: 15px;
+  font-weight: var(--weight-strong);
+  margin: 0;
+}
+
+.arch-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: var(--spacer-16);
+}
+
+.arch-section {
+  margin-bottom: var(--spacer-16);
+}
+.arch-section-label {
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacer-8);
+}
+
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-8);
+}
+.source-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  padding: var(--spacer-8) var(--spacer-12);
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+.source-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.source-name {
+  font-weight: var(--weight-medium);
+  flex: 1;
+}
+.source-method {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.strategy-box {
+  padding: var(--spacer-12);
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: var(--spacer-8);
+}
+.strategy-box.primary {
+  background: var(--brand-light);
+  color: var(--text);
+  border-left: 3px solid var(--brand);
+}
+.strategy-box.secondary {
+  background: var(--surface-muted);
+  border-left: 3px solid var(--chart-series-2);
+}
+.strategy-box .label {
+  font-weight: var(--weight-strong);
+  font-size: 11px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.evolution-card {
+  margin-top: var(--spacer-24);
+  padding: var(--spacer-20);
+  background: var(--surface-muted);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+}
+.evolution-title {
+  font-size: 13px;
+  font-weight: var(--weight-strong);
+  margin-bottom: var(--spacer-12);
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+}
+.evolution-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacer-12);
+}
+.evo-step {
+  padding: var(--spacer-12);
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.evo-step-num {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: var(--brand);
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 11px;
+  line-height: 20px;
+  font-weight: var(--weight-strong);
+  margin-bottom: var(--spacer-4);
+}
+.evo-step-title {
+  font-size: 12px;
+  font-weight: var(--weight-strong);
+  margin-bottom: var(--spacer-4);
+}
+.evo-step-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.highlight-note {
+  margin-top: var(--spacer-16);
+  padding: var(--spacer-12) var(--spacer-16);
+  background: var(--chart-series-2);
+  color: white;
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.highlight-note strong {
+  font-weight: var(--weight-strong);
+}
+
+@media (max-width: 640px) {
+  .two-col { grid-template-columns: 1fr; }
+  .evolution-steps { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<div data-dynamic-ui-widget data-template="architecture-comparison" style="max-width: 100%;">
+
+  <div class="comparison-header">
+    <h1>🔍 检索架构对比：你的构想 vs 当前实现</h1>
+    <p>核心变量：<strong>数据规模</strong>决定检索策略选择</p>
+  </div>
+
+  <div class="two-col">
+    <!-- 当前实现 -->
+    <div class="arch-card current">
+      <div class="arch-title">
+        <span class="arch-badge badge-current">当前 · 过渡期</span>
+        <h2>横向挂载 + 纵向降级</h2>
+      </div>
+      <div class="arch-desc">
+        基于当前数据规模（AI构造法律文件为主，无真实行业数据）的<strong>务实工程选择</strong>。用最少的数据跑通完整链路，保证系统鲁棒性。
+      </div>
+
+      <div class="arch-section">
+        <div class="arch-section-label">📊 数据源 & 检索方式</div>
+        <div class="source-list">
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-1);"></span>
+            <span class="source-name">FAISS 向量索引</span>
+            <span class="source-method">语义向量检索</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-2);"></span>
+            <span class="source-name">本地法规 TXT</span>
+            <span class="source-method">关键词匹配</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-3);"></span>
+            <span class="source-name">行业增强层</span>
+            <span class="source-method">按类型挂载</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-4);"></span>
+            <span class="source-name">企查查 API</span>
+            <span class="source-method">结构化查询</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-section">
+        <div class="arch-section-label">🔄 检索策略</div>
+        <div class="strategy-box primary">
+          <span class="label">纵向逐级降级（深度）</span>
+          L1 FAISS → L2 本地法规（不足3条）→ L3 LLM伪检索（不足2条）
+        </div>
+        <div class="strategy-box secondary">
+          <span class="label">横向按需挂载（广度）</span>
+          建设工程 → 住建部标准；金融借贷 → 银保监会... 根据合同类型动态加载
+        </div>
+      </div>
+
+      <div class="highlight-note">
+        <strong>💡 为什么这样设计？</strong><br>
+        当前只有法律文本数据，没有足够的行业知识图谱数据。L3 LLM伪检索是为了<strong>防死循环/防空指针</strong>的兜底。当数据积累充足后，可以逐步升级到右侧的理想架构。
+      </div>
+    </div>
+
+    <!-- 理想构想 -->
+    <div class="arch-card">
+      <div class="arch-title">
+        <span class="arch-badge badge-ideal">理想 · 目标态</span>
+        <h2>多知识图谱 + 多检索引擎</h2>
+      </div>
+      <div class="arch-desc">
+        当积累了<strong>足够的真实数据</strong>后，为不同数据源构建独立的知识图谱或向量库，针对每种数据源选择最优检索策略——这正是你原始构想的方向。
+      </div>
+
+      <div class="arch-section">
+        <div class="arch-section-label">📊 独立知识图谱 & 向量库</div>
+        <div class="source-list">
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-1);"></span>
+            <span class="source-name">法律法规图谱</span>
+            <span class="source-method">实体匹配 + 向量</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-2);"></span>
+            <span class="source-name">监管规定图谱</span>
+            <span class="source-method">关键词 + 时效过滤</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-3);"></span>
+            <span class="source-name">裁判规则/案例图谱</span>
+            <span class="source-method">图谱查询 + 向量</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--chart-series-4);"></span>
+            <span class="source-name">行业标准/技术规范</span>
+            <span class="source-method">编号精确 + 关键词</span>
+          </div>
+          <div class="source-item">
+            <span class="source-dot" style="background: var(--brand);"></span>
+            <span class="source-name">企业资信库</span>
+            <span class="source-method">API结构化查询</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-section">
+        <div class="arch-section-label">🔄 检索策略</div>
+        <div class="strategy-box primary">
+          <span class="label">按数据源选最优方式</span>
+          法条→实体匹配；案例→图谱+向量；标准→编号精确；资信→API结构化查询
+        </div>
+        <div class="strategy-box secondary">
+          <span class="label">并行检索 + RRF融合</span>
+          多路同时检索 → 归一化打分 → 去重融合 → 按相关性排序
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 演进路线图 -->
+  <div class="evolution-card">
+    <div class="evolution-title">
+      🚀 数据积累 → 架构演进路线图
+    </div>
+    <div class="evolution-steps">
+      <div class="evo-step">
+        <div class="evo-step-num">1</div>
+        <div class="evo-step-title">当前状态</div>
+        <div class="evo-step-desc">AI构造法律文本，基础跑通。FAISS+本地TXT+行业挂载+L3兜底</div>
+      </div>
+      <div class="evo-step">
+        <div class="evo-step-num">2</div>
+        <div class="evo-step-title">数据积累</div>
+        <div class="evo-step-desc">爬虫获取真实行业法规、裁判文书、监管规定，构建多领域数据集</div>
+      </div>
+      <div class="evo-step">
+        <div class="evo-step-num">3</div>
+        <div class="evo-step-title">图谱构建</div>
+        <div class="evo-step-desc">为法规/案例/监管等构建独立知识图谱和向量库（Milvus/FAISS）</div>
+      </div>
+      <div class="evo-step">
+        <div class="evo-step-num">4</div>
+        <div class="evo-step-title">策略升级</div>
+        <div class="evo-step-desc">从降级策略升级为并行多引擎检索，按数据源选最优方式+RRF融合</div>
+      </div>
+    </div>
+  </div>
+
+</div>

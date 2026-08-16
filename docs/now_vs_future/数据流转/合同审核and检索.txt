@@ -1,0 +1,44 @@
+合同审核检索调用细节
+关键：合同审核不是"先把实体提取完再检索"，而是并行+串行混合：
+# 1. 数值抽取节点提取出实体
+state["extracted_numerics"] = {
+    "单价": 5000,
+    "数量": 100,
+    "总价": 500000,
+    "违约金比例": "20%",
+}
+
+# 2. 写入检索参数
+state["retrieval_query"] = "买卖合同违约金不得超过合同总价的百分之多少"
+state["retrieval_keywords"] = ["违约金", "买卖合同", "合同总价"]
+state["contract_type"] = "买卖合同"
+state["task_type"] = "contract_review"
+
+# 3. 条件路由 → 检索智能体
+# 检索智能体读取以上字段，执行：
+#   - L0: Neo4j 实体匹配 "违约金" → 查到民法典第584条
+#   - L1: FAISS 向量检索 "违约金 买卖合同" → 补充相关法条
+#   - L2: 关键词扫描 本地法规 → 最终兜底
+#   - L3: 行业增强 → 根据"买卖合同"查行业标准
+#   - 共享: 企查查 → 从 doc_text 提取企业名查资信
+
+# 4. 检索结果写入 state
+state["citations"] = [
+    {"title": "民法典", "article_no": "第584条",
+     "content": "当事人一方不履行合同义务...损失赔偿额应当相当于因违约所造成的损失...",
+     "source": "L0·图谱实体", "score": 1.0},
+    {"title": "最高人民法院买卖合同司法解释",
+     "article_no": "第21条",
+     "content": "买卖合同约定的违约金超过造成损失的30%的...",
+     "source": "L3.1·行业增强层·买卖合同司法解释", "score": 0.85},
+]
+
+# 5. AI 审核节点读取 citations，结合 extracted_numerics 生成风险项
+state["contract_risk_items"] = [
+    {"clause_id": 2, "severity": "high",
+     "title": "违约金比例过高",
+     "description": "合同约定违约金为合同总价的20%",
+     "legal_basis": "民法典第584条、买卖合同司法解释第21条",
+     "suggestion": "建议调整为不超过实际损失的30%",
+    },
+]
