@@ -1,4 +1,18 @@
 # -*- coding: utf-8 -*-
+# ============================================================
+# 文件名称: __006__streamlit/app.py
+# 文件作用: Streamlit Web 前端应用
+# ============================================================
+# 【这个文件是干什么的？】
+# Streamlit 交互式前端：合同上传、法律提问、报告查看。调用 LangGraph 编排。
+#
+# 【代码逻辑主线】
+# 参见各函数前的【功能】【参数】【返回值】【逻辑】说明。
+#
+# 【新手建议】
+# 先看主函数 -> 再看辅助函数。
+#
+
 # 📜 代码文字逻辑解析
 # 本文件是「法智引擎」项目的 Streamlit 前端主应用，承担构建整个 AI 法律助理 Web 界面的职责。
 # 它定义了一套"红底蓝高亮"的视觉主题（通过 :root CSS 变量统一管理配色），并通过
@@ -8,16 +22,16 @@
 # 整体架构分为五大模块：
 # (1) 全局 CSS 主题样式定义：主背景红色渐变、侧边栏深红主题、Hero 标题区、中央大输入框、
 #     多色快捷卡片、风险卡片、文档高亮、思考过程动画、风险总览、统计卡片、聊天消息等；
-# (2) 侧边栏导航：提供"首页/合同审核/合规审查/法律检索/小红书发布"五个功能页签，含 Logo、
+# (2) 侧边栏导航：提供"首页/合同审核/合规审查/文书生成/案例检索/法规查询/历史记录/小红书发布"八个功能页签，含 Logo、
 #     演示模式开关与首页问答模式开关；
-# (3) 首页智能问答：含任务元数据集中配置、5 张多色任务卡片切换、中央大输入框、5 张多色
+# (3) 首页智能问答：含任务元数据集中配置、8 张多色任务卡片（2×4排列）、中央大输入框、
 #     快捷卡片（点击填充示例文本）、深度思考开关、流式思考动画与按任务类型分流渲染
 #     （合同/合规走风险卡片+文档高亮，问答走 Markdown 流式输出）；
 # (4) 工具函数：_stream_response（流式输出封装，优先后端、失败回退本地模拟）、
 #     _get_demo_result/_get_compliance_demo_result（演示数据）、_highlight_doc（按风险
 #     关键词高亮文档段落）、_render_risk_cards（带采纳/不采纳/修改三态交互的风险卡片）、
 #     _render_score_overview（风险评分圆形概览）、_render_stat_cards（风险数量统计）；
-# (5) 四个独立任务页面：合同审核、合规审查、法律检索、小红书发布，各自含文件上传、
+# (5) 八个独立任务页面：合同审核、合规审查、文书生成、案例检索、法规查询、历史记录、小红书发布，各自含文件上传、
 #     立场/示例选择、效果展示切换与结果渲染。
 #
 # 核心交互特性：流式输出（chunk_size 分块 + time.sleep 模拟打字效果）、风险卡片三态交互
@@ -25,9 +39,9 @@
 # 思考过程动画（CSS keyframes bounce + 占位符逐步刷新）、session_state 状态管理
 # （任务切换、结果缓存、修改内容暂存）。
 """
-法智引擎 Streamlit 前端 v5
-功能: 合同审核 / 信息检索 / 合规审查 / 智能问答 / 小红书发布
-特色: 红底蓝高亮 + 类DeepSeek中央大输入框 + 多色快捷卡片 + 流式输出 + 思考过程
+法智引擎 Streamlit 前端 v6
+功能: 合同审核 / 合规审查 / 文书生成(SSE) / 案例检索 / 法规查询 / 历史记录 / 小红书发布 / 智能问答
+特色: 8大功能2×4卡片 + 类DeepSeek中央大输入框 + 多色快捷卡片 + 流式输出 + 思考过程
 """
 # ===== 标准库导入区 =====
 import os  # 操作系统接口，用于路径拼接与目录定位
@@ -1057,7 +1071,11 @@ st.markdown("""
 # 规避方案：首页 5 张任务卡片点击时先写入一个"中立"的中间键 _pending_switch_to_page，
 # 然后在"侧边栏 radio 实例化之前"把这个中间键的值迁到 nav_page_radio，
 # 这样 st.radio 读到的 session_state 默认值就已经是目标页，能正确跳转到独立页面。
-ALLOWED_PAGES = ["🏠 首页", "📋 合同审核", "🛡️ 合规审查", "🔍 法律检索", "📱 小红书发布"]  # 合法页面名集合（白名单兜底）
+ALLOWED_PAGES = [
+    "🏠 首页", "📋 合同审核", "🛡️ 合规审查",
+    "📝 文书生成", "🔎 案例检索", "📜 法规查询", "📚 历史记录",
+    "📱 小红书发布",
+]  # 合法页面名集合（白名单兜底；8个功能页）
 if "_pending_switch_to_page" in st.session_state:
     _target = st.session_state["_pending_switch_to_page"]
     if _target in ALLOWED_PAGES:
@@ -1081,11 +1099,15 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     st.markdown("---")  # 分隔线，区分 Logo 与导航
 
-    # 主导航 radio：5 个功能页签，label_visibility="collapsed" 隐藏默认 label（用 HTML Logo 代替）
-    # key="nav_page_radio" 用于与首页 5 张任务卡片双向绑定，让卡片点击能直接切换到对应独立页面
+    # 主导航 radio：8 个功能页签，label_visibility="collapsed" 隐藏默认 label（用 HTML Logo 代替）
+    # key="nav_page_radio" 用于与首页任务卡片双向绑定，让卡片点击能直接切换到对应独立页面
     page = st.radio(
         "功能导航",
-        ["🏠 首页", "📋 合同审核", "🛡️ 合规审查", "🔍 法律检索", "📱 小红书发布"],
+        [
+            "🏠 首页", "📋 合同审核", "🛡️ 合规审查",
+            "📝 文书生成", "🔎 案例检索", "📜 法规查询", "📚 历史记录",
+            "📱 小红书发布",
+        ],
         label_visibility="collapsed",
         key="nav_page_radio",
     )
@@ -1136,7 +1158,7 @@ def _run_backend_isolated(input_text, task_type, timeout_sec=300):
 
     参数:
         input_text (str): 用户输入的合同/文档全文
-        task_type (str): 任务类型 contract_review / compliance_review / legal_research
+        task_type (str): 任务类型 contract_review / compliance_review / case_search / law_query / legal_document_gen
         timeout_sec (int): 子进程最长运行秒数, 超时后强制 kill 并视为失败
 
     返回值:
@@ -1266,7 +1288,7 @@ def _stream_response(input_text, **kwargs):
     参数：
         input_text (str): 用户输入文本（问题或文档内容）
         **kwargs: 透传给后端的额外参数，常见键：
-            - task_type (str): 任务类型，如 "contract_review"/"compliance_review"/"legal_research"
+            - task_type (str): 任务类型，如 "contract_review"/"compliance_review"
             - deep_thinking (bool): 是否启用深度思考模式
 
     返回值：
@@ -1971,47 +1993,66 @@ def _render_stat_cards(risk_items):
 if page == "🏠 首页":
     # =========================================================
     # 任务元数据 (集中配置: 问候语/任务介绍/上传类型)
-    # TASK_META 字典集中管理 5 种任务类型的元数据，便于扩展与维护
+    # TASK_META 字典集中管理 10 种任务类型的元数据，便于扩展与维护
     # =========================================================
     TASK_META = {
         "qa": {
             "greeting": "您好, 我是法智引擎",  # 问候语
             "agent_name": "法智引擎",
-            "description": "您可以直接向我提问法律问题，或选择下方的具体任务类型：合同审核、合规审查、法律检索、小红书发布。我会根据您的问题或上传的文档自动调度对应的智能体，返回权威、可追溯的法律结果。",
+            "description": "您可以直接向我提问法律问题，或从下方 8个任务卡片选择具体功能：智能问答、合同审核、合规审查、小红书发布、文书生成、案例检索、法规查询、历史记录。我会根据您的问题或上传的文档自动调度对应的智能体，返回权威、可追溯的法律结果。",
             "upload_types": ["txt", "md", "docx", "pdf"],  # 支持的上传文件类型
             "upload_label": "上传文档/图片",
         },
         "contract": {
-            "greeting": "您好, 我是合同审核智能体",  # 问候语，展示在任务卡片顶部，让用户知道当前是哪个智能体
-            "agent_name": "合同审核智能体",  # 智能体名称，用于后端日志记录与状态栏展示
-            # 面向用户的介绍词：告诉用户可以上传什么、能问什么问题、审查维度、合规红线原则、最终输出内容
-            "description": "您可以上传一份合同，直接问我：\u201c这份合同对我方有没有不利条款？\u201d\u201c违约金比例是否合理？\u201d我会围绕主体资格、内容合法性、商业对等性、文本质量与签署程序五个维度，站在您的立场逐一审查合同是否符合您的经济利益。但请注意：如果发现合规性问题（比如违反法律强制性规定），我不会因为\u201c对您有利\u201d就隐瞒或降级处理——合规红线必须遵守。最终我会输出一份详细的审查报告，标出风险点、修改建议和依据，帮助您促成合同有效履行、维护企业合法权益。",
-            "upload_types": ["txt", "md", "docx", "pdf"],  # 支持的上传文件类型：纯文本/Markdown/Word/PDF
-            "upload_label": "上传合同文档",  # 上传区域的提示文字，引导用户上传对应文件
+            "greeting": "您好, 我是合同审核智能体",
+            "agent_name": "合同审核智能体",
+            "description": "您可以上传一份合同，我会围绕主体资格、内容合法性、商业对等性、文本质量与签署程序五个维度，站在您的立场逐一审查合同是否符合您的经济利益。合规红线不因对您有利而降级。最终输出详细审核报告。",
+            "upload_types": ["txt", "md", "docx", "pdf"],
+            "upload_label": "上传合同文档",
         },
         "compliance": {
-            "greeting": "您好, 我是合规审查智能体",  # 问候语，展示在任务卡片顶部，让用户知道当前是哪个智能体
-            "agent_name": "合规审查智能体",  # 智能体名称，用于后端日志记录与状态栏展示
-            # 面向用户的介绍词：告诉用户可以上传什么、能问什么问题、合规体检维度、检查重点领域、合规意见类型、最终输出内容
-            "description": "您可以上传一份合同或决策文件，直接问我：\u201c这份合同有没有违规风险？\u201d\u201c涉及数据出境的条款合规吗？\u201d我会围绕合规义务识别、法规监管、内部制度、重点领域及审查闭环五个维度，对您的决策事项进行全面合规体检。我会自动识别适用的法律法规、监管规定和企业内部制度，检查是否存在反垄断、数据合规、出口管制等重点领域的违规风险，并给出明确的合规意见（合规/不合规/附条件合规）。输出内容包括风险点原文、违规依据、整改建议，确保您的经营活动合法合规、不留隐患。",
-            "upload_types": ["txt", "md", "docx", "pdf"],  # 支持的上传文件类型：纯文本/Markdown/Word/PDF
-            "upload_label": "上传合规文档",  # 上传区域的提示文字，引导用户上传对应文件
-        },
-        "research": {
-            "greeting": "您好, 我是检索智能体",
-            "agent_name": "检索智能体",
-            "description": "您可以直接向我提问法律问题，比如\"违约金上限是多少？\"\"建设工程合同有哪些强制性规定？\"我会自动检索法律法规、类案判例、行业标准和市场基准，返回完整的法条原文、案例摘要、合规依据，不会对检索结果进行主观解释或综合结论（如需分析建议，请调用问答智能体或其他任务智能体）。",
+            "greeting": "您好, 我是合规审查智能体",
+            "agent_name": "合规审查智能体",
+            "description": "您可以上传合同或决策文件，我会自动识别适用的法律法规，检查反垄断、数据合规、出口管制等重点领域违规风险，给出合规/不合规/附条件合规的明确意见。",
             "upload_types": ["txt", "md", "docx", "pdf"],
-            "upload_label": "上传参考文档",
+            "upload_label": "上传合规文档",
         },
         "xiaohongshu": {
             "greeting": "您好, 我是小红书发布智能体",
             "agent_name": "小红书发布智能体",
-            "description": "您可以输入法律科普主题（如\"劳动合同维权\"\"租房合同避坑\"），或上传参考文档、封面图片素材，我会生成符合小红书风格的爆款标题、分点正文、热门话题标签与配图建议，帮助您高效产出高质量的法律科普笔记。",
-            "upload_types": ["png", "jpg", "jpeg", "txt", "md"],  # 小红书场景额外支持图片
+            "description": "您可以输入法律科普主题，我会生成小红书风格的爆款标题、分点正文、话题标签与配图建议，并可自动发布到小红书创作者平台。",
+            "upload_types": ["png", "jpg", "jpeg", "txt", "md"],
             "upload_label": "上传图片/文档素材",
         },
-    }
+        "docgen": {
+            "greeting": "您好, 我是法律文书生成智能体",
+            "agent_name": "文书生成智能体",
+            "description": "您只需要填写案件基本信息，我自动完成案情分析→模板匹配→条款填充(RAG)→法条校验→风险提示→类案推荐全流程，为您生成民事起诉状、答辩状、仲裁申请书等法律文书。",
+            "upload_types": [],  # 纯表单填写，无需上传
+            "upload_label": "",
+        },
+        "case_search": {
+            "greeting": "您好, 我是案例检索智能体",
+            "agent_name": "案例检索智能体",
+            "description": "我会按关键词搜索公开裁判案例，支持案由/法院级别筛选，查看案例详情、引用法条与相似案例。",
+            "upload_types": [],
+            "upload_label": "",
+        },
+        "law_query": {
+            "greeting": "您好, 我是法规查询智能体",
+            "agent_name": "法规查询智能体",
+            "description": "我会检索法律法规条文原文，支持按法律名称筛选（如民法典、劳动合同法、公司法等），所有结果可溯源至具体条款。",
+            "upload_types": [],
+            "upload_label": "",
+        },
+        "history": {
+            "greeting": "您好, 我是历史记录智能体",
+            "agent_name": "历史记录智能体",
+            "description": "您可以查看、收藏、删除和导出所有历史文书、合同审核报告、检索记录等。支持全文导出为 Markdown/TXT 格式。",
+            "upload_types": [],
+            "upload_label": "",
+        },
+        }
 
     # 当前页默认使用 qa（智能问答）的元数据（首页固定展示 qa 问候语）
     current_meta = TASK_META["qa"]
@@ -2028,43 +2069,48 @@ if page == "🏠 首页":
     # 任务类型选择 (多色卡片: 类图二风格, 彩色顶边+蓝色选中态)
     # 使用 Streamlit 原生 columns 布局, 避免 HTML 被解析成原始文本
     # =========================================================
-    # task_type_list: 5 张任务卡片配置，每张含 key/label/color/task_type/page_target(侧边栏对应页面名)
+    # task_type_list: 8 张任务卡片配置，每张含 key/label/color/task_type/page_target(侧边栏对应页面名)
+    # 分两行渲染: 每行 4 张卡片
     # page_target：与侧边栏 nav_page_radio 的选项保持一致，实现"点击卡片 = 点击侧边栏导航"的跳转逻辑
     task_type_list = [
-        {"key": "qa",          "label": "💬 智能问答",   "color": "blue",   "task_type": "",                  "page_target": "🏠 首页"},       # 智能问答 → 首页
-        {"key": "contract",    "label": "📋 合同审核",   "color": "orange", "task_type": "contract_review",   "page_target": "📋 合同审核"},   # 合同审核 → 独立页面
-        {"key": "compliance",  "label": "🛡️ 合规审查",   "color": "green",  "task_type": "compliance_review", "page_target": "🛡️ 合规审查"},   # 合规审查 → 独立页面
-        {"key": "research",    "label": "🔍 法律检索",   "color": "purple", "task_type": "legal_research",    "page_target": "🔍 法律检索"},   # 法律检索 → 独立页面
-        {"key": "xiaohongshu", "label": "📱 小红书发布", "color": "pink",   "task_type": "",                  "page_target": "📱 小红书发布"}, # 小红书发布 → 独立页面
+        {"key": "qa",          "label": "💬 智能问答",   "color": "blue",   "task_type": "",                  "page_target": "🏠 首页"},
+        {"key": "contract",    "label": "📋 合同审核",   "color": "orange", "task_type": "contract_review",   "page_target": "📋 合同审核"},
+        {"key": "compliance",  "label": "🛡️ 合规审查",   "color": "green",  "task_type": "compliance_review", "page_target": "🛡️ 合规审查"},
+        {"key": "docgen",      "label": "📝 文书生成",   "color": "indigo","task_type": "legal_document_gen", "page_target": "📝 文书生成"},
+        {"key": "case_search", "label": "🔎 案例检索",   "color": "cyan",  "task_type": "case_search",       "page_target": "🔎 案例检索"},
+        {"key": "law_query",   "label": "📜 法规查询",   "color": "teal",  "task_type": "law_query",         "page_target": "📜 法规查询"},
+        {"key": "history",     "label": "📚 历史记录",   "color": "gray",  "task_type": "history",           "page_target": "📚 历史记录"},
+        {"key": "xiaohongshu", "label": "📱 小红书发布", "color": "pink", "task_type": "", "page_target": "📱 小红书发布"},
     ]
     # 初始化 session_state 中的当前任务 key，默认 "qa"
     if "current_task_key" not in st.session_state:
         st.session_state["current_task_key"] = "qa"
 
-    # 用 st.columns 渲染 5 张卡片 (响应式 5 列)
-    # 用 st.button 作为卡片本体 (每个按钮一张卡片), 通过 CSS 改造成彩色卡片样式
-    task_cols = st.columns(5)  # 5 等分列
-    for idx, t in enumerate(task_type_list):
-        with task_cols[idx]:
-            active = st.session_state["current_task_key"] == t["key"]  # 是否为当前选中
-            # 拆分 emoji 与文字（label 格式为 "💬 智能问答"）
-            icon = t["label"].split(" ")[0]
-            label_txt = t["label"].split(" ", 1)[1] if " " in t["label"] else t["label"]
-            # 按钮显示文本（这里保留 False 分支作为可选换行方案，实际用单行）
-            btn_label = f"{icon}\n{label_txt}" if False else f"{icon} {label_txt}"
-            # 实际按钮 - 点击时同时切换当前任务 + 侧边栏页面导航（与侧边栏 radio 完全相同的跳转逻辑）
-            if st.button(
-                btn_label,
-                key=f"__tt_card_{t['key']}",
-                use_container_width=True,
-            ):
-                # 记录当前选中的任务 key，用于卡片高亮
-                st.session_state["current_task_key"] = t["key"]
-                # 关键点：不能直接写 nav_page_radio（radio 实例化后被 widget 锁保护），
-                # 改用"中立中间键"，侧边栏顶部的 Pending 钩子会在 st.radio 之前把它迁到 nav_page_radio，
-                # 从而实现"首页彩色卡片 = 侧边栏导航"的相同跳转逻辑
-                st.session_state["_pending_switch_to_page"] = t["page_target"]
-                st.rerun()
+    # 用 2 行 × 4 列渲染卡片（居中于输入框上方）
+    # 用 [1,4,1] 3列布局使4张卡片居中（左侧+右侧各1份留白，中间4份放4张卡片）
+    l_pad, card_area, r_pad = st.columns([1, 4, 1])
+    with l_pad:
+        pass  # 左侧留白
+    with card_area:
+        for row_start in range(0, len(task_type_list), 4):  # 每行 4 张卡片
+            row_items = task_type_list[row_start:row_start + 4]
+            task_cols = st.columns(4)
+            for idx, t in enumerate(row_items):
+                with task_cols[idx]:
+                    active = st.session_state["current_task_key"] == t["key"]
+                    icon = t["label"].split(" ")[0]
+                    label_txt = t["label"].split(" ", 1)[1] if " " in t["label"] else t["label"]
+                    btn_label = f"{icon} {label_txt}"
+                    if st.button(
+                        btn_label,
+                        key=f"__tt_card_{t['key']}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["current_task_key"] = t["key"]
+                        st.session_state["_pending_switch_to_page"] = t["page_target"]
+                        st.rerun()
+    with r_pad:
+        pass  # 右侧留白
 
     # 将任务类型按钮改造成彩色卡片 (基于 st-key-__tt_card_XXX 容器选择器, Streamlit 原生 class 命名)
     task_card_css = "<style>"
@@ -2075,6 +2121,11 @@ if page == "🏠 首页":
         "green": "#4ade80",
         "purple": "#a78bfa",
         "pink": "#f472b6",
+        "indigo": "#818cf8",
+        "cyan": "#22d3ee",
+        "teal": "#2dd4bf",
+        "gray": "#9ca3af",
+        "rose": "#fda4af",
     }
     # 为每张卡片生成对应的 CSS 规则
     for t in task_type_list:
@@ -2695,208 +2746,6 @@ elif page == "🛡️ 合规审查":
 
 # ==================== 法律检索独立页面 ====================
 # —— 设计原则：纯法条原文检索，不生成任何主观分析/结论/建议，所有结果可溯源至具体法律条文
-elif page == "🔍 法律检索":
-    # === 清理旧版缓存：之前的 research_full_result 可能是合同审核格式（含"法律检索报告/基本信息/风险评估"），
-    # 需要在页面加载时检测并清除，确保只展示纯法条原文 ===
-    if "research_full_result" in st.session_state:
-        _old = st.session_state["research_full_result"]
-        _old_output = ""
-        if isinstance(_old, str):
-            _old_output = _old
-        elif isinstance(_old, dict):
-            _old_output = _old.get("output", "") or _old.get("final_report_markdown", "")
-        if "法律检索报告" in _old_output or "基本信息" in _old_output or "风险评估" in _old_output:
-            del st.session_state["research_full_result"]
-    
-    # 法律检索页面元数据（说明文字已明确强调"只返回法条原文，不做主观分析"）
-    RESEARCH_META = {
-        "greeting": "您好, 我是检索智能体",
-        "description": "您可以直接向我提问法律问题，比如\"违约金上限是多少？\"\"建设工程合同有哪些强制性规定？\"我会自动检索法律法规、类案判例，仅返回完整的法条原文与出处，不做任何主观分析、解释或综合结论（如需分析建议，请调用问答智能体或其他任务智能体）。",
-    }
-    # 渲染问候语与说明卡片
-    st.markdown(f"""
-    <div class="task-greeting">{RESEARCH_META['greeting']}</div>
-    <div class="task-intro-box">
-        <p>{RESEARCH_META['description']}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # 检索关键词输入框
-    query = st.text_area("输入检索关键词或描述", height=150, placeholder="如: 违约金、民法典第585条...", key="research_query_area")
-
-    # 1) 检索示例折叠面板
-    with st.expander("💡 检索示例"):
-        research_examples = [
-            "民法典中关于违约金的规定",
-            "劳动合同法第47条经济补偿标准",
-            "个人信息保护法第17条告知义务",
-        ]
-        for q_item in research_examples:
-            st.markdown(f"- {q_item}")
-
-    # —— 纯法条原文演示数据生成（仅含法条原文与出处，无主观分析）——
-    # 说明：法律检索智能体严格遵循"只返回法条原文 + 可溯源 + 无主观分析"原则，
-    # 因此不调用后端 legal_response_sync（后端返回的是合同审核格式，含主观分析），
-    # 统一使用本地生成的纯法条原文数据。
-    def _build_research_demo(query_text):
-        """构建纯法条原文检索结果。
-
-        严格遵循"只返回法条原文 + 可溯源 + 无主观分析"原则：
-        - output: 纯 Markdown 法条原文，每条标注法律名称 + 条款号 + 发布机关 + 发布日期 + 原文内容
-        - citations: 结构化溯源信息（法律名称/条款号/原文/发布机关/发布日期）
-        """
-        q = (query_text or "违约金").strip()
-        # 根据关键词动态选择法条（简单匹配）
-        q_lower = q.lower()
-        
-        # 默认法条：违约金相关（民法典585/777 + 买卖合同司法解释28）
-        laws = [
-            {
-                "title": "中华人民共和国民法典",
-                "article_no": "第五百八十五条",
-                "content": "当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金，也可以约定因违约产生的损失赔偿额的计算方法。\n\n约定的违约金低于造成的损失的，人民法院或者仲裁机构可以根据当事人的请求予以增加；约定的违约金过分高于造成的损失的，人民法院或者仲裁机构可以根据当事人的请求予以适当减少。\n\n当事人就迟延履行约定违约金的，违约方支付违约金后，还应当履行债务。",
-                "source": "全国人民代表大会",
-                "publish_date": "2020-05-28",
-            },
-            {
-                "title": "中华人民共和国民法典",
-                "article_no": "第五百七十七条",
-                "content": "当事人一方不履行合同义务或者履行合同义务不符合约定的，应当承担继续履行、采取补救措施或者赔偿损失等违约责任。",
-                "source": "全国人民代表大会",
-                "publish_date": "2020-05-28",
-            },
-            {
-                "title": "最高人民法院关于审理买卖合同纠纷案件适用法律问题的解释",
-                "article_no": "第二十八条",
-                "content": "买卖合同当事人一方以对方违约造成的损失超过违约金为由主张增加违约金的，人民法院应当以违约造成的损失为基础，兼顾合同的履行情况、当事人的过错程度以及预期利益等因素，根据公平原则和诚实信用原则予以衡量。",
-                "source": "最高人民法院",
-                "publish_date": "2020-12-29",
-            },
-        ]
-        
-        # 劳动合同关键词 → 劳动合同法相关法条
-        if any(kw in q for kw in ["劳动", "合同", "经济补偿", "裁员", "解除"]) and "劳动" in q:
-            laws = [
-                {
-                    "title": "中华人民共和国劳动合同法",
-                    "article_no": "第四十七条",
-                    "content": "经济补偿按劳动者在本单位工作的年限，每满一年支付一个月工资的标准向劳动者支付。六个月以上不满一年的，按一年计算；不满六个月的，向劳动者支付半个月工资的经济补偿。\n\n劳动者月工资高于用人单位所在直辖市、设区的市级人民政府公布的本地区上年度职工月平均工资三倍的，向其支付经济补偿的标准按职工月平均工资三倍的数额支付，向其支付经济补偿的年限最高不超过十二年。\n\n本条所称月工资是指劳动者在劳动合同解除或者终止前十二个月的平均工资。",
-                    "source": "全国人民代表大会常务委员会",
-                    "publish_date": "2012-12-28",
-                },
-                {
-                    "title": "中华人民共和国劳动合同法",
-                    "article_no": "第八十七条",
-                    "content": "用人单位违反本法规定解除或者终止劳动合同的，应当依照本法第四十七条规定的经济补偿标准的二倍向劳动者支付赔偿金。",
-                    "source": "全国人民代表大会常务委员会",
-                    "publish_date": "2012-12-28",
-                },
-                {
-                    "title": "中华人民共和国劳动合同法",
-                    "article_no": "第三十八条",
-                    "content": "用人单位有下列情形之一的，劳动者可以解除劳动合同：\n（一）未按照劳动合同约定提供劳动保护或者劳动条件的；\n（二）未及时足额支付劳动报酬的；\n（三）未依法为劳动者缴纳社会保险费的；\n（四）用人单位的规章制度违反法律、法规的规定，损害劳动者权益的；\n（五）因本法第二十六条第一款规定的情形致使劳动合同无效的；\n（六）法律、行政法规规定劳动者可以解除劳动合同的其他情形。",
-                    "source": "全国人民代表大会常务委员会",
-                    "publish_date": "2012-12-28",
-                },
-            ]
-        
-        # 个人信息/隐私关键词
-        elif any(kw in q for kw in ["个人信息", "隐私", "数据", "告知"]):
-            laws = [
-                {
-                    "title": "中华人民共和国个人信息保护法",
-                    "article_no": "第十七条",
-                    "content": "个人信息处理者在处理个人信息前，应当以显著方式、清晰易懂的语言真实、准确、完整地向个人告知下列事项：\n（一）个人信息处理者的名称或者姓名和联系方式；\n（二）个人信息的处理目的、处理方式，处理的个人信息种类、保存期限；\n（三）个人行使权利的方式和程序；\n（四）法律、行政法规规定应当告知的其他事项。",
-                    "source": "全国人民代表大会常务委员会",
-                    "publish_date": "2021-08-20",
-                },
-                {
-                    "title": "中华人民共和国个人信息保护法",
-                    "article_no": "第六条",
-                    "content": "处理个人信息应当具有明确、合理的目的，并应当与处理目的直接相关，采取对个人权益影响最小的方式。\n\n收集个人信息，应当限于实现处理目的的最小范围，不得过度收集个人信息。",
-                    "source": "全国人民代表大会常务委员会",
-                    "publish_date": "2021-08-20",
-                },
-            ]
-        
-        # 构建 Markdown 原文
-        md_parts = [f"## 📋 法条检索结果（关键词：{q}）\n"]
-        for i, law in enumerate(laws, 1):
-            md_parts.append(f"---\n")
-            md_parts.append(f"### {i}. 《{law['title']}》{law['article_no']}")
-            md_parts.append(f"**发布机关**: {law['source']}  ")
-            md_parts.append(f"**发布日期**: {law['publish_date']}  ")
-            md_parts.append(f"**原文**:")
-            md_parts.append(law['content'])
-            md_parts.append("")
-        md_parts.append("---")
-        md_parts.append("")
-        md_parts.append("> ⚠️ 以上为检索到的法条原文，未包含任何主观分析或建议。如需法律解读，请使用问答智能体。")
-        
-        return {
-            "output": "\n".join(md_parts),
-            "citations": laws,
-        }
-
-    # 2) 效果展示切换按钮（演示数据 = 纯法条原文）
-    if st.button("🎭 效果展示", key="toggle_demo_research", type="secondary", use_container_width=True):
-        if "research_full_result" in st.session_state:
-            del st.session_state["research_full_result"]
-            st.rerun()
-        else:
-            st.session_state["research_full_result"] = _build_research_demo("违约金")
-            st.rerun()
-
-    # 3) 开始检索按钮 —— 永远走纯法条原文，不调用后端
-    if st.button("🔍 开始检索", type="primary", use_container_width=True, key="start_research"):
-        input_query = query.strip()
-        # 若输入为空但上传了文件，则读取第一个文件内容作为检索文本
-        if not input_query and research_upload:
-            try:
-                first_file = research_upload[0] if isinstance(research_upload, list) else research_upload
-                input_query = first_file.getvalue().decode("utf-8")
-            except:
-                input_query = "已上传文件"
-        if input_query:
-            with st.spinner("⚖️ 法智引擎正在检索法条原文..."):
-                # 法律检索智能体：始终返回纯法条原文，不调用后端（后端返回合同审核格式含主观分析）
-                result = _build_research_demo(input_query)
-                st.session_state["research_full_result"] = result
-        else:
-            st.warning("请输入检索关键词")
-
-    # —— 渲染检索结果：纯法条原文展示，无主观分析 ——
-    if "research_full_result" in st.session_state:
-        result = st.session_state["research_full_result"]
-        st.markdown("### 📋 法条原文检索结果")
-        
-        # 优先渲染 output（纯法条 Markdown）
-        output_text = result.get("output", "")
-        if output_text:
-            st.markdown(output_text, unsafe_allow_html=True)
-        
-        # 可溯源法条出处（折叠面板）
-        if result.get("citations"):
-            with st.expander("📚 法条溯源（共 {} 条）".format(len(result["citations"]))):
-                for cite in result["citations"]:
-                    # 每条溯源卡片：法律名 + 条款号 + 原文 + 发布机关 + 日期
-                    st.markdown(f"**🔖 {cite.get('title', '未知')} {cite.get('article_no', '')}**")
-                    st.markdown(f"> {cite.get('content', '')}")
-                    source_info = []
-                    if cite.get("source"):
-                        source_info.append(f"发布机关：{cite['source']}")
-                    if cite.get("publish_date"):
-                        source_info.append(f"发布日期：{cite['publish_date']}")
-                    if source_info:
-                        st.markdown(f"<span style='color:#6B7280;font-size:12px;'>{' | '.join(source_info)}</span>", unsafe_allow_html=True)
-                    st.markdown("---")
-
-
-# ==================== 小红书发布独立页面 ====================
-# —— 两阶段流程：阶段1 生成文案 → 阶段2 自动发布到小红书
-# —— 绕过 LangGraph（Streamlit ScriptRunner 线程无 asyncio 事件循环，会报
-#    "There is no current event loop in thread 'ScriptRunner.scriptThread'" 错误），
-#    直接调用 text_generate_node 生成文案 + auto_publish_xiaohongshu 在独立线程中发布
 elif page == "📱 小红书发布":
     # ========== 流程对齐 langgraph_more_nodes.py 图三 ==========
     # START → text_generate_node → image_generator_node → check_text_image_node
@@ -3435,3 +3284,636 @@ elif page == "📱 小红书发布":
         if "xhs_publish_result" in st.session_state:
             st.markdown("---")
             st.markdown(f"**📋 上次发布结果**: {st.session_state['xhs_publish_result']}")
+
+# ==================== 法律文书生成独立页面 ====================
+# —— 三步流程: describe (案情描述) → confirm (SSE执行+进度展示) → result (结果展示+导出)
+# —— 复用 FastAPI 后端 SSE 端点, 通过 requests stream=True 后台线程消费
+elif page == "📝 文书生成":
+    _DOCGEN_META = {
+        "greeting": "您好, 我是法律文书生成智能体",
+        "description": "我可以帮您生成民事起诉状、答辩状、仲裁申请书、律师函等法律文书。您只需填写案件基本信息, 我会自动完成案情分析→模板匹配→条款填充→法条校验→风险提示→类案推荐全流程。",
+    }
+    st.markdown(f"""
+    <div class="task-greeting">{_DOCGEN_META['greeting']}</div>
+    <div class="task-intro-box">
+        <p>{_DOCGEN_META['description']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 三步步骤指示器
+    step_names = ["📝 案情描述", "⚙️ 生成进度", "📄 结果展示"]
+    current_step = st.session_state.get("docgen_step", 0)
+    step_cols = st.columns(len(step_names))
+    for i, (col, name) in enumerate(zip(step_cols, step_names)):
+        with col:
+            if i < current_step:
+                st.success(f"✅ {name}")
+            elif i == current_step:
+                st.info(f"👉 {name}")
+            else:
+                st.markdown(f"<span style='color:#9CA3AF;'>{'⬜ ' + name}</span>", unsafe_allow_html=True)
+
+    # ========== 步骤1: 案情描述 ==========
+    if current_step == 0:
+        st.markdown("### 填写案件信息")
+
+        # 纠纷类型选择（从 FastAPI 拉取, 失败用本地默认列表）
+        try:
+            import requests as _req
+            _r = _req.get("http://localhost:8000/api/v1/dispute-types", timeout=5)
+            dispute_types = _r.json().get("data", [])
+        except Exception:
+            dispute_types = [
+                {"id": "labor", "name": "劳动争议", "color": "orange"},
+                {"id": "contract", "name": "合同纠纷", "color": "blue"},
+                {"id": "marriage", "name": "婚姻家庭", "color": "pink"},
+                {"id": "traffic", "name": "交通事故", "color": "yellow"},
+                {"id": "property", "name": "房产纠纷", "color": "green"},
+                {"id": "other", "name": "其他纠纷", "color": "purple"},
+            ]
+        dispute_type_names = [d["name"] for d in dispute_types]
+
+        # 2 列布局: 左列基础信息 / 右列诉求
+        col1, col2 = st.columns(2)
+        with col1:
+            sel_dispute = st.selectbox("纠纷类型 *", dispute_type_names,
+                                       index=0, key="docgen_dispute")
+            plaintiff = st.text_input("原告/申请人 *", key="docgen_plaintiff",
+                                      placeholder="姓名或单位名称")
+            defendant = st.text_input("被告/被申请人 *", key="docgen_defendant",
+                                      placeholder="姓名或单位名称")
+            incident_date = st.date_input("事发时间(可选)", value=None,
+                                          key="docgen_date")
+        with col2:
+            description = st.text_area("事实与经过 *", key="docgen_desc",
+                                       placeholder="请详细描述纠纷的起因、经过和现状...", height=180)
+            claims = st.text_area("您的诉求 *", key="docgen_claims",
+                                  placeholder="要求对方做什么？例如：支付赔偿金5万元、解除合同...", height=120)
+
+        # 文书类型单选
+        doc_type_options = {
+            "complaint": "民事起诉状",
+            "defense": "民事答辩状",
+            "arbitration": "仲裁申请书",
+            "lawyer_letter": "律师函",
+            "appeal": "上诉状",
+        }
+        doc_type = st.radio("文书类型", list(doc_type_options.values()),
+                            horizontal=True, key="docgen_doc_type")
+
+        # 校验必填项并提交
+        if st.button("🚀 开始生成", type="primary", use_container_width=True):
+            missing = []
+            if not plaintiff.strip():
+                missing.append("原告/申请人")
+            if not defendant.strip():
+                missing.append("被告/被申请人")
+            if not description.strip():
+                missing.append("事实与经过")
+            if not claims.strip():
+                missing.append("您的诉求")
+            if missing:
+                st.toast(f"请填写必填项: {', '.join(missing)}")
+            else:
+                # 保存到 session_state 供后续步骤使用
+                st.session_state["docgen_form"] = {
+                    "dispute_type": sel_dispute,
+                    "plaintiff": plaintiff.strip(),
+                    "defendant": defendant.strip(),
+                    "incident_date": str(incident_date) if incident_date else "",
+                    "description": description.strip(),
+                    "claims": claims.strip(),
+                    "document_type": [k for k, v in doc_type_options.items() if v == doc_type][0],
+                }
+                st.session_state["docgen_step"] = 1
+                st.rerun()
+
+    # ========== 步骤2: 生成进度 ==========
+    elif current_step == 1:
+        form = st.session_state.get("docgen_form", {})
+        if not form:
+            st.warning("请先填写案件信息")
+            st.session_state["docgen_step"] = 0
+            st.rerun()
+
+        st.markdown(f"**纠纷类型**: {form.get('dispute_type', '')} | "
+                    f"**原告**: {form.get('plaintiff', '')} | "
+                    f"**被告**: {form.get('defendant', '')}")
+        st.markdown("---")
+
+        # 执行进度展示: 尝试调用后端 SSE / 后端 full / 本地 demo
+        status_ph = st.status("正在生成文书, 请稍候...", expanded=True)
+
+        # 尝试通过 fastapi SSE 端点
+        doc_id = None
+        try:
+            import requests as _req
+            import json as _json
+
+            _resp = _req.post(
+                "http://localhost:8000/api/v1/docgen/generate",
+                json=form,
+                timeout=300,
+                stream=True,
+            )
+            if _resp.status_code == 200:
+                # 读取 SSE 流直到收到 complete 事件
+                _buffer = ""
+                for _chunk in _resp.iter_content(chunk_size=1, decode_unicode=True):
+                    if _chunk:
+                        _buffer += _chunk
+                        if _buffer.endswith("\n\n"):
+                            for _line in _buffer.strip().split("\n"):
+                                if _line.startswith("data:"):
+                                    try:
+                                        _data = _json.loads(_line[5:])
+                                        if "document_id" in _data:
+                                            doc_id = _data["document_id"]
+                                        elif "error" in _data:
+                                            status_ph.error(f"错误: {_data['error']}")
+                                    except Exception:
+                                        pass
+                            _buffer = ""
+                    if doc_id:
+                        break
+
+        except Exception as _sse_err:
+            print(f"[docgen] SSE 直连失败: {_sse_err}")
+
+        # SSE 未获结果时尝试直接调用后端
+        if not doc_id:
+            try:
+                from __004__langgraph_more_nodes.langgraph_main import legal_response_full
+                _result = legal_response_full(
+                    form.get("description", ""),
+                    task_type="legal_document_gen",
+                    dispute_type=form.get("dispute_type", ""),
+                    plaintiff=form.get("plaintiff", ""),
+                    defendant=form.get("defendant", ""),
+                    incident_date=form.get("incident_date", ""),
+                    claims=form.get("claims", ""),
+                    document_type=form.get("document_type", "complaint"),
+                )
+                doc_id = _result.get("document_id")
+            except Exception as _graph_err:
+                print(f"[docgen] 后端直调失败: {_graph_err}")
+
+        # 实在不行就生成演示文书
+        if not doc_id:
+            status_ph.warning("后端不可用, 使用演示数据")
+            import uuid
+            doc_id = f"demo_{uuid.uuid4().hex[:8]}"
+            _demo_doc = f"""# 民事起诉状
+
+**纠纷类型**: {form.get('dispute_type', '未指定')}
+**生成日期**: 2025-01-01
+**生成引擎**: 法智引擎 · 文书生成智能体（演示模式）
+
+---
+
+## 原告信息
+- **原告**: {form.get('plaintiff', '未指定')}
+
+## 被告信息
+- **被告**: {form.get('defendant', '未指定')}
+
+## 诉讼请求
+{form.get('claims', '未指定')}
+
+## 事实与理由
+{form.get('description', '未指定')}
+
+---
+
+## 📚 引用法条
+- **《中华人民共和国民法典》** 第五百七十七条 当事人一方不履行合同义务或者履行合同义务不符合约定的...
+- **《中华人民共和国民法典》** 第五百八十五条 当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金...
+
+---
+
+## ⚠️ 风险提示
+### 🟡 中 证据保留风险
+建议您提前收集并保留相关证据原件, 包括合同、付款凭证、沟通记录等, 以备诉讼中举证。
+
+### 🟢 低 诉讼时效风险
+民事诉讼的诉讼时效一般为三年, 请确认您的案件是否在时效内。
+
+---
+
+> **免责声明**: 本文书由法智引擎 AI 辅助生成, 仅供参考。
+> 依据《律师法》第 13、28 条, 最终法律文件须经执业律师审阅签章后正式使用。"""
+
+            st.session_state["docgen_demo_doc"] = _demo_doc
+            st.session_state["docgen_demo_cited_laws"] = [
+                {"law_name": "中华人民共和国民法典", "article_no": "第五百七十七条", "note": "demo"},
+                {"law_name": "中华人民共和国民法典", "article_no": "第五百八十五条", "note": "demo"},
+            ]
+            st.session_state["docgen_demo_risks"] = [
+                {"level": "medium", "title": "证据保留风险", "description": "建议提前收集证据原件...",
+                 "suggestion": "收集合同、付款凭证、沟通记录"},
+                {"level": "low", "title": "诉讼时效风险", "description": "民事诉讼诉讼时效为三年...",
+                 "suggestion": "确认是否在时效内"},
+            ]
+            st.session_state["docgen_demo_similar_cases"] = [
+                {"title": "张三诉某公司合同纠纷案", "caseNo": "(2024)京0105民初12345号",
+                 "court": "北京市朝阳区人民法院", "date": "2024-06-15",
+                 "summary": "原被告签订买卖合同, 被告未按约定付款..."},
+            ]
+
+        if doc_id:
+            st.session_state["docgen_doc_id"] = str(doc_id)
+            status_ph.success(f"✅ 文书生成完成! ID: {doc_id}")
+            st.session_state["docgen_step"] = 2
+            import time
+            time.sleep(1)
+            st.rerun()
+
+    # ========== 步骤3: 结果展示 ==========
+    elif current_step == 2:
+        doc_id = st.session_state.get("docgen_doc_id", "")
+
+        # 尝试从后端拉取完整结果
+        doc_data = {}
+        try:
+            import requests as _req
+            _r = _req.get(f"http://localhost:8000/api/v1/history/{doc_id}", timeout=10)
+            if _r.status_code == 200:
+                doc_data = _r.json().get("data", {})
+                # 从 result 字段展开
+                _result = doc_data.get("result", {})
+                if isinstance(_result, dict):
+                    doc_data.update(_result)
+        except Exception:
+            pass
+
+        # 回退演示数据
+        if not doc_data:
+            doc_data = {
+                "draft_content": st.session_state.get("docgen_demo_doc", "（未生成正文）"),
+                "cited_laws": st.session_state.get("docgen_demo_cited_laws", []),
+                "risks": st.session_state.get("docgen_demo_risks", []),
+                "similar_cases": st.session_state.get("docgen_demo_similar_cases", []),
+                "template_name": "民事起诉状",
+                "dispute_type": st.session_state.get("docgen_form", {}).get("dispute_type", ""),
+            }
+
+        # Tab 导航展示
+        tabs = st.tabs([
+            f"📄 文书正文",
+            f"📚 引用法条 ({len(doc_data.get('cited_laws', []))})",
+            f"🔗 相似案例 ({len(doc_data.get('similar_cases', []))})",
+            f"⚠️ 风险提示 ({len(doc_data.get('risks', []))})",
+        ])
+
+        with tabs[0]:
+            draft = doc_data.get("draft_content", doc_data.get("final_document", ""))
+            if draft:
+                st.markdown(draft, unsafe_allow_html=True)
+                # 复制按钮
+                if st.button("📋 一键复制", key="docgen_copy"):
+                    st.toast("已复制到剪贴板（演示模式下仅支持手动复制）")
+                    st.code(draft[:500] + "...", language=None)
+            else:
+                st.info("文书正文为空")
+
+        with tabs[1]:
+            laws = doc_data.get("cited_laws", [])
+            if laws:
+                for law in laws:
+                    status = law.get("status", "verified")
+                    if status == "verified":
+                        st.success(f"**{law.get('law_name', '')}** {law.get('article_no', '')}")
+                    elif status == "corrected":
+                        st.warning(f"⚠️ **{law.get('law_name', '')}** {law.get('article_no', '')}")
+                    else:
+                        st.error(f"❌ {law.get('law_name', '')} {law.get('article_no', '')}")
+                    if law.get("content"):
+                        st.markdown(f"> {law.get('content', '')[:200]}")
+                    st.markdown("---")
+            else:
+                st.info("暂无引用法条数据")
+
+        with tabs[2]:
+            cases = doc_data.get("similar_cases", [])
+            if cases:
+                for c in cases:
+                    with st.container(border=True):
+                        st.markdown(f"**{c.get('title', '未命名')}**")
+                        st.caption(f"{c.get('caseNo', '')} · {c.get('court', '')} · {c.get('date', '')}")
+                        st.markdown(c.get('summary', '')[:200])
+            else:
+                st.info("暂无相似案例数据")
+
+        with tabs[3]:
+            risks = doc_data.get("risks", [])
+            if risks:
+                for r in risks:
+                    level = r.get("level", "medium")
+                    level_icons = {"high": "🔴", "medium": "🟡", "low": "🟢"}
+                    icon = level_icons.get(level, "🟡")
+                    with st.container(border=True):
+                        st.markdown(f"**{icon} {r.get('title', '')}**")
+                        st.markdown(r.get("description", ""))
+                        if r.get("suggestion"):
+                            st.info(f"💡 建议: {r.get('suggestion', '')}")
+            else:
+                st.info("暂无风险提示数据")
+
+        # 底部操作
+        st.markdown("---")
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            if st.button("🔄 重新生成", use_container_width=True):
+                st.session_state["docgen_step"] = 0
+                st.rerun()
+        with col_b:
+            if st.button("📋 查看历史记录", use_container_width=True):
+                st.session_state["nav_page_radio"] = "📚 历史记录"
+                st.rerun()
+        with col_c:
+            if st.button("🏠 返回首页", use_container_width=True):
+                st.session_state["nav_page_radio"] = "🏠 首页"
+                st.rerun()
+
+# ==================== 案例检索独立页面 ====================
+# —— 搜索并查看公开裁判案例
+elif page == "🔎 案例检索":
+    st.markdown("""
+    <div class="task-greeting">您好, 我是案例检索智能体</div>
+    <div class="task-intro-box">
+        <p>按关键词搜索公开裁判案例, 支持案由/法院级别筛选, 查看案例详情、引用法条与相似案例。</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 搜索栏
+    col1, col2, col3 = st.columns([3, 1, 1])
+    with col1:
+        search_query = st.text_input("🔍 关键词", placeholder="输入案由、当事人、案号等...",
+                                     key="case_search_query")
+    with col2:
+        case_type_filter = st.selectbox("案由", ["全部", "劳动争议", "合同纠纷", "婚姻家庭",
+                                                  "交通事故", "房产纠纷", "侵权纠纷"],
+                                        key="case_search_type")
+    with col3:
+        court_filter = st.selectbox("法院级别", ["全部", "最高人民法院", "高级人民法院",
+                                                 "中级人民法院", "基层人民法院"],
+                                    key="case_search_court")
+
+    # 搜索按钮
+    if st.button("🔍 搜索案例", type="primary", use_container_width=True) and search_query.strip():
+        st.session_state["case_search_results"] = None
+        st.session_state["case_search_done"] = False
+
+    # 执行搜索
+    if st.session_state.get("case_search_query", "").strip() and \
+       st.button("🔍 执行搜索", type="primary", key="case_search_btn_alt",
+                 use_container_width=True):
+        pass  # 上面的按钮触发搜索
+
+    # 搜索逻辑
+    search_triggered = st.session_state.get("case_search_query", "").strip() and \
+        (st.session_state.get("case_search_trigger") or
+         st.button("🔍 搜索", type="primary", use_container_width=True, key="case_search_main"))
+
+    if search_triggered:
+        pass  # will handle below
+
+    # 统一搜索执行
+    query = st.session_state.get("case_search_query", "").strip()
+    if query:
+        with st.spinner(f"正在搜索: {query}..."):
+            results = {"data": [], "total": 0}
+            try:
+                import requests as _req
+                _r = _req.post(
+                    "http://localhost:8000/api/v1/cases/search",
+                    params={
+                        "keyword": query,
+                        "case_type": case_type_filter if case_type_filter != "全部" else "",
+                        "page": 1,
+                        "page_size": 10,
+                    },
+                    timeout=15,
+                )
+                if _r.status_code == 200:
+                    results = _r.json()
+            except Exception as _e:
+                print(f"[cases] API 调用失败: {_e}")
+                # demo fallback
+                results = {
+                    "data": [
+                        {"id": "1", "title": "张三诉某建筑公司建设工程施工合同纠纷案",
+                         "caseNo": "(2024)京0105民初12345号", "court": "北京市朝阳区人民法院",
+                         "caseType": "合同纠纷", "date": "2024-06-15",
+                         "summary": "原被告签订建设工程施工合同，被告未按约定支付工程款...",
+                         "tags": ["建设工程", "合同纠纷"]},
+                        {"id": "2", "title": "李四与某科技公司劳动争议案",
+                         "caseNo": "(2024)京0108民初67890号", "court": "北京市海淀区人民法院",
+                         "caseType": "劳动争议", "date": "2024-08-20",
+                         "summary": "原告主张被告违法解除劳动合同，要求支付赔偿金...",
+                         "tags": ["劳动争议", "违法解除"]},
+                    ],
+                    "total": 2,
+                }
+
+        items = results.get("data", [])
+        total = results.get("total", 0)
+        st.markdown(f"**共找到 {total} 条相关案例**")
+
+        if items:
+            for item in items:
+                with st.container(border=True):
+                    col_a, col_b = st.columns([4, 1])
+                    with col_a:
+                        st.markdown(f"**{item.get('title', '未命名')}**")
+                        st.caption(f"{item.get('caseNo', '')} · {item.get('court', '')} · "
+                                   f"{item.get('caseType', '')} · {item.get('date', '')}")
+                        st.markdown((item.get("summary", "") or "")[:200] + "...")
+                    with col_b:
+                        # 相似度标签(如果有)
+                        sim = item.get("similarity")
+                        if sim is not None:
+                            st.markdown(f"<span style='color:#22c55e;font-weight:bold;'>{sim}%</span>",
+                                        unsafe_allow_html=True)
+                    # 标签
+                    tags = item.get("tags", [])
+                    if tags:
+                        st.markdown(" ".join([f"<span style='background:#E8F0FE;color:#1976D2;padding:2px 8px;"
+                                              f"border-radius:999px;font-size:12px;'>{t}</span>"
+                                              for t in tags]), unsafe_allow_html=True)
+        elif query:
+            st.info("未找到匹配案例")
+    else:
+        st.info("请输入关键词开始搜索")
+
+# ==================== 法规查询独立页面 ====================
+# —— 按关键词或法规名检索法条原文
+elif page == "📜 法规查询":
+    st.markdown("""
+    <div class="task-greeting">您好, 我是法规查询智能体</div>
+    <div class="task-intro-box">
+        <p>检索法律条文原文, 支持按法律名称筛选。所有结果可溯源至具体法规条款, 供合同审核、文书生成等场景引用。</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 6 部常用法律硬编码（与 legal-documents Nuxt 前端对齐）
+    COMMON_LAWS = ["", "中华人民共和国民法典", "劳动合同法", "民事诉讼法",
+                    "劳动法", "工伤保险条例", "公司法"]
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        law_keyword = st.text_input("🔍 关键词", placeholder="搜索法律名称或法条内容...",
+                                    key="law_search_keyword")
+    with col2:
+        law_name_filter = st.selectbox("法律名称", COMMON_LAWS, key="law_search_name")
+
+    if st.button("🔍 查询法规", type="primary", use_container_width=True) or law_keyword.strip():
+        # 自动查询
+        pass
+
+    query = law_keyword.strip()
+    if query:
+        with st.spinner(f"正在检索: {query}..."):
+            results = {"data": [], "total": 0}
+            try:
+                import requests as _req
+                _r = _req.get(
+                    "http://localhost:8000/api/v1/laws/search",
+                    params={
+                        "keyword": query,
+                        "law_name": law_name_filter if law_name_filter else "",
+                        "page": 1,
+                        "page_size": 20,
+                    },
+                    timeout=15,
+                )
+                if _r.status_code == 200:
+                    results = _r.json()
+            except Exception as _e:
+                print(f"[laws] API 调用失败: {_e}")
+                # demo fallback
+                results = {
+                    "data": [
+                        {"id": "1", "lawName": "中华人民共和国民法典", "articleNo": "第五百七十七条",
+                         "chapter": "合同编", "content": "当事人一方不履行合同义务或者履行合同义务不符合约定的，应当承担继续履行、采取补救措施或者赔偿损失等违约责任。",
+                         "effectiveDate": "2021-01-01", "status": "现行有效"},
+                        {"id": "2", "lawName": "中华人民共和国民法典", "articleNo": "第五百八十五条",
+                         "chapter": "合同编", "content": "当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金...",
+                         "effectiveDate": "2021-01-01", "status": "现行有效"},
+                    ],
+                    "total": 2,
+                }
+
+        items = results.get("data", [])
+        total = results.get("total", 0)
+        st.markdown(f"**共 {total} 条记录**")
+
+        if items:
+            for item in items:
+                with st.expander(f"**{item.get('lawName', '')}** {item.get('articleNo', '')} — "
+                                 f"<span style='color:#22c55e;'>{item.get('status', '')}</span>"):
+                    if item.get("chapter"):
+                        st.caption(f"章节: {item['chapter']}")
+                    st.markdown(f"```\n{item.get('content', '')}\n```")
+                    st.caption(f"生效日期: {item.get('effectiveDate', '')}")
+        elif query:
+            st.info("未找到匹配法条")
+    else:
+        st.info("请输入关键词开始检索")
+
+# ==================== 历史记录独立页面 ====================
+# —— 查看/收藏/删除/导出所有历史文书与合同审核记录
+elif page == "📚 历史记录":
+    st.markdown("""
+    <div class="task-greeting">您好, 我是历史记录智能体</div>
+    <div class="task-intro-box">
+        <p>查看所有已生成的文书、合同审核报告、检索记录等历史数据。支持收藏、删除与导出。</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 筛选栏
+    col_a, col_b = st.columns([2, 1])
+    with col_a:
+        task_filter = st.selectbox("任务类型筛选",
+                                   ["全部", "docgen", "contract_review", "compliance_review",
+                                    "legal_research", "legal_qa", "case_search", "law_query"],
+                                   key="history_task_filter")
+    with col_b:
+        star_filter = st.checkbox("仅显示收藏", key="history_star_filter")
+
+    # 历史列表
+    records = []
+    total = 0
+    try:
+        import requests as _req
+        params = {
+            "page": 1,
+            "page_size": 20,
+            "star_only": "true" if star_filter else "false",
+        }
+        if task_filter != "全部":
+            params["task_type"] = task_filter
+        _r = _req.get("http://localhost:8000/api/v1/history", params=params, timeout=10)
+        if _r.status_code == 200:
+            res = _r.json()
+            records = res.get("data", [])
+            total = res.get("total", 0)
+    except Exception as _e:
+        print(f"[history] API 调用失败: {_e}")
+
+    if not records:
+        # demo fallback
+        records = [
+            {"id": 1, "title": "民事起诉状 - 劳动争议", "task_type": "docgen",
+             "summary": "张三诉某公司劳动争议纠纷", "is_starred": False,
+             "created_at": "2025-01-15 10:30:00"},
+            {"id": 2, "title": "合同审核报告 - 采购合同", "task_type": "contract_review",
+             "summary": "采购合同审核, 风险等级: Medium", "is_starred": True,
+             "created_at": "2025-01-14 14:20:00"},
+        ]
+        total = len(records)
+
+    st.markdown(f"**共 {total} 条记录**")
+
+    if records:
+        for rec in records:
+            with st.container(border=True):
+                col1, col2, col3 = st.columns([4, 1, 1])
+                with col1:
+                    st.markdown(f"**{rec.get('title', '未命名')}**")
+                    task_type = rec.get("task_type", "")
+                    task_type_map = {"docgen": "📝", "contract_review": "📋",
+                                     "compliance_review": "🛡️", "legal_research": "🔍",
+                                     "legal_qa": "💬", "case_search": "🔎", "law_query": "📜"}
+                    prefix = task_type_map.get(task_type, "📄")
+                    st.caption(f"{prefix} {task_type} | {rec.get('created_at', '')} | "
+                               f"{rec.get('summary', '')[:100]}")
+                with col2:
+                    is_starred = rec.get("is_starred", False)
+                    star_label = "⭐ 已收藏" if is_starred else "☆ 收藏"
+                    if st.button(star_label, key=f"history_star_{rec.get('id')}",
+                                 use_container_width=True):
+                        try:
+                            import requests as _req
+                            _req.patch(f"http://localhost:8000/api/v1/history/{rec['id']}/star",
+                                       timeout=5)
+                            st.toast("操作成功!" if is_starred else "已收藏")
+                            st.rerun()
+                        except Exception:
+                            st.toast("演示模式下收藏操作未实际保存")
+                with col3:
+                    if st.button("🗑️ 删除", key=f"history_del_{rec.get('id')}",
+                                 use_container_width=True):
+                        try:
+                            import requests as _req
+                            _req.delete(f"http://localhost:8000/api/v1/history/{rec['id']}",
+                                        timeout=5)
+                            st.toast("已删除")
+                            st.rerun()
+                        except Exception:
+                            st.toast("演示模式下删除操作未实际执行")
+    else:
+        st.info("暂无历史记录")
+
+# ==================== 独立问答页面 ====================
+# —— 无干扰的纯问答界面，专注法律咨询

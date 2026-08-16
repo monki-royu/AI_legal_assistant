@@ -1,166 +1,196 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>检索智能体 · 法智引擎</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>🔍 检索智能体 · 法智引擎</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+/* ===== 节点点击弹窗（新增，不影响原风格） ===== */
+.modal-mask{position:fixed;inset:0;background:rgba(5,10,18,.72);z-index:9999;display:none;
+  align-items:flex-start;justify-content:center;padding:48px 18px;overflow-y:auto;}
+.modal-mask.on{display:flex;animation:mfade .2s ease;}
+@keyframes mfade{from{opacity:0}to{opacity:1}}
+.modal-box{width:100%;max-width:820px;background:#16213e;border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:mslide .28s ease;margin-bottom:40px;}
+@keyframes mslide{from{transform:translateY(26px);opacity:0}to{transform:translateY(0);opacity:1}}
+.m-head{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid rgba(255,255,255,.08);
+  position:sticky;top:0;background:#16213e;border-radius:16px 16px 0 0;z-index:5;}
+.m-head .m-ico{font-size:24px;}
+.m-head h2{font-size:18px;font-weight:800;flex:1;color:#e2e8f0;}
+.m-head .m-tag{font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:6px;
+  background:rgba(96,197,250,.16);color:#7dd3fc;}
+.m-close{width:32px;height:32px;border:none;border-radius:8px;background:rgba(255,255,255,.06);
+  color:#8a9aab;font-size:18px;cursor:pointer;}
+.m-close:hover{background:rgba(255,255,255,.12);color:#e2e8f0;}
+.m-body{padding:8px 22px 22px;max-height:68vh;overflow-y:auto;}
+.m-sec{margin:16px 0;padding:14px 16px;border-left:3px solid rgba(96,197,250,.5);
+  background:rgba(255,255,255,.025);border-radius:0 10px 10px 0;}
+.m-sec h3{font-size:13.5px;font-weight:800;margin-bottom:6px;color:#93c5fd;display:flex;align-items:center;gap:6px;}
+.m-sec p,.m-sec li{font-size:13px;line-height:1.85;color:#cbd5e1;}
+.m-sec.reuse{border-left-color:#34d399;}.m-sec.reuse h3{color:#6ee7b7;}
+.m-sec.why{border-left-color:#fbbf24;}.m-sec.why h3{color:#fcd34d;}
+.m-sec.tech{border-left-color:#a78bfa;}.m-sec.tech h3{color:#c4b5fd;}
+.m-sec.opt{border-left-color:#fb923c;}.m-sec.opt h3{color:#fdba74;}
+.m-sec.iv{border-left-color:#f472b6;}.m-sec.iv h3{color:#f9a8d4;}
+.m-sec ol{margin-left:18px;}
+/* 旁批（初学者友好） */
+.side-note{margin:14px 0;padding:12px 16px;border:1px dashed rgba(251,191,36,.45);
+  background:rgba(251,191,36,.05);border-radius:12px;font-size:12.5px;color:#fcd34d;line-height:1.8;}
+.side-note b{color:#fde68a;}
+/* 复用汇总 */
+.reuse-summary{margin-top:56px;padding:28px;border:1px solid rgba(52,211,153,.3);border-radius:16px;
+  background:rgba(52,211,153,.04);}
+.reuse-summary h2{font-size:20px;color:#6ee7b7;margin-bottom:8px;}
+.reuse-summary p{font-size:13px;color:#cbd5e1;line-height:1.9;margin-bottom:10px;}
+.reuse-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12.5px;}
+.reuse-table th,.reuse-table td{border:1px solid rgba(255,255,255,.12);padding:9px 12px;text-align:left;vertical-align:top;}
+.reuse-table th{background:rgba(255,255,255,.05);color:#e2e8f0;font-weight:700;}
+.reuse-table td{color:#cbd5e1;}
+.reuse-table .rk{color:#6ee7b7;font-weight:700;white-space:nowrap;}
+.click-hint{font-size:11px;color:#fbbf24;margin:6px 0 0;}
+</style>
 </head>
 <body>
+  <nav class="topnav">
+    <div class="brand">⚖️ 法智引擎</div>
+    <a href="00_index.html" class="nav-index">🏠 首页</a>
+    <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
+    <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
+    <a href="03_retrieval.html" class="nav-retrieval">🔍 检索智能体</a>
+    <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
+    <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
+    <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
+    <a href="07_docgen.html" class="nav-docgen">📝 文书生成</a>
+    <span class="spacer"></span>
+    <span class="stat">LangGraph · Neo4j · FAISS · 企查查MCP · bge-m3</span>
+  </nav>
 
-<nav class="topnav">
-  <div class="brand">⚖️ 法智引擎</div>
-  <a href="00_index.html" class="nav-index">🏠 首页</a>
-  <a href="01_architecture.html" class="nav-arch">🏛️ 总架构</a>
-  <a href="02_contract_review.html" class="nav-contract">📋 合同审核</a>
-  <a href="03_retrieval.html" class="nav-retrieval active">🔍 检索智能体</a>
-  <a href="04_compliance.html" class="nav-compliance">🛡️ 合规审查</a>
-  <a href="05_legal_qa.html" class="nav-qa">💬 法律问答</a>
-  <a href="06_xiaohongshu.html" class="nav-xhs">📱 小红书</a>
-  <span class="spacer"></span>
-  <span class="stat">LangGraph · Neo4j · Milvus · MinerU · bge-m3</span>
-</nav>
+  <div class="page-wrap">
+    <div class="page-head">
+      <div class="crumb">AGENT 02 · 检索核心</div>
+      <h1>🔍 检索智能体</h1>
+      <p class="desc"><strong>5 子节点检索链路（被 4 条链路复用）</strong>：意图分解 → 基础层(FAISS+Neo4j+local 多路并行) → 增强查询(LLM 伪检索兜底) → 融合排序(RRF+去重+冲突消解+质量分) → 输出(质量门禁≥0.85 / ≤3次重试 → 北大法宝 MCP 兜底)。📌 检索已提前到数值抽取之后！</p>
+    </div>
+    <div class="flow">
+    <div class="stage-label">检索入口</div>
+    <div class="node t-retrieval" onclick="openNode('ret_entry')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">🔍</span><span class="idx">IN</span><h3>检索入口 (legal_research / case_search / law_query)</h3></div>
+      <p>合同审核/合规审查经过预处理后进入；法律检索/案例检索/法规查询直接从检索入口开始（跳过 doc_extract 段）。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="node t-retrieval" onclick="openNode('ret_intent')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">🔍</span><span class="idx">①</span><h3>检索·意图分解 (retrieval_intent_decompose_node)</h3></div>
+      <p>将原始检索意图拆解为 3-5 个检索子角度/关键词（如“违约金是否过高”→[违约金/违约赔偿/损害赔偿/定金罚则]）。初始化检索上下文。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="node t-retrieval" onclick="openNode('ret_base')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">📚</span><span class="idx">②</span><h3>检索·基础层 (retrieval_base_layer_node)</h3></div>
+      <p>多路并行检索：L0 Neo4j 实体精确匹配 → L1 FAISS 向量检索 → L2 本地法规关键词(4级回退) → L3 行业标准 → L4 案例 → L5 司法解释；共享层企查查资信。输出 <code>base_citations</code>。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="node t-retrieval" onclick="openNode('ret_enhance')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">🔧</span><span class="idx">③</span><h3>检索·增强查询 (retrieval_enhance_query_node)</h3></div>
+      <p>当 <code>len(base_citations)&lt;2</code> 时触发：LLM 基于合同正文补充生成相关法条（伪检索兜底），输出 <code>enhance_citations</code>。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="side-note"><b>💡 旁批（小白版）：</b>基础层没找到够多法条时，让 LLM 凭合同内容“补几条相关法条”，宁可带‘AI生成’标注也别空着。</div>
+    <div class="node t-retrieval" onclick="openNode('ret_fusion')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">🔀</span><span class="idx">④</span><h3>检索·融合排序 (retrieval_fusion_sort_node)</h3></div>
+      <p>RRF 倒数排名融合多路结果 → 去重 → 冲突消解(新法优于旧法/上位法优于下位法/特别法优于一般法) → 质量分(权威+时效+相关+完整)。输出 <code>citations</code>+<code>quality_score</code>。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="node t-retrieval" onclick="openNode('ret_output')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">📤</span><span class="idx">⑤</span><h3>检索·输出 (retrieval_output_node)</h3></div>
+      <p>格式化为 <code>research_context</code> 字符串；质量门禁 <code>quality_score≥0.85</code> 直接输出，否则 ≤3 次重试→北大法宝 MCP 付费兜底/用户确认。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="side-note"><b>💡 旁批（小白版）：</b>质量够高就直接用（省 MCP 钱）；不够就重试，实在不行再花真钱去北大法宝查，或让用户决定。</div>
+    <div class="node t-retrieval" onclick="openNode('ret_done')" style="cursor:pointer;">
+      <div class="node-head"><span class="ico">📤</span><span class="idx">OUT</span><h3>检索结果输出</h3></div>
+      <p>输出 <code>citations</code> + <code>research_context</code>，供上游合同审核/合规审查/文书生成引用，或独立返回给用户。</p>
+      <div class="click-hint">👆 点击节点查看：作用 / 流转 / 复用 / 设计理由 / 技术选型 / 优化 / 面试题</div>
+    </div>
+    <div class="arrow"></div>
+    <div class="side-note"><b>💡 旁批（小白版）：</b>检索本身也是一条独立服务：用户问“违约金过高怎么算”，直接走检索把法条找出来返回。</div>
+    </div>
+    <div class="design-bar">
+<div class="design-item"><strong>🧩 子图复用</strong>被合同审核/合规审查/法律检索/文书生成 4 链路复用</div><div class="design-item"><strong>🔀 RRF 融合</strong>多路排名融合，对分数尺度不敏感</div><div class="design-item"><strong>⚖️ 冲突消解</strong>新法>旧法、上位法>下位法、特别法>一般法</div><div class="design-item"><strong>🚪 质量门禁</strong>≥0.85 直接出；否则≤3次重试→MCP 付费兜底</div><div class="design-item"><strong>🔧 增强兜底</strong>基础层不足2条时 LLM 补法条(标注AI生成)</div><div class="design-item"><strong>🏷️ 挂载可控</strong>task_type+contract_type 决定挂哪些数据源</div>
+    </div>
 
-<div class="page-wrap">
-
-  <div class="page-head">
-    <div class="crumb">AGENT 02 · 检索核心</div>
-    <h1>🔍 检索智能体</h1>
-    <p class="desc">9 阶段检索链路：上游调用 → 意图分解 → 并行调度（4 路 + 行业层 + 条款层）→ RRF 融合 → 冲突消解 → 质量网关 → 重试环 → 结果聚合 → 结构化输出。可被多个上游 Agent 复用。</p>
+  <div class="reuse-summary">
+    <h2>🧩  检索智能体 · 节点复用与总架构协作</h2>
+    
+    <p>检索 5 节点子图是整个系统的 <b>复用枢纽</b>：</p>
+    <table class="reuse-table">
+      <tr><th class="rk">复用方</th><th>挂载数据源(mounted_sources)</th></tr>
+      <tr><td class="rk">合同审核</td><td>laws + industry + cases + interpretations</td></tr>
+      <tr><td class="rk">合规审查</td><td>laws + industry（侧重强规）</td></tr>
+      <tr><td class="rk">法律检索</td><td>全部数据源</td></tr>
+      <tr><td class="rk">案例检索</td><td>仅 cases</td></tr>
+      <tr><td class="rk">法规查询</td><td>仅 laws</td></tr>
+      <tr><td class="rk">文书生成</td><td>复用 search() 方法填条款</td></tr>
+    </table>
+    <p style="margin-top:10px;"><b>检索提前的优势：</b>旧架构检索在最后，审核时没法条；新架构检索提前到数值抽取之后，使合同审核AI/合规审查/数值校验<b>都能引用法条与法定阈值</b>，实现“检索增强审核”。</p>
+    
   </div>
-
-  <div class="flow">
-
-    <div class="node t-retrieval">
-      <div class="node-head">
-        <span class="ico">📥</span>
-        <span class="idx">N01</span>
-        <h3>上游调用</h3>
-      </div>
-      <p>接收上游 Agent（合同审核 / 合规审查 / 法律问答）的检索请求，携带 query、context、立场等参数。</p>
-      <div class="meta">复用入口 · 不重复计算</div>
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-retrieval">
-      <div class="node-head">
-        <span class="ico">🧩</span>
-        <span class="idx">N02</span>
-        <h3>意图分解 (N1)</h3>
-      </div>
-      <p>将原始 query 分解为多个子意图（向量意图 / 关键词意图 / 实体意图 / 法规意图），为并行调度做准备。</p>
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-retrieval">
-      <div class="node-head">
-        <span class="ico">⚡</span>
-        <span class="idx">N03</span>
-        <h3>并行调度 (N3 · 4 路并行)</h3>
-      </div>
-      <p>Send API 并行调度基础层 4 路 + 行业增强层 N 路 + 条款级动态触发。4 大检索策略同时执行。</p>
-    </div>
-
-    <!-- 4 路并行展示 -->
-    <div class="parallel">
-      <div class="pl-title">↓ 基础层 4 路并行 ↓</div>
-      <div class="pl-grid">
-        <div class="pl-item"><strong> VECTOR 向量检索</strong>Milvus + bge-m3 语义召回</div>
-        <div class="pl-item"><strong> BM25 全文检索</strong>关键词倒排匹配</div>
-        <div class="pl-item"><strong> GRAPH 知识图谱</strong>Neo4j 实体关系检索</div>
-        <div class="pl-item"><strong> LAW 法规库</strong>结构化法规条文检索</div>
-      </div>
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-retrieval">
-      <div class="node-head">
-        <span class="ico">🔀</span>
-        <span class="idx">N04</span>
-        <h3>RRF 融合 (Reciprocal Rank Fusion)</h3>
-      </div>
-      <p>倒数排名融合算法合并多路结果，消除各路打分尺度差异，生成统一排序的候选集。</p>
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-compliance">
-      <div class="node-head">
-        <span class="ico">⚖️</span>
-        <span class="idx">N05</span>
-        <h3>冲突消解</h3>
-      </div>
-      <p>检测多源结果中的矛盾条款（如不同效力层级的法规冲突），按效力优先级 + 时效性消解。</p>
-      <div class="meta">确定性门禁 · Python 代码</div>
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-compliance">
-      <div class="node-head">
-        <span class="ico">🚦</span>
-        <span class="idx">N06</span>
-        <h3>质量网关</h3>
-      </div>
-      <p>计算结果质量分（相关性 + 覆盖率 + 时效性）。质量分 ≥ 0.85 通过；&lt; 0.85 进入重试环。</p>
-    </div>
-
-    <div class="arrow"></div>
-
-    <!-- 重试环分支 -->
-    <div class="branch">
-      <strong>🔄 重试环 (N07)：</strong>质量分 &lt; 0.85 → 回到 N02 意图分解重新生成子查询 → 最多重试 3 次 → 3 次失败升级人工处理。
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-retrieval">
-      <div class="node-head">
-        <span class="ico">🧺</span>
-        <span class="idx">N08</span>
-        <h3>结果聚合</h3>
-      </div>
-      <p>聚合通过质量网关的结果，去重、排序、附加 source_tag（来源标记），生成结构化候选集。</p>
-    </div>
-
-    <div class="arrow"></div>
-
-    <div class="node t-retrieval">
-      <div class="node-head">
-        <span class="ico">📦</span>
-        <span class="idx">N09</span>
-        <h3>结构化输出</h3>
-      </div>
-      <p>返回结构化检索结果给上游 Agent，包含条文内容、来源、bbox、置信度等字段，支持审计追溯。</p>
-    </div>
-
   </div>
+  <footer>
+    <div class="foot-nav">
+      <a href="00_index.html">🏠 首页</a>·
+      <a href="01_architecture.html">🏛️ 总架构</a>·
+      <a href="02_contract_review.html">📋 合同审核</a>·
+      <a href="03_retrieval.html">🔍 检索</a>·
+      <a href="04_compliance.html">🛡️ 合规</a>·
+      <a href="05_legal_qa.html">💬 法律问答</a>·
+      <a href="06_xiaohongshu.html">📱 小红书</a>·
+      <a href="07_docgen.html">📝 文书生成</a>·
+      <a href="节点式流程图.html">🧩 节点式流程</a>
+    </div>
+    <p>法智引擎 · LangGraph 多智能体架构 · 设计铁律：AI 辅助 · 人工兜底</p>
+    <p style="margin-top:6px;">依据《律师法》第 13/28 条 · LangGraph + FAISS + Neo4j + 企查查 MCP + bge-m3</p>
+  </footer>
 
-  <div class="design-bar">
-    <div class="design-item"><strong>🧱 模块复用</strong>检索智能体被合同/合规/问答 Agent 共享调用</div>
-    <div class="design-item"><strong>⚡ 并行调度</strong>Send API 4 路并行 + 行业层 + 条款层</div>
-    <div class="design-item"><strong>🔀 RRF 融合</strong>倒数排名融合，消除打分尺度差异</div>
-    <div class="design-item"><strong>🔄 弹性重试</strong>质量分 &lt; 0.85 重试，3 次失败升级人工</div>
+  <div class="modal-mask" id="modal-mask" onclick="if(event.target===this)closeNode()">
+    <div class="modal-box">
+      <div class="m-head">
+        <span class="m-ico" id="m-ico">📋</span>
+        <h2 id="m-title">节点详情</h2>
+        <span class="m-tag" id="m-tag">节点</span>
+        <button class="m-close" onclick="closeNode()">✕</button>
+      </div>
+      <div class="m-body" id="m-body"></div>
+    </div>
   </div>
+  <script>
+  var NODE_DATA = {"ret_intent": {"ico": "🔍", "title": "检索·意图分解", "tag": "检索子图①", "role": "LLM 将用户查询/合同类型拆成 3-5 个检索角度，初始化 mounted_sources 等上下文。", "flow": "输出扩展后的关键词列表，交给 基础层节点 做多路并行检索。", "reuse": "被合同审核/合规审查/法律检索/文书生成 调用（作为检索子图入口）。", "why": "单次查询太窄，拆解成多角度才能覆盖“法律事实+法条+案例+行业”多维度。", "tech": "LLM 生成子查询，比人工 keyword 更贴近法律语义。", "optimize": "缓存相同合同类型的拆解结果，避免重复 LLM 调用。", "interview": "“为什么检索前要拆解意图？”答：提升召回，避免单一表述漏掉相关法条。"}, "ret_base": {"ico": "📚", "title": "检索·基础层", "tag": "检索子图②", "role": "按挂载数据源多路并行：Neo4j 精确匹配→FAISS 向量→本地关键词(4级回退)→行业标准→案例→司法解释；不足3条自动下沉下一层。", "flow": "汇成 <code>base_citations</code> 交给 增强查询 节点（不足2条时触发 LLM 补充）。", "reuse": "同一子图被 4 条链路复用；挂载哪些层由 task_type+contract_type 控制。", "why": "单一检索源召回有限，平行多源+逐级下沉兼顾“准”与“全”。", "tech": "Neo4j(精确/图谱)+FAISS(bge-m3语义)+本地关键词(零成本兜底)+行业/案例/解释分层。", "optimize": "增加质量退化检测：连续低分自动降阈值并告警，避免单源故障导致全瘫痪。", "interview": "“为什么混合向量+关键词？”答：向量召回语义，关键词保证精确条款编号不漏，互补。"}, "ret_enhance": {"ico": "🔧", "title": "检索·增强查询", "tag": "检索子图③", "role": "基础层结果&lt;2 条时，LLM 基于合同正文生成 3-5 条相关法条（标注‘基于AI生成’），作伪检索兜底。", "flow": "输出 <code>enhance_citations</code> 与 base 一起进入 融合排序。", "reuse": "复用检索子图，随合同审核/合规审查等链路触发。", "why": "检索真空白比检索不准更糟；伪检索保证下游至少有法条可引用（带标注即可识别）。", "tech": "纯 LLM 生成，仅在基础层真正缺失时兜底，控制幻觉范围（明确标注来源=LLM）。", "optimize": "增强结果参与质量分计算时降低其权重（source=LLM 权威分+0）。", "interview": "“伪检索会不会引入错误法条？”答：会，但显式标注来源=LLM，下游校验环节可识别。"}, "ret_fusion": {"ico": "🔀", "title": "检索·融合排序", "tag": "检索子图④", "role": "RRF(Σ1/(rank+60)) 融合各路→hash 去重→4条冲突消解规则→4维加权质量分。输出 <code>citations</code>+<code>quality_score</code>。", "flow": "交给 输出节点 做质量门禁；质量分决定是否重试或付费兜底。", "reuse": "检索子图核心，被多链路复用。", "why": "多路结果需统一排序；RRF 不需各路分数可比，鲁棒；冲突消解保证法条时效/层级正确。", "tech": "RRF 融合（经典、无需归一化分数）；冲突规则编码法律位阶（宪法>法律>法规>规章）。", "optimize": "引入用户反馈信号微调质量分权重。", "interview": "“RRF 和加权平均排序区别？”答：RRF 只用排名、对分数尺度不敏感，更适合多异构源。"}, "ret_output": {"ico": "📤", "title": "检索·输出", "tag": "检索子图⑤", "role": "格式化 <code>research_context</code>；质量门禁≥0.85 直接输出，否则 ≤3 次重试→北大法宝 MCP 付费/用户确认。", "flow": "输出 citations 供合同审核AI/合规审查/数值校验 引用；是整条链路“检索提前”的关键产物。", "reuse": "被合同审核/合规审查/法律检索/文书生成 复用。", "why": "质量门禁避免低质法条进入审查；重试+MCP 兜底平衡成本与可用性。", "tech": "阈值门禁 + 重试环 + 付费 MCP 兜底（北大法宝），形成“免费优先、付费保底”。", "optimize": "质量退化检测自动降阈值；对高频失败源做熔断告警。", "interview": "“质量门禁阈值怎么定？”答：0.85 兼顾成本与准确，配合重试与人工兜底。"}, "ret_entry": {"ico": "🔍", "title": "检索入口", "tag": "IN", "role": "作为子图被 4 链路调用；也可独立承接法律检索/案例/法规查询。", "flow": "→意图分解→…→输出。", "reuse": "被合同审核/合规审查/法律检索/文书生成复用（核心复用节点）。", "why": "把检索抽成独立子图，避免每条链路各写一套检索。", "tech": "LangGraph 子图（subgraph），统一挂载数据源。", "optimize": "结果缓存，相同 query 直接命中。", "interview": "“检索为什么做成子图？”答：复用+可独立测试+统一质量门禁。"}, "ret_done": {"ico": "📤", "title": "检索结果输出", "tag": "OUT", "role": "输出 citations+research_context。", "flow": "返回上游或用户。", "reuse": "4 链路共用输出格式。", "why": "统一格式便于上游引用。", "tech": "字符串+结构化列表。", "optimize": "附带来源标签便于溯源。", "interview": "“检索结果如何保证质量？”答：质量门禁+重试+MCP 兜底。"}};
 
-</div>
-
-<footer>
-  <div class="foot-nav">
-    <a href="00_index.html">🏠 首页</a>·
-    <a href="01_architecture.html">🏛️ 总架构</a>·
-    <a href="02_contract_review.html">📋 合同审核</a>·
-    <a href="03_retrieval.html">🔍 检索</a>·
-    <a href="04_compliance.html">🛡️ 合规</a>·
-    <a href="05_legal_qa.html">💬 法律问答</a>·
-    <a href="06_xiaohongshu.html">📱 小红书</a>
-  </div>
-  <p>法智引擎 · LangGraph 多智能体架构 v3.0 · 设计铁律：AI 辅助 · 人工兜底</p>
-  <p style="margin-top:6px;">基于《律师法》第 13/28 条 · RAG + Neo4j + Milvus + bge-m3 + MinerU</p>
-</footer>
-
+function openNode(id){
+  var d=NODE_DATA[id]; if(!d) return;
+  document.getElementById('m-ico').textContent=d.ico||'📋';
+  document.getElementById('m-title').textContent=d.title||id;
+  var tag=document.getElementById('m-tag'); tag.textContent=d.tag||'节点详情';
+  var b=document.getElementById('m-body'); b.innerHTML='';
+  function add(cls,h,html){var s=document.createElement('div');s.className='m-sec '+cls;
+    s.innerHTML='<h3>'+h+'</h3>'+html;b.appendChild(s);}
+  if(d.role) add('','📌 节点作用（做什么 / 输入输出）','<p>'+d.role+'</p>');
+  if(d.flow) add('','🔄 如何流转到下一个节点','<p>'+d.flow+'</p>');
+  if(d.reuse) add('reuse','🔗 节点复用情况','<p>'+d.reuse+'</p>');
+  if(d.why) add('why','❓ 为什么设计这个节点','<p>'+d.why+'</p>');
+  if(d.tech) add('tech','⚡ 技术选型与理由','<p>'+d.tech+'</p>');
+  if(d.optimize) add('opt','🚀 可优化方向','<p>'+d.optimize+'</p>');
+  if(d.interview) add('iv','💼 面试可能会问','<p>'+d.interview+'</p>');
+  document.getElementById('modal-mask').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+function closeNode(){document.getElementById('modal-mask').classList.remove('on');document.body.style.overflow='';}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNode();});
+  </script>
 </body>
 </html>

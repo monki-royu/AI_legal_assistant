@@ -1,56 +1,177 @@
-# 📜 代码文字逻辑解析
-# 本文件是项目的"大模型客户端工厂"，负责把 Config 中读取到的 API Key、Base URL 和
-# 模型名实例化为一个 LangChain 标准的 ChatOpenAI 对象 my_llm，并暴露给项目所有需要
-# 调用大模型的模块（如多智能体节点、RAG 检索后答案生成、Cypher 生成等）统一使用。
-# 核心逻辑：模块加载时先 import LangChain 的消息类型 HumanMessage 和 ChatOpenAI 类，
-# 然后构造 Config 实例 conf 拿到配置，再用 conf 的三个属性实例化 my_llm。这样后续
-# 业务代码只需 `from common.llm import my_llm` 即可拿到一个配置好的 LLM 客户端，
-# 不必在每个文件里重复读取配置或重复实例化。函数关系：本模块依赖 common.config.Config，
-# 自身作为下游被 LangGraph 各节点、RAG 流程、知识图谱问答流程等 import；模块底部
-# __main__ 块为本地自测代码，演示了"构造消息列表 → 调用 invoke → 打印响应"的最小
-# 调用闭环，并通过大段注释解释了 Message 与 Context 在内存与显存上的差异。
+# 📜 ============================================================
+# 文件名称: common/llm.py
+# 文件作用: 项目的"大模型客户端工厂"
+# ============================================================
+#
+# 【这个文件是干什么的？】
+# 这个文件是整个法智引擎中"最被频繁调用的文件"之一。
+# 它只做一件事：从配置文件读取 API Key / Base URL / 模型名，
+# 然后实例化一个 LangChain 标准的 ChatOpenAI 客户端对象，
+# 存在模块级变量 my_llm 中，让全项目所有需要调用大模型的地方
+# 都能通过 from common.llm import my_llm 直接使用。
+#
+# 【为什么需要这个文件？】
+# 法智引擎中有几十个地方需要调用大模型（LLM）：
+#   - 合同审核AI节点：让LLM分析条款是否有风险
+#   - 合规审查节点：让LLM检查合同是否合规
+#   - 意图路由节点：让LLM判断用户想做什么
+#   - 检索增强节点：让LLM生成补充检索结果
+#   - 文书生成节点：让LLM撰写法律文书
+#   - ...等等
+# 如果每个文件都自己读配置、自己 new ChatOpenAI，就会造成：
+#   1. 代码重复 —— 每个文件都要写一样的配置读取逻辑
+#   2. 资源浪费 —— 每个文件都创建一个新的 HTTP 连接池
+#   3. 配置分散 —— 修改模型名要改几十个文件
+# 所以这个文件把"创建 LLM 客户端"这件事集中到一处，
+# 做成"模块级单例"（module-level singleton）。
+#
+# 【代码逻辑】
+# 1. import HumanMessage（消息类型）和 ChatOpenAI（LLM 客户端类）
+# 2. import Config（项目配置类，从 .env 读 API Key/Base URL/模型名）
+# 3. conf = Config() —— 实例化配置对象
+# 4. my_llm = ChatOpenAI(api_key=..., base_url=..., model=...) —— 创建客户端
+# 5. 其他模块只要 from common.llm import my_llm 就能拿到这个客户端
+# 6. my_llm.invoke(messages) 发送消息列表给大模型，得到回答
+#
+# 【谁在用它？】
+#   几乎所有业务节点！具体包括但不限于：
+#   - contract_ai_review_node    — 合同审核AI
+#   - compliance_review_node     — 合规审查
+#   - intent_router_node          — 意图路由
+#   - contract_classify_node      — 合同分类
+#   - clause_split_node           — 条款切分
+#   - numeric_extract_node        — 数值抽取
+#   - party_identify_node         — 甲乙方识别
+#   - final_delivery_node         — 最终交付
+#   - llm_direct_out_node         — LLM直答
+#   - check_cypher_node           — Cypher校验
+#   - generate_neo4j_cypher_node  — Cypher生成
+#   - retrieval_enhance_query_node — 检索增强
+#   - doc_case_analyze_node       — 案情分析
+#   - doc_clause_fill_node        — 条款填充
+#   - doc_risk_advisor_node       — 风险提示
+#   - ... 以及所有需要 LLM 能力的节点
+#
+# 【支持的模型】
+#   本项目使用 OpenAI 兼容 API 协议，所以只要是支持这个协议的模型都能用：
+#   - DeepSeek (deepseek-chat / deepseek-reasoner)
+#   - 通义千问 (qwen-max / qwen-plus)
+#   - 智谱 GLM (glm-4 / glm-3-turbo)
+#   - 本地部署的 vLLM / Ollama 等
+#   只需在 .env 文件中修改 MODEL_NAME / MODEL_BASE_URL / MODEL_API_KEY 即可切换。
 
-from langchain_core.messages import HumanMessage           # 从 langchain_core 导入 HumanMessage，表示"用户发言"这一类消息，用于构造对话上下文；与 SystemMessage/ AIMessage 一起组成 messages 列表
-from langchain_openai import ChatOpenAI                    # 从 langchain_openai 导入 ChatOpenAI，这是 LangChain 封装的 OpenAI 兼容聊天客户端，支持任何 OpenAI API 协议的服务（DeepSeek、通义、智谱等）
-from common.config import Config                           # 导入项目配置类 Config，用于读取 MODEL_API_KEY / MODEL_BASE_URL / MODEL_NAME
+# 【from langchain_core.messages import HumanMessage】：
+#   导入 LangChain 的消息类型 HumanMessage（人类消息）。
+#   LangChain 把与大模型的交互抽象为"消息列表"（messages list）：
+#     - HumanMessage：用户的发言
+#     - SystemMessage：系统指令（设置 AI 的角色和行为）
+#     - AIMessage：AI 的回复
+#   这个文件虽然只 import 了 HumanMessage（用于自测），
+#   但业务代码中会用到所有三种消息类型来构造对话上下文。
+from langchain_core.messages import HumanMessage
 
-conf = Config()                                            # 实例化 Config，把 .env 中的大模型相关配置加载到 conf 属性上，供下方 ChatOpenAI 使用
+# 【from langchain_openai import ChatOpenAI】：
+#   导入 LangChain 封装的 OpenAI 兼容聊天客户端。
+#   ChatOpenAI 是 LangChain 中最常用的 LLM 封装之一，
+#   它把"发送 HTTP 请求到 OpenAI API"这件事封装成了一个简单的 Python 对象。
+#   调用 my_llm.invoke(messages) 就会自动：
+#     1. 把 messages 列表序列化成 JSON
+#     2. 发送 POST 请求到 base_url/chat/completions
+#     3. 解析响应，取出 AI 的回答
+#     4. 返回一个 AIMessage 对象
+#   本项目使用的是"OpenAI 兼容协议"——也就是说，只要模型服务提供商的 API
+#   跟 OpenAI 的格式一样（DeepSeek、通义千问、智谱GLM等都是），就能用这个类。
+from langchain_openai import ChatOpenAI
+
+# 【from common.config import Config】：
+#   导入项目配置类。Config 从 .env 文件中读取三个关键配置：
+#     - MODEL_API_KEY：API 鉴权密钥（相当于密码）
+#     - MODEL_BASE_URL：API 服务地址（决定了请求发到哪个服务器）
+#     - MODEL_NAME：模型名称（决定了用哪个 AI 模型）
+#   这三个配置分别对应 ChatOpenAI 的三个参数。
+from common.config import Config
+
+# 【conf = Config()】：
+#   实例化 Config，触发 .env 文件读取。
+#   现在可以通过 conf.MODEL_API_KEY、conf.MODEL_BASE_URL、conf.MODEL_NAME
+#   来访问三个关键配置了。
+#   Config 类内部会缓存读取结果（模块级单例），多次实例化不会重复读 .env 文件。
+conf = Config()
 
 # ============ 配置llm区域 ============
-my_llm = ChatOpenAI(                                       # 创建全局共享的 ChatOpenAI 客户端实例 my_llm；模块级单例，避免每个调用方都重复构造造成连接浪费
-    api_key=conf.MODEL_API_KEY,                            # 鉴权密钥：从 conf 读取 API Key，ChatOpenAI 会把它放进 HTTP 请求头 Authorization: Bearer <key>
-    base_url=conf.MODEL_BASE_URL,                          # 服务地址：指定 OpenAI 兼容 API 的基础 URL，决定请求打到 DeepSeek/通义/本地 vllm 等哪个推理后端
-    model=conf.MODEL_NAME                                  # 模型名：指定具体调用的模型标识（如 deepseek-chat），服务端据此路由到对应权重
+# 【my_llm = ChatOpenAI(...)】：
+#   创建全局共享的 LLM 客户端实例。
+#   这是"模块级单例"（module-level singleton）——在 Python 中，
+#   模块级别的变量在第一次 import 时创建，之后所有引用该模块的代码
+#   拿到的都是同一个对象。这避免了在每个节点中重复创建 LLM 客户端。
+my_llm = ChatOpenAI(
+    # 【api_key】：API 鉴权密钥。
+    # ChatOpenAI 在每次请求时会把 api_key 放到 HTTP 请求头中：
+    #   Authorization: Bearer <api_key>
+    # 服务器根据这个密钥来识别用户身份和计费。
+    api_key=conf.MODEL_API_KEY,
+
+    # 【base_url】：API 服务地址。
+    # 决定了 HTTP 请求发到哪个服务器。例如：
+    #   - https://api.deepseek.com      （DeepSeek 官方）
+    #   - https://dashscope.aliyuncs.com （通义千问）
+    #   - http://localhost:8000/v1       （本地 vLLM 服务）
+    base_url=conf.MODEL_BASE_URL,
+
+    # 【model】：模型名称。
+    # 指定具体调用哪个 AI 模型。服务器根据这个参数选择合适的模型权重。
+    # 例如：deepseek-chat、qwen-max、glm-4 等。
+    model=conf.MODEL_NAME,
 )
 
-if __name__ == '__main__':
-    # 构造对话消息
-    # Message是Context的“砖块”。Context通常是由一系列Messages拼接而成的。例如，当你向大模型提问时，
-    # 后台实际发送给模型的Context可能是：[System Message] + [User Message 1] + [Assistant Message 1] + [User Message 2(当前)]。
-    #
-    # 1.Message = 一句话（一个发言片段）
-    # 在API中，一个Message 就是JSON列表里的一个元素
-    # 2.Context = 整个“记忆背包”
-    # Context是你发送给大模型的完整数据包。它通常由以下几部分组成：
-    # Context = 系统指令 + 多轮对话历史 + 外部知识
-    # 系统指令(SystemMessage)：比如“你是一个专业的翻译助手”。（1个 Message）
-    # 多轮对话历史：你们之前聊的10轮内容。（20个Messages）
-    # 外部知识(RAG)：系统偷偷塞给模型的一篇参考文章。（可能又算作 1~2 个 Messages）
-    # 当你问出第11个问题时，大模型看到的Context，就是前面这20多个Messages加上参考文章的整体组合
+# 【llm 别名】：兼容旧代码中的 from common.llm import llm。
+# 项目中有些模块（如 entity_extractor、cypher_generator）仍引用 llm,
+# 提供别名避免 ImportError。推荐新代码直接使用 my_llm。
+llm = my_llm
 
-    # 1.Message（消息）：占用的是“存储内存”本质：Message本质上是字符串（Text）。
-    # 内存表现：在内存中，它仅仅是一串字符编码（如UTF - 8）。它的内存占用非常小，通常只与文本的长度成正比（比如几千个汉字可能只占几十KB 的内存）。
-    # 生命周期：只要你不主动删除它，它就一直静静地躺在内存里，不会自动膨胀。
-    # 2. Context（上下文）：占用的是巨大的“计算内存”（显存） 当大模型开始处理这些 Message 时，它们会被转化为Context。在这个过程中，内存占用会呈指数级爆炸。因为
-    # Context 在内存中包含了以下极其消耗资源的结构：
-    # Token嵌入（Embeddings）：文本被切分成Token后，每个Token会被映射成一个高维向量（比如4096维的浮点数数组）。这比纯文本字符串占用的空间大得多。
-    # KVCache（键值缓存）：这是大模型最吃内存的地方！为了实现“记住上下文”，模型在计算注意力机制（Attention）时，必须把之前所有Message计算出来的Key 和Value矩阵缓存在显存中。
-    # Context越长，这个缓存占用的显存就越庞大。
-    # 激活值（Activations）：在模型进行前向推理时，神经网络每一层产生的中间计算结果都需要占用内存。
+# ============================================================
+# 模块自测入口
+# ============================================================
+if __name__ == '__main__':
+    # 【自测逻辑】：
+    #   直接运行 python -m common.llm 时执行下面的代码，
+    #   向大模型发一条消息，打印回复，验证 LLM 通路是否通畅。
+
+    # 【构造消息列表】：
+    # messages = [HumanMessage(content="...")]
+    # 这是一个"单轮对话"——只有一条用户消息，没有历史。
+    # 如果是多轮对话，messages 可以包含多个 HumanMessage 和 AIMessage：
+    #   messages = [
+    #       SystemMessage("你是法律助手"),
+    #       HumanMessage("民法典第584条是什么？"),
+    #       AIMessage("民法典第584条规定..."),
+    #       HumanMessage("能举个例子吗？"),
+    #   ]
+    # ⚠️ 注意：消息列表越长，消耗的 Token 越多（花钱越多！）。
     messages = [
-        HumanMessage(content="用一句话介绍一下你自己")       # 构造一个仅含单条用户消息的列表，content 是发送给模型的实际问题；列表形式是为了与多轮对话接口保持一致
+        HumanMessage(content="用一句话介绍一下你自己")
     ]
 
-    # 调用模型
-    response = my_llm.invoke(messages)                     # 同步调用 ChatOpenAI.invoke，把 messages 列表整体作为 Context 发给模型，返回一个 AIMessage 对象（含 content/usage 等字段）
-    print(response.content)                                # 打印响应正文字段 content，即模型生成的回答文本；调试时用于肉眼确认 LLM 通路是否打通
+    # 【调用模型】：
+    # response = my_llm.invoke(messages)
+    # invoke 方法做了以下事情：
+    #   1. 把 messages 序列化为 JSON
+    #   2. 组装 HTTP 请求（POST /chat/completions）
+    #   3. 发送请求并等待响应
+    #   4. 解析响应 JSON 为 AIMessage 对象
+    #   5. 返回 AIMessage 对象（包含回答文本、Token 用量等）
+    #
+    # 📌 Message vs Context（重要概念）：
+    #   - Message（消息）是"一句话"——占用的是普通内存（RAM），很小。
+    #   - Context（上下文）是整个消息列表 + 模型内部状态——占用的是显存（VRAM），很大！
+    #     因为模型在处理 Context 时，需要为每个 Token 计算并缓存 Key-Value 矩阵
+    #     （这就是 KVCache，占显存的大头）。
+    #   Context 越长，显存占用就越大，而且是指数级增长！
+    #   所以大模型 API 按 Token 数量收费，Token 越多越贵。
+    response = my_llm.invoke(messages)
+
+    # 【打印响应】：
+    # response.content 是 AI 生成的文本内容。
+    # 如果一切正常，应该打印出一句自我介绍。
+    # 如果报错，说明 API Key、Base URL 或网络可能有问题。
+    print(response.content)

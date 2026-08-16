@@ -1,4 +1,18 @@
 """N9 最终交付节点: 生成结构化报告, 含评分/风险清单/修正建议/法条引用/转介提示"""
+# ============================================================
+# 文件名称: nodes/final_delivery_node.py
+# 文件作用: 最终交付
+# ============================================================
+# 【这个文件是干什么的？】
+# 最终交付
+#
+# 【代码逻辑主线】
+# 参见各函数前的【功能】【参数】【返回值】【逻辑】说明。
+#
+# 【新手建议】
+# 先看主函数 -> 再看辅助函数。
+#
+
 # 📜 代码文字逻辑解析
 # 本文件是 AI 法律助理(LangGraph 多智能体协作)流程中的"最终交付节点(N9)",
 # 扮演整个合同审核流水线的"汇总输出"角色。它在前置节点(风险识别、合规审查、
@@ -113,6 +127,19 @@ def final_delivery_node(state: AgentState):
     lines.append(f"- **综合评分**: {score}/100")
     # 输出风险等级中文文案
     lines.append(f"- **风险等级**: {level_text}")
+    # 输出签约结论（来自 conflict_resolution_node 的合规审查决定）
+    # 【法律实务意义】合规审查有一票否决权：
+    #   can_sign="no" → 即使评分≥81，也**不得签约**
+    #   can_sign="conditional" → 即使评分≥81，也**须整改后方可签约**
+    can_sign = state.get("can_sign", "pass")
+    can_sign_map = {"pass": "✅ 可签约", "conditional": "⚠️ 条件通过（须整改）", "no": "❌ 不得签约"}
+    can_sign_text = can_sign_map.get(can_sign, "未知")
+    lines.append(f"- **签约结论**: {can_sign_text}")
+    # 合规否决权提示：若 can_sign=no，在报告中突出显示
+    if can_sign == "no":
+        lines.append(f"  > ⚡ **合规审查否决**: 存在违反强制性法律规定的风险, 建议**不得签约**")
+    elif can_sign == "conditional":
+        lines.append(f"  > ⚡ **合规审查预警**: 存在高风险合规项, **须整改后方可签约**")
     # 根据评分区间给出差异化的处置建议: 81+ 可自动输出; 61-80 需律师复核; 60 及以下强制人工
     if score >= 81:
         # 高分: 风险低, 可直接输出
@@ -205,9 +232,10 @@ def final_delivery_node(state: AgentState):
 
 # 脚本直接运行时的自测入口
 if __name__ == "__main__":
-    # 构造一个包含示例风险项、法条引用与当事人信息的测试 state
+    # 构造一个包含示例风险项、法条引用、当事人信息与签约结论的测试 state
     s = AgentState(
         overall_risk_score=72.5, risk_level="Medium",
+        can_sign="conditional",  # 合规审查结论：条件通过
         merged_risk_items=[{"severity": "high", "description": "违约金过高", "source": "合同审核",
                             "clause": "第3条", "legal_basis": "民法典585条", "suggestion": "降低比例"}],
         citations=[{"title": "民法典", "article_no": "第585条", "content": "违约金..."}],

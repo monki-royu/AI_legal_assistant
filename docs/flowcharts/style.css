@@ -330,6 +330,8 @@ a { color:inherit; text-decoration:none; }
 .t-qa h3   { color:#67e8f9; }
 .t-xhs     { border-color:rgba(244,114,182,0.4); }
 .t-xhs h3  { color:#f9a8d4; }
+.t-docgen  { border-color:rgba(129,140,248,0.4); }
+.t-docgen h3 { color:#a5b4fc; }
 
 /* ---------- 页脚 footer ---------- */
 footer {
@@ -514,6 +516,8 @@ footer .foot-nav { margin-bottom:10px; }
 [data-theme="light"] .t-qa h3 { color:#0891b2; }
 [data-theme="light"] .t-xhs { border-color:rgba(219,39,119,0.35); }
 [data-theme="light"] .t-xhs h3 { color:#db2777; }
+[data-theme="light"] .t-docgen { border-color:rgba(99,102,241,0.35); }
+[data-theme="light"] .t-docgen h3 { color:#6366f1; }
 
 [data-theme="light"] .design-item {
   background:rgba(0,0,0,0.02);
