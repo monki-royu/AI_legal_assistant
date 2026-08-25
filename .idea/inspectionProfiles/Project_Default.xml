@@ -13,6 +13,7 @@
           <option value="case.renmingfenleiqi.total_acc_list" />
           <option value="case.renmingfenleiqi.end_time" />
           <option value="requests.packages.urllib3" />
+          <option value="common.neo4j_retriever" />
         </list>
       </option>
     </inspection_tool>

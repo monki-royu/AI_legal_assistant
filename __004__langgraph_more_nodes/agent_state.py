@@ -1,177 +1,3 @@
-"""
-================================================================================
-【文件身份】 agent_state.py —— 法智引擎(AI 法律助理)多智能体编排系统的【状态数据契约】
-================================================================================
-
-【一句话概括】(用大白话讲给完全的新手)
-    本文件是整条 LangGraph 流水线中,被所有节点(Node)共享的"状态字典"的【类型蓝图】。
-    它本身【不执行任何业务逻辑】——不调用大模型、不查数据库、不写文件,
-    它只做一件事:用 Python 的类型注解(Type Annotation)告诉所有人——
-    "我们流水线里用来传递数据的那个大字典,里面有哪些键(Key)、每个键的值是什么类型(Type)"。
-
-    你可以把它想象成一张【快递面单模板】:
-    - 快递面单上预先印好了"收件人 / 寄件人 / 地址 / 电话"这些栏目(对应这里的【字段】);
-    - 真正寄快递时,每单才往里填具体内容(对应运行时节点往状态里写入的具体值);
-    - 面单模板本身不寄任何东西,但它规定了"一单快递应该长什么样"(对应本文件定义的状态结构)。
-
-【它服务的系统是什么】
-    本文件属于"法智引擎 / AI 法律助理"多智能体(Multi-Agent)编排项目,
-    项目目录为 __004__langgraph_more_nodes(意为"LangGraph 多节点"的第 4 个实验版本)。
-    系统基于 LangGraph 框架,把一次用户请求拆成一条【有向无环图/条件循环图】,
-    图上的每个【节点(Node)】是一个 Python 函数(放在 nodes/ 子目录下),
-    节点与节点之间的【边(Edge)】决定了数据流向和条件分支。
-
-【LangGraph 状态机制(新手必懂背景知识)】
-    1. 在 LangGraph 中,所有节点共享同一个【状态(State)】对象。
-    2. 这个 State 本质就是一个 Python 字典(dict):{"字段名": 值, ...}。
-    3. 每个节点函数接收整个 state 字典作为输入,处理完后【只返回一个局部字典】,
-       里面只包含它想要更新/新增的字段,例如 {"doc_text": "合同全文..."}。
-    4. LangGraph 的 StateGraph 会把节点返回的局部字典与当前状态做【合并(Merge)】,
-       相当于执行 state.update(局部字典),于是其他节点就能读到新值了。
-    5. 因为状态在节点间以【字典合并】的方式流转,所以我们用 TypedDict 来定义状态结构,
-       而不是用 Pydantic BaseModel —— TypedDict 是纯类型提示,零运行时开销,
-       与 dict 天然兼容,不会破坏 LangGraph 的合并机制。
-
-【六大业务链路(本文件字段按这六大链路组织)】
-    1. 合同审核链路(Contract Review, N1~N15):
-       用户输入合同文本 → 意图路由 → 文档解析 → 条款切分 → 数值抽取 →
-       三路并行风险检测(合同AI审核 / 合规审查 / 数值校验)→ 风险聚合 →
-       甲乙方识别 → 资信预判定 → 资信查询 → 最终报告交付。
-       对应字段: input / uploaded_doc_path / doc_text / doc_clauses /
-       extracted_numerics / contract_risk_items / compliance_risk_items /
-       numeric_risk_items / overall_risk_score / risk_level / party_a /
-       party_b / user_side / credit_* / final_report_markdown 等。
-    2. 合规审查链路(Compliance Review):
-       在合同审核链路中并行/串行执行,专门检测合同内容是否符合法律法规
-       (如《民法典》的强制性规定),输出 compliance_risk_items。
-    3. 法律检索链路(Legal Research, N1~N9 子图):
-       检索意图分解 → 基础层检索(FAISS 向量库 + 本地法规库)→ 增强层检索
-       (LLM 补充检索)→ RRF 融合排序 → 质量门禁 → 最终输出。
-       对应字段: retrieval_query / retrieval_keywords / base_citations /
-       enhance_citations / citations / quality_score / quality_retry_count /
-       human_intervention_needed / mcp_invoked 等。
-    4. 智能问答链路(Legal QA, 知识图谱 RAG):
-       LLM 抽取实体/概念/法规名 → Neo4j 实体匹配 → Cypher 生成 → Cypher 校验 →
-       执行查询 → 自然语言答案生成。
-       对应字段: user_input_entities / user_input_concepts / user_input_statutes /
-       matched_entities / cypher_query / is_all_validate_cypher / cypher_results /
-       neo4j_answer 等。
-    5. 小红书自动发布链路(Xiaohongshu Auto Publish):
-       发布意图检测 → 标题/正文文案生成 → 配图生成 → 图文合规检查 →
-       自动发布 → Markdown 存档。
-       对应字段: is_xiaohongshu_publish_intent / xiaohongshu_title /
-       xiaohongshu_content / xiaohongshu_image_path_list / xiaohongshu_tip /
-       is_can_publish_xiaohongshu / xiaohongshu_markdown_output 等。
-    6. 法律文书生成链路(Legal Document Generation):
-       案情分析 → 模板匹配 → 条款填充 → 法条校验(含最多 3 次重试回退)→
-       风险提示 → 类案推荐 → 最终交付。
-       对应字段: template_id / template_name / template_confidence /
-       law_validation / need_refill / doc_retry_count / final_document /
-       document_id 等。
-    另加: 独立检索页(案例检索 case_search / 法规查询 law_query)、
-    通用兜底链路(llm_direct_out_node 直接让 LLM 回答)。
-
-【完整流程图(简化版)】
-    START
-      └─►【意图路由】intent_router_node ──► 根据 task_type 分流到六大链路之一
-             ├─► 合同审核链路(含合规/数值三路风险、甲乙方、资信、报告)
-             ├─► 法律检索链路(检索→融合→质量门禁→输出)
-             ├─► 智能问答链路(知识图谱 RAG)
-             ├─► 小红书发布链路
-             ├─► 法律文书生成链路
-             ├─► 案例检索 / 法规查询(独立单节点链路)
-             └─► 通用兜底(LLM 直接回答)
-    END
-
-【依赖关系(谁依赖本文件)】
-    ★ 直接依赖(import 本文件 / 引用 AgentState):
-      - langgraph_main.py:
-          项目主入口,调用 build_graph() 构建并编译整张状态图;
-          图构建器 graph_builder = StateGraph(AgentState) 以本类为状态蓝图;
-          其中还定义了多个【条件路由函数】(如 check_cypher_router、
-          doc_law_validate_router 等),这些函数读取 state 中的字段
-          (如 is_all_validate_cypher / need_refill / doc_retry_count)来决定下一步走向。
-      - nodes/ 目录下全部 40+ 个节点文件:
-          每个节点函数签名都是 fn(state: dict) -> dict,
-          它们【读取】本文件中声明的某些字段作为输入,
-          【写入】另一些字段作为输出。因此本文件就是所有节点之间的
-          【数据总线 / 接口契约】——字段改了,节点函数的输入输出契约就要跟着改。
-    ★ 间接依赖:
-      - 前端调用方通过 legal_response 系列函数拿到最终 output 字段渲染展示;
-      - 本文件只做类型声明,本身不 import 任何节点,也不依赖任何第三方运行时库,
-        仅依赖 Python 标准库 typing 模块。
-
-【设计决策(为什么这么写)】
-    1. 用 TypedDict 而不是 dataclass / Pydantic:
-       - 因为 LangGraph 要求状态是 dict,节点返回的局部字典要与全量状态合并;
-       - TypedDict 只是"带类型的 dict 说明",运行时就是一个普通字典,合并零障碍;
-       - 若用 Pydantic BaseModel,序列化/合并会有额外开销与转换成本。
-    2. 用 total=False(全部字段可选):
-       - 不同业务分支(如合同审核 vs 小红书发布)只会写入自己路径上的字段;
-       - 若 total=True,创建状态时必须提供所有键,会导致大量空字段,违背灵活性;
-       - total=False 允许"按需写入",状态随流程逐步生长(field-by-field 填充)。
-    3. 一个文件承载六大链路的所有字段:
-       - 虽然字段很多,但集中管理便于统一查看"系统里到底有哪些数据";
-       - 代价是字段间耦合度较高,新增链路时需谨慎,避免字段名冲突。
-
-【本文件没有函数】
-    注意:本文件是【纯类型定义文件】,内部【没有任何函数】,只有:
-      1. 一条 import 语句;
-      2. 一个类定义 class AgentState(TypedDict, total=False),内含 81 个字段声明。
-    因此,常规的"函数级 docstring"规范在此处体现为:
-      1. 类级 docstring(【功能】【设计要点】【参数】【返回】【逻辑】);
-      2. 每个字段前的超详细教学注释 + 代码行尾注释。
-    每个字段的注释统一按以下五问法(5W)展开,便于新手理解:
-      ① 是什么(What): 这个字段存什么数据,名字(标识符)怎么理解;
-      ② 为什么(Why):  为什么状态里需要这个字段,少了它会怎样;
-      ③ 谁写入(Who writes): 哪个节点函数负责往这个字段里填值;
-      ④ 谁读取(Who reads):  哪些下游节点/路由函数会读这个字段;
-      ⑤ 示例值(Example):   实际运行时这个字段会长什么样。
-
-【给完全新手的阅读建议】
-    - 先读本文档头部,理解"状态字典"和"节点"两个概念;
-    - 然后按 输入 → 意图路由 → 文档解析 → … → 交付产物 的顺序逐节阅读;
-    - 读到每个字段时,先看 5W 注释,再看代码行,最后看行尾注释;
-    - 遇到不懂的英文术语(如 TypedDict / FAISS / RRF / Cypher),文中都有中文解释。
-"""
-# ================================================================================
-# 📜 代码文字逻辑解析(给新手的"逐行导读")
-# ================================================================================
-# 【整体认知】本文件是"法智引擎(AI 法律助理)多智能体编排系统"中
-#   【共享状态(Shared State)】的【唯一数据契约(Data Contract)】定义。
-#   在 LangGraph 框架中,多个节点(Node,即图中的每个处理函数)之间需要传递大量
-#   上下文信息,例如:用户输入的问题、抽取出的文档全文、检测出的风险项、
-#   检索到的法规引用、最终生成的报告等。这些五花八门的信息,全部被统一封装在
-#   一个名为 AgentState 的"状态字典"里,在节点之间流转共享。
-#   本文件之所以采用 Python 的 TypedDict 机制,而不是 Pydantic BaseModel,
-#   是为了与 LangGraph 的 StateGraph 完全兼容——因为 LangGraph 的状态
-#   在节点之间是以【字典(dict)合并】的方式更新的(节点返回局部字典,
-#   框架自动 update 进全局状态),TypedDict 就是"长着类型注解的字典",
-#   不会引入 Pydantic 的序列化/校验开销,也绝不干扰合并逻辑。
-#   该状态覆盖六大业务链路:合同审核(N1-N15)、合规审查、法律检索、知识图谱问答、
-#   小红书自动发布、通用兜底(LLM 直接回答)。
-#   状态里的每一个字段,都对应业务流程中某一个环节的【产物(Artifact)】,例如:
-#     - doc_text           → 文档提取的结果(合同全文);
-#     - contract_risk_items→ 合同审核 AI 输出的风险项清单;
-#     - cypher_query       → 面向知识图谱(Neo4j)生成的图查询语句;
-#     - final_report_markdown → 交付给用户看的最终报告。
-#   通过 total=False 的设计,所有字段均为【可选(Optional)】,
-#   允许不同业务分支只写入自己关心的字段,实现灵活的状态合并——
-#   比如小红书链路根本不会写 contract_risk_items,也完全没问题。
-#   整个 AgentState 就是各节点之间数据交换的【总线(Bus)】,
-#   其字段设计直接决定了每个节点函数的输入输出契约(Contract):
-#   节点函数读哪些键、写哪些键,都必须在这张"蓝图"里找得到。
-# typing 模块是 Python 标准库中提供"类型提示(Type Hints)"能力的模块:
-#   - TypedDict 用于定义"具有固定键值类型的字典"(即:字典的键有哪些、值的类型分别是什么);
-#   - List / Dict / Optional 用于精确描述字段的数据结构
-#     (如 List[str] 表示"字符串列表",Optional[int] 表示"可能是整数也可能是 None");
-#   这些类型注解虽然不影响程序运行,但能让 IDE(如 PyCharm / VS Code)提供
-#   智能提示(自动补全字段名)、类型检查(写错类型时标红),大幅降低出错概率。
-# --------------------------------------------------------------------------------
-# 下面这行 import 语句,把 typing 模块里我们需要的 4 个类型工具导入当前命名空间。
-# 其中 Optional 在本文件中虽未直接用于字段注解,但保留导入以支持其他模块的复用习惯,
-# 且不改变任何运行逻辑(导入即可,未使用不影响程序)。
-# --------------------------------------------------------------------------------
 from typing import TypedDict, List, Dict, Optional  # 导入类型工具:TypedDict(带类型字典)/List(列表)/Dict(字典)/Optional(可空类型)
 
 
@@ -239,16 +65,60 @@ class AgentState(TypedDict, total=False):
     contract_type: str                  # 合同类型(买卖/租赁/借贷/建设工程/政府采购/劳动/服务/技术/其他)：影响后续审核规则的选取
 
     # ----------------------------------------------------------------------------
-    # 【字段】review_mode —— 审核方案(用哪种方式审合同)
-    # ① 是什么(What): 决定合同审核走哪条路径的方案标识;
-    # ② 为什么(Why):  系统支持两种审核方式:
-    #    - AI_AUTO:      完全由大模型(LLM)自动审核,用户不提供额外规则;
-    #    - CUSTOM_RULES: 基于用户提供的自定义规则审核(如"违约金不得超过合同总价的20%");
-    # ③ 谁写入(Who writes): 由前端根据用户选择写入,或在意图路由阶段根据请求参数写入;
-    # ④ 谁读取(Who reads):  contract_ai_review_node 等审核节点读取,决定审核策略;
-    # ⑤ 示例值(Example): "AI_AUTO"
+    # 【字段】review_strategy —— 审核策略(决定合同审核走哪条审核路径)
+    # ① 是什么(What): 字符串枚举,决定合同审核使用哪一种审核策略;
+    # ② 为什么(Why):  系统现在支持三级审核策略:
+    #    - AI_AUTO:                完全由大模型(LLM)自动审核,用户不提供额外规则
+    #                               → 走 N5a 合同审核AI(LLM) + N5b 合规审查
+    #    - CUSTOM_RULES:           仅按用户自定义规则做确定性审核(正则/阈值/关键词)
+    #                               → 走 N5-B 规则引擎,跳过 LLM 审查,快速出结果
+    #    - CUSTOM_RULES_WITH_AI:   先走 N5-B 规则引擎,再由 N5a 做 AI 二次审核
+    #                               → 规则兜底+AI 复核,双重保障
+    # ③ 谁写入(Who writes): 由前端根据用户选择写入,或在意图路由阶段根据
+    #    custom_rules 是否存在、user_config 中的策略设置写入;
+    # ④ 谁读取(Who reads):  after_intent_router_router(条件路由,决定分流路径)、
+    #    contract_ai_review_node(决定是否注入规则结果做 AI 二次审核)、
+    #    rule_engine_node(决定扫描方式);
+    # ⑤ 示例值(Example): "CUSTOM_RULES_WITH_AI"
     # ----------------------------------------------------------------------------
-    review_mode: str                    # 审核方案：AI_AUTO(LLM自动审核) | CUSTOM_RULES(按自定义规则审核)
+    review_strategy: str                # 审核策略：AI_AUTO | CUSTOM_RULES | CUSTOM_RULES_WITH_AI
+
+    # ----------------------------------------------------------------------------
+    # 【字段】strategy_weights —— 策略权重映射(每条规则/策略的权重分数)
+    # ① 是什么(What): 字典,键是规则标识(如"rule_违约金上限"),值是权重(浮点数 0-100);
+    # ② 为什么(Why):  当启用 CUSTOM_RULES / CUSTOM_RULES_WITH_AI 时,
+    #    每条"用户自定义规则"或"规则引擎命中项"需要有独立的权重分,
+    #    下游风险聚合节点据此做加权评分,而非一律等权。
+    #    【设计思路来自 Word 图四】技术架构编排逻辑中,策略权重是用户规则审核
+    #    与 AI 审核之间的调节旋钮——权重高的规则在风险聚合中被放大,
+    #    权重低的规则仅作参考标记,不显著影响评分。
+    # ③ 谁写入(Who writes): rule_engine_node 根据规则命中情况和预设权重写入;
+    # ④ 谁读取(Who reads): risk_aggregate_node(风险聚合节点,加权评分);
+    # ⑤ 示例值(Example): {"rule_违约金上限_50%": 80, "rule_管辖地_乙方所在地": 60}
+    # ----------------------------------------------------------------------------
+    strategy_weights: Dict[str, float]  # 策略权重映射：{"规则标识": 权重分(0-100)}，规则审核与AI审核之间的调节旋钮
+
+    # ----------------------------------------------------------------------------
+    # 【字段】rule_risk_items —— 规则引擎风险项(确定性规则扫描结果)
+    # ① 是什么(What): 一个【列表】,元素是"用户自定义规则命中"的风险字典;
+    # ② 为什么(Why):  当 review_strategy 为 CUSTOM_RULES 或 CUSTOM_RULES_WITH_AI 时,
+    #    规则引擎(N5-B)用确定性代码(正则/阈值比对/关键词匹配)逐条扫描合同条款,
+    #    命中的即为"确定性风险"——不需要 LLM 判断,规则本身即结论。
+    #    这解决了"纯 LLM 审核可能漏检固定模式"的问题,也支持需要快速批量筛单的场景。
+    #    规则命中的每个风险项还携带"规则权重"(strategy_weights 中的对应值),
+    #    供下游风险聚合做加权评分时使用。
+    # ③ 谁写入(Who writes): rule_engine_node(规则引擎节点,N5-B)输出;
+    # ④ 谁读取(Who reads): risk_aggregate_node(风险聚合节点,汇入最终风险评分);
+    # ⑤ 示例元素(Example): {"rule_id": "rule_违约金上限",
+    #    "rule_name": "违约金不得超过合同总价的20%",
+    #    "severity": "high",
+    #    "description": "第八条约定的违约金比例30%超过用户自定义上限20%",
+    #    "clause": "第八条",
+    #    "segment_id": 8,
+    #    "weight": 80.0,
+    #    "hit_detail": "约定比例30% > 阈值20%"}
+    # ----------------------------------------------------------------------------
+    rule_risk_items: List[Dict]         # 规则引擎风险项：rule_engine_node 输出，确定性规则扫描结果，每条带权重分
 
     # ----------------------------------------------------------------------------
     # 【字段】custom_rules —— 自定义规则列表(用户自己定的审核标准)
@@ -277,10 +147,9 @@ class AgentState(TypedDict, total=False):
     # ④ 谁读取(Who reads): intent_router_router(条件路由函数)与后续各分支节点;
     # ⑤ 取值范围(Example): contract_review(合同审核)/compliance_review(合规审查)/
     #    legal_research(法律检索)/legal_qa(法律问答)/xiaohongshu(小红书)/
-    #    legal_document_gen(法律文书生成)/case_search(案例检索)/
-    #    law_query(法规查询)/other(其他,走通用兜底)
+    #    legal_document_gen(法律文书生成)/case_search(案例检索)/other(其他,走通用兜底)
     # ----------------------------------------------------------------------------
-    task_type: str                      # 任务类型：contract_review/compliance_review/legal_research/legal_qa/xiaohongshu/legal_document_gen/case_search/law_query/other
+    task_type: str                      # 任务类型：contract_review/compliance_review/legal_research/legal_qa/xiaohongshu/legal_document_gen/case_search/other
 
     # ============================================================================
     # 【第三类字段】==================== 意图锁定(Intent Lock, 优化后的新字段) ====================
@@ -317,6 +186,32 @@ class AgentState(TypedDict, total=False):
     mounted_sources: list               # 需挂载的数据源列表：["laws","cases","industry","interpretations"] 或 ["*"]全挂载
 
     # ----------------------------------------------------------------------------
+    # 【字段】sub_queries —— 检索意图分解后的子查询列表
+    # ① 是什么(What): 一个【列表】,元素是子查询字符串;
+    # ② 为什么(Why):  复杂法律问题需要拆成多个角度分别检索(如法律法规、司法案例),
+    #    提升召回的全面性;
+    # ③ 谁写入(Who writes): retrieval_intent_decompose_node 在 legal_qa 等场景写入;
+    # ④ 谁读取(Who reads): 下游检索节点可按子查询逐个或合并检索;
+    # ⑤ 示例值(Example): ["违约金约定的法律规定", "违约金过高的司法案例"]
+    # ----------------------------------------------------------------------------
+    sub_queries: list                  # 检索子查询列表：["子问1", "子问2", ...]
+
+    # ----------------------------------------------------------------------------
+    # 【字段】review_scope —— 检索拆解的法律面范围(task-aware 查询规划)
+    # ① 是什么(What): 一个【列表】,元素是法律面标识字符串;
+    # ② 为什么(Why):  检索"查询规划/分解"节点据此决定把原始查询拆成哪些角度:
+    #    - ["commercial"]        → 只拆商业/合同风险面(合同审核用)
+    #    - ["compliance"]        → 只拆合规/法条面(合规审查用)
+    #    - ["legal_qa"]          → 把用户问题扩成子问(法律问答用,不拆法律面)
+    #    - ["commercial","compliance"] → 双路并行拆解(合同审核整链)
+    # ③ 谁写入(Who writes): 入口链路节点(如 extract_entity_from_user_input_node
+    #    在 task_type==legal_qa 时写入 ["legal_qa"]),或 intent_router 按 task_type;
+    # ④ 谁读取(Who reads): retrieval_intent_decompose_node 做查询拆解;
+    # ⑤ 示例值(Example): ["legal_qa"]
+    # ----------------------------------------------------------------------------
+    review_scope: list                 # 检索拆解法律面：["legal_qa"] / ["commercial"] / ["compliance"] / 双路并行
+
+    # ----------------------------------------------------------------------------
     # 【字段】skip_fusion —— 是否跳过 RRF 融合
     # ① 是什么(What): 布尔标志,True 表示"不做融合,直接返回检索结果";
     # ② 为什么(Why):  RRF(Reciprocal Rank Fusion,倒数排名融合)是把多个数据源的
@@ -339,9 +234,11 @@ class AgentState(TypedDict, total=False):
     # 【字段】doc_text —— 文档全文(纯文本)
     # ① 是什么(What): 一份【纯字符串】,保存了文档被解析后的全部文字内容;
     # ② 为什么(Why):  后续所有需要"读合同"的节点都基于它工作——
-    #    clause_split_node 基于它切分条款,contract_ai_review_node 基于它做风险审查;
+    #    full_text_segment_node 基于它做全文本统一切分,numeric_extract_node 基于它抽数值,
+    #    审核/审查节点在 doc_segments 缺失时也会回退读它;
     # ③ 谁写入(Who writes): doc_extract_node(文档提取节点)解析 uploaded_doc_path 后写入;
-    # ④ 谁读取(Who reads): clause_split_node / contract_ai_review_node / numeric_extract_node 等;
+    # ④ 谁读取(Who reads): full_text_segment_node / numeric_extract_node /
+    #    contract_ai_review_node(回退) / compliance_review_node(回退) 等;
     # ⑤ 示例值(Example): "甲方:xxx公司……第一条 租赁物……"
     # ----------------------------------------------------------------------------
     doc_text: str                       # 文档全文：doc_extract_node 解析上传文档后得到的纯文本内容
@@ -363,17 +260,72 @@ class AgentState(TypedDict, total=False):
     doc_structured_json: Dict           # MinerU结构化JSON：{metadata, pages:[{page_idx, blocks:[{type,content,bbox}]}]}，多模态解析结果
 
     # ----------------------------------------------------------------------------
-    # 【字段】doc_clauses —— 切分后的条款列表
+    # 【字段】doc_segments —— 全文本统一切分单元(替代旧的"仅第X条"切分)
+    # ① 是什么(What): 一个【列表】,每个元素是一个【字典】,代表文档中的一个"审查单元";
+    #    单元类型有三种: preamble(前言/开头非条款文字)、clause(第X条结构化条款)、
+    #    paragraph(非结构化段落聚合而成的单元);
+    # ② 为什么(Why):  旧的 clause_split_node 用正则只切"第X条",导致两个硬伤——
+    #    (a) 正则 split 后从 index=1 开始遍历,把 index=0 的【前言直接丢弃】
+    #        (而"本合同由甲方…甲方有采购需求"这类前言常含数据授权/主体资格风险);
+    #    (b) 没有"第X条"的文档(如会议纪要、往来函件、OCR 出来没换行的一整坨文本)
+    #        会退化成 1 个巨型单元或整体丢失,审查粒度归零。
+    #    全文本统一切分保证【原文零丢失 + 每段都有编号】,审查才能真正做到可追溯。
+    # ③ 谁写入(Who writes): full_text_segment_node(全文本统一切分节点)基于 doc_text 输出;
+    # ④ 谁读取(Who reads): context_pack_node(算检索覆盖率)、contract_ai_review_node(N5a)、
+    #    compliance_review_node(N5b)——两者都按单元编号定位风险并回填 segment_id;
+    # ⑤ 元素结构(Example):
+    #    {"id": 1, "type": "preamble", "title": "前言", "text": "本合同由……",
+    #     "char_start": 0, "char_end": 42}
+    #    {"id": 2, "type": "clause", "title": "第一条", "text": "第一条 租赁物……",
+    #     "char_start": 42, "char_end": 210}
+    # ----------------------------------------------------------------------------
+    doc_segments: List[Dict]            # 全文本统一切分单元：[{id, type(preamble/clause/paragraph), title, text, char_start, char_end}]，原文零丢失且带编号可追溯
+
+    # ----------------------------------------------------------------------------
+    # 【字段】doc_clauses —— 切分后的条款列表(向后兼容投影)
     # ① 是什么(What): 一个【列表】,每个元素是一个【字典】,代表合同中的一条条款;
     # ② 为什么(Why):  合同审核需要"逐条"进行,而不是整篇混在一起;
     #    切分后便于按条款定位风险点,并在最终报告中逐条给出结论;
-    # ③ 谁写入(Who writes): clause_split_node(条款切分节点)基于 doc_text 输出;
-    # ④ 谁读取(Who reads): contract_ai_review_node(逐条审查)、risk_aggregate_node、
-    #    final_delivery_node(按条款生成报告);
+    #    【注意】本字段现已降级为 doc_segments 的【向后兼容投影】——
+    #    full_text_segment_node 在写 doc_segments 的同时,把其中 type=="clause" 的单元
+    #    投影成 doc_clauses(若一条 clause 都没有,则投影全部单元),
+    #    使历史上读 doc_clauses 的节点(risk_aggregate/final_delivery 等)不必改动。
+    #    新代码请优先读 doc_segments。
+    # ③ 谁写入(Who writes): full_text_segment_node(全文本统一切分节点,投影产出);
+    #    (历史实现为 clause_split_node,已被 full_text_segment_node 替代)
+    # ④ 谁读取(Who reads): risk_aggregate_node、final_delivery_node(按条款生成报告)等历史消费方;
     # ⑤ 元素结构(Example):
     #    {"id": 1, "title": "第一条 租赁物", "text": "……", "bbox": [x1,y1,x2,y2](可选,PDF定位用)}
     # ----------------------------------------------------------------------------
-    doc_clauses: List[Dict]             # 切分后的条款：[{id, title, text, bbox?}]，便于逐条审核与按条款定位风险点
+    doc_clauses: List[Dict]             # 切分后的条款(doc_segments 中 clause 单元的向后兼容投影)：[{id, title, text, bbox?}]
+
+    # ----------------------------------------------------------------------------
+    # 【字段】review_context_bundle —— 检索上下文包(喂给下游审核/审查智能体的结构化字段)
+    # ① 是什么(What): 一个【字典】,把"检索这一步到底做了什么、得到了什么、漏了什么"
+    #    完整打包成一个结构化对象;
+    # ② 为什么(Why):  架构上把检索前置到审核之前,本意是"审核时手里有法条依据"。
+    #    但旧实现里 retrieval_output_node 算出的 citations / research_context
+    #    【没有任何审核节点读取】——检索算完就被丢掉,"检索提前"只是流程图上的接线,
+    #    对审核结论毫无影响。本字段就是把这条数据通路真正接上。
+    #    另一个关键设计是【把"没检索到的部分"也传下去】:
+    #    只喂召回结果会让 LLM 误以为那就是全部依据,从而对无依据的条款编造法条;
+    #    显式告知"这些单元没有检索覆盖",LLM 才能选择"标注依据不足"而非幻觉引用。
+    # ③ 谁写入(Who writes): context_pack_node(检索上下文打包节点),
+    #    位于 retrieval_output_node 之后、审核/审查节点之前;
+    # ④ 谁读取(Who reads): contract_ai_review_node(N5a)、compliance_review_node(N5b);
+    # ⑤ 结构示例(Example):
+    #    {"retrieval_query": "违约金比例是否过高……",        # 检索原始查询文本
+    #     "retrieval_keywords": ["违约金", "民法典"],          # 检索关键词
+    #     "citations": [...],                                  # 完整召回条目(原样透传)
+    #     "citations_brief": [{"title","article_no","content"}],# 精简版,直接注入 prompt
+    #     "research_context": "【民法典第五百八十五条】……",     # 连续上下文文本
+    #     "quality_score": 82.5,                               # 检索质量分
+    #     "segment_total": 12,                                 # 切分单元总数
+    #     "retrieved_segment_ids": [2, 5, 7],                   # 被检索覆盖的单元编号
+    #     "unretrieved_segments": [{"id":1,"title":"前言"}],     # 未被覆盖的单元(无法条依据)
+    #     "coverage_ratio": 0.25}                              # 覆盖率
+    # ----------------------------------------------------------------------------
+    review_context_bundle: Dict         # 检索上下文包：{retrieval_query, retrieval_keywords, citations, citations_brief, research_context, quality_score, segment_total, retrieved_segment_ids, unretrieved_segments, coverage_ratio}
 
     # ============================================================================
     # 【第五类字段】==================== 数值抽取(Numeric Extraction) ====================
@@ -535,6 +487,77 @@ class AgentState(TypedDict, total=False):
     quality_retry_count: int            # 质量门禁重试计数(0~3)：0=首次，1~3为第1~3轮重试
 
     # ----------------------------------------------------------------------------
+    # 【字段】quality_gate_passed —— 质量门是否通过
+    # ① 是什么(What): 布尔标志, 检索质量是否达标;
+    # ② 为什么(Why):  quality_gate_retry 节点根据该字段决定放行或回边重试;
+    # ③ 谁写入(Who writes): retrieval_output_node / quality_gate_retry_node;
+    # ④ 谁读取(Who reads): 质量门路由函数 _quality_gate_router;
+    # ⑤ 示例值(Example): True / False
+    # ----------------------------------------------------------------------------
+    quality_gate_passed: bool           # 质量门是否通过：True=放行, False=回边重试
+
+    # ----------------------------------------------------------------------------
+    # 【字段】quality_max_retries —— 质量门最大重试次数
+    # ① 是什么(What): 整数, 质量门重试上限(默认 3);
+    # ② 为什么(Why):  防止质量门无限回边死循环;
+    # ③ 谁写入(Who writes): retrieval_output_node;
+    # ④ 谁读取(Who reads): 质量门路由函数;
+    # ⑤ 示例值(Example): 3
+    # ----------------------------------------------------------------------------
+    quality_max_retries: int            # 质量门最大重试次数(默认3)：超限强制放行
+
+    # ----------------------------------------------------------------------------
+    # 【字段】fusion_mode —— 检索融合模式
+    # ① 是什么(What): 字符串, 检索结果的融合方式;
+    # ② 为什么(Why):  单源直查(case_search)跳过跨源融合省计算,
+    #                  多源检索走「权威加权线性融合」(非 RRF);
+    # ③ 谁写入(Who writes): retrieval_fusion_sort_node;
+    # ④ 谁读取(Who reads): 前端展示 / retrieval_result_summarize 透传;
+    # ⑤ 示例值(Example): "single_source" / "weighted"
+    # ----------------------------------------------------------------------------
+    fusion_mode: str                    # 检索融合模式："single_source"单源直查 / "weighted"权威加权线性融合
+
+    # ----------------------------------------------------------------------------
+    # 【字段】resolved_citations —— 冲突消解后的引用池
+    # ① 是什么(What): 经 retrieval_conflict_resolution_node 消解后的 citation 列表;
+    # ② 为什么(Why):  在融合排序前先消解"新旧法/上下位/案例矛盾/私有-外部相悖"等冲突,
+    #                  让被废止/被权威源覆盖的低质条目退出主池, 提升后续排序与质量分的可信度;
+    # ③ 谁写入(Who writes): retrieval_conflict_resolution_node;
+    # ④ 谁读取(Who reads): retrieval_fusion_sort_node(优先消费, 兜底回退 base+enhance);
+    # ⑤ 示例元素: 同 citations, 附加 conflict_flags/doc_class/authority_weight/data_source_authority 字段
+    # ----------------------------------------------------------------------------
+    resolved_citations: List[Dict]      # 冲突消解后的引用池(含冲突标记与权威权重)
+
+    # ----------------------------------------------------------------------------
+    # 【字段】retrieval_conflict_log —— 检索冲突消解日志
+    # ① 是什么(What): 字符串列表, 记录每一条被检测/被消解的冲突及处置;
+    # ② 为什么(Why):  调试与端到端追溯(对齐 dual_review 的 conflict_log 设计);
+    # ③ 谁写入(Who writes): retrieval_conflict_resolution_node;
+    # ④ 谁读取(Who reads): 前端展示 / retrieval_eval 统计
+    # ----------------------------------------------------------------------------
+    retrieval_conflict_log: List[str]   # 检索冲突消解日志
+
+    # ----------------------------------------------------------------------------
+    # 【字段】detected_conflicts / resolved_conflicts —— 冲突计数
+    # ① 是什么(What): 整数, 检测到的冲突总数 / 已成功消解的冲突数;
+    # ② 为什么(Why):  供 retrieval_eval 计算"冲突消解率"指标(你指定的四维评估之一);
+    # ③ 谁写入(Who writes): retrieval_conflict_resolution_node;
+    # ④ 谁读取(Who reads): retrieval_fusion_sort_node(写入 retrieval_eval)
+    # ----------------------------------------------------------------------------
+    detected_conflicts: int             # 检测到的检索冲突数
+    resolved_conflicts: int             # 已消解的检索冲突数
+
+    # ----------------------------------------------------------------------------
+    # 【字段】retrieval_eval —— 检索融合质量四维评估
+    # ① 是什么(What): Dict, 含 coverage/relevance/timeliness/conflict_resolution_rate;
+    # ② 为什么(Why):  你指定的融合评估维度(覆盖率/相关性/时效性/冲突消解率),
+    #                  用于质量门判定之外的细粒度质检;
+    # ③ 谁写入(Who writes): retrieval_fusion_sort_node;
+    # ④ 谁读取(Who reads): 前端展示 / 质量门日志
+    # ----------------------------------------------------------------------------
+    retrieval_eval: Dict                # 检索融合质量四维评估
+
+    # ----------------------------------------------------------------------------
     # 【字段】human_intervention_needed —— 是否需要人类介入
     # ① 是什么(What): 布尔标志;
     # ② 为什么(Why):  当 quality_score 持续 3 轮都低于阈值(如 0.85)时置为 True,
@@ -544,6 +567,38 @@ class AgentState(TypedDict, total=False):
     # ⑤ 示例值(Example): True
     # ----------------------------------------------------------------------------
     human_intervention_needed: bool     # 是否需要人类介入：quality_score<0.85 持续3轮后置True，触发付费数据源确认
+
+    # ----------------------------------------------------------------------------
+    # 【字段】fabao_skipped —— 北大法宝付费接口是否跳过
+    # ① 是什么(What): 布尔标志;
+    # ② 为什么(Why):  检索质量分 ≥ 0.85 门禁阈值时,免费检索已足够,
+    #    跳过付费北大法宝接口,避免不必要费用;
+    # ③ 谁写入(Who writes): beida_fabao_gate_node;
+    # ④ 谁读取(Who reads): 前端展示 / 计费逻辑;
+    # ⑤ 示例值(Example): True
+    # ----------------------------------------------------------------------------
+    fabao_skipped: bool                  # 北大法宝付费接口是否跳过：质量分≥0.85门禁时跳过
+
+    # ----------------------------------------------------------------------------
+    # 【字段】fabao_retry_count —— 北大法宝调用重试次数
+    # ① 是什么(What): 整数,记录北大法宝门禁已尝试调用次数(0~3);
+    # ② 为什么(Why):  质量分不达标时最多再尝试 3 轮付费检索,防止无限调用;
+    # ③ 谁写入(Who writes): beida_fabao_gate_node;
+    # ④ 谁读取(Who reads): 门禁节点自身判断是否达上限;
+    # ⑤ 示例值(Example): 2
+    # ----------------------------------------------------------------------------
+    fabao_retry_count: int               # 北大法宝调用重试次数(0~3)：超限触发人工介入
+
+    # ----------------------------------------------------------------------------
+    # 【字段】human_intervention_prompt —— 人工介入提示文案
+    # ① 是什么(What): 字符串,需要人类确认时的提示语;
+    # ② 为什么(Why):  北大法宝为付费数据源,3 轮重试仍不达标时,
+    #    由前端弹出该提示询问用户是否确认付费调用;
+    # ③ 谁写入(Who writes): beida_fabao_gate_node;
+    # ④ 谁读取(Who reads): 前端(确认弹窗);
+    # ⑤ 示例值(Example): "检索质量偏低,是否调用北大法宝(付费)补充依据?"
+    # ----------------------------------------------------------------------------
+    human_intervention_prompt: str       # 人工介入提示文案：付费数据源确认弹窗内容
 
     # ----------------------------------------------------------------------------
     # 【字段】mcp_invoked —— 北大法宝 MCP 已调用标志
@@ -677,10 +732,10 @@ class AgentState(TypedDict, total=False):
     # 【字段】credit_precheck_citations —— 资信引用(全局复用)
     # ① 是什么(What): 列表,元素是资信相关的引用条目;
     # ② 为什么(Why):  这是【全局复用】的设计——retrieval_base_layer_node 和
-    #    neo4j_answer_generate_node 会【直接读取】它,把企业资信信息拼进检索上下文,
-    #    避免重复查询企查查;
+    #    legal_qa_answer_node(原 neo4j_answer_generate_node)与 retrieval_base_layer_node
+    #    会【直接读取】它,把企业资信信息拼进检索上下文,避免重复查询企查查;
     # ③ 谁写入(Who writes): credit_precheck_node;
-    # ④ 谁读取(Who reads): retrieval_base_layer_node、neo4j_answer_generate_node;
+    # ④ 谁读取(Who reads): retrieval_base_layer_node、legal_qa_answer_node;
     # ⑤ 元素结构(Example): 每项含 title/article_no/content/source/score,
     #    与 base_citations 格式保持一致
     # ----------------------------------------------------------------------------
@@ -729,7 +784,8 @@ class AgentState(TypedDict, total=False):
     # ① 是什么(What): 列表,元素是"资信审查"维度独立生成的风险项;
     # ② 为什么(Why):  企业若存在失信记录/经营异常/大量被执行,就是重要签约风险,
     #    需要单独成项进入最终风险清单;
-    # ③ 谁写入(Who writes): credit_check_node 根据甲乙双方资信情况生成;
+    # ③ 谁写入(Who writes): credit_precheck_node（企查查统一负责,意图路由后）生成;
+    #    原先由 credit_check_node（子图内 N8.5）生成,现资信查询已前置到 precheck;
     # ④ 谁读取(Who reads): risk_aggregate_node / final_delivery_node;
     # ⑤ 元素结构(Example): 每项含 source(资信审查)/party(甲方/乙方)/severity/
     #    description/suggestion 等字段
@@ -746,6 +802,38 @@ class AgentState(TypedDict, total=False):
     # ⑤ 示例值(Example): True=API查询成功, False=API不可用
     # ----------------------------------------------------------------------------
     credit_check_success: bool          # 资信查询是否成功：True=API查询成功；False=API不可用(降级为模拟数据或跳过)
+
+    # ----------------------------------------------------------------------------
+    # 【字段】credit_confirmed —— 用户是否已确认调用付费企查查 API
+    # ① 是什么(What): 布尔标志, 前端用户点击"确认调用"后由调用方写入;
+    # ② 为什么(Why):  企查查真实 API 按次计费, credit_check_node 在真实 API 模式下
+    #    必须先经用户确认才调用(付费接口问用户门控);
+    # ③ 谁写入(Who writes): 前端/__005__fastapi(用户确认弹窗回调, 带 True 重调);
+    # ④ 谁读取(Who reads): credit_check_node(门控判断);
+    # ⑤ 示例值(Example): True=用户已确认可调用付费接口; 缺省/False=未确认
+    # ----------------------------------------------------------------------------
+    credit_confirmed: bool              # 用户是否已确认调用付费企查查API：True=已确认；False/缺省=未确认(需先询问)
+
+    # ----------------------------------------------------------------------------
+    # 【字段】credit_confirm_needed —— 是否需要用户确认付费资信查询
+    # ① 是什么(What): 布尔标志, credit_check_node 检测到"真实API模式且用户未确认"时置 True;
+    # ② 为什么(Why):  供前端识别"本次未查询资信是因为等待用户付费确认",
+    #    弹出确认框让用户决定是否调用;
+    # ③ 谁写入(Who writes): credit_check_node;
+    # ④ 谁读取(Who reads): 前端(触发确认弹窗)/__005__fastapi;
+    # ⑤ 示例值(Example): True=等待用户确认; False=无需确认(Mock模式/已确认/无主体)
+    # ----------------------------------------------------------------------------
+    credit_confirm_needed: bool         # 是否需要用户确认付费资信查询：True=等待用户确认；False=无需确认
+
+    # ----------------------------------------------------------------------------
+    # 【字段】credit_confirm_prompt —— 付费资信查询的确认提示文案
+    # ① 是什么(What): 字符串, 含相对方名称与付费提醒的完整确认文案;
+    # ② 为什么(Why):  前端弹窗直接展示, 避免各端自行拼装文案造成不一致;
+    # ③ 谁写入(Who writes): credit_check_node;
+    # ④ 谁读取(Who reads): 前端(确认弹窗正文);
+    # ⑤ 示例值(Example): "检测到合同相对方【XX公司】。查询企查查资信需要付费…是否确认调用?"
+    # ----------------------------------------------------------------------------
+    credit_confirm_prompt: str          # 付费资信查询确认提示文案：credit_check_node 生成，前端弹窗展示
 
     # ============================================================================
     # 【第十二类字段】==================== 交付产物(Deliverables) ====================
@@ -790,8 +878,8 @@ class AgentState(TypedDict, total=False):
     # ② 为什么(Why):  它可能是报告摘要、问答答案或 LLM 直接回答——各类链路的
     #    "最终一句话/一段话"统一收口到这个字段;legal_response 系列函数
     #    就是读取该字段返回给调用方;
-    # ③ 谁写入(Who writes): 各链路的收尾节点(如 neo4j_answer_generate_node
-    #    把 neo4j_answer 填充到 output;llm_direct_out_node 直接写 output);
+    # ③ 谁写入(Who writes): 各链路的收尾节点(如 legal_qa_answer_node
+    #    把 legal_qa_answer/neo4j_answer 填充到 output;llm_direct_out_node 直接写 output);
     # ④ 谁读取(Who reads): 前端 / legal_response 系列函数;
     # ⑤ 示例值(Example): "根据《民法典》第五百八十五条……建议……"
     # ----------------------------------------------------------------------------
@@ -934,44 +1022,99 @@ class AgentState(TypedDict, total=False):
 
     # ----------------------------------------------------------------------------
     # 【字段】law_validation —— 法条校验结果
-    # ① 是什么(What): 字典,记录每条引用法条的真实性校验结果;
-    # ② 为什么(Why):  LLM 生成的文书可能引用【不存在的法条】(幻觉),
-    #    必须逐条校验真伪,保证文书法律严谨性;
-    # ③ 谁写入(Who writes): doc_law_validate_node(法条校验节点)输出;
-    # ④ 谁读取(Who reads): doc_final_delivery_node、前端展示;
+    # ① 是什么(What): 字典,记录法条引用的校验结果;
+    # ② 为什么(Why):  原 V2 架构中 doc_law_validate_node 生成, V3 已废弃;
+    #    V3 架构由 risk_advisor 内部调用检索子图获取 cited_laws, 不再需要独立校验;
+    # ③ 谁写入(Who writes): V3 不再写入 (保留字段兼容旧数据)
+    # ④ 谁读取(Who reads): doc_final_delivery_node (可选读取, 兜底展示)
     # ⑤ 结构示例(Example): {"status": "passed", "details": [{}], "summary": "..."}
     # ----------------------------------------------------------------------------
-    law_validation: dict                # 法条校验结果：{status, details:[{}], summary}，doc_law_validate_node 输出
+    law_validation: dict                # 法条校验结果: V3 保留字段兼容, 不再主动写入
 
     # ----------------------------------------------------------------------------
-    # 【字段】need_refill —— 是否需要回退重新填充
+    # 【字段】need_refill —— 是否需要回退重新生成文书
     # ① 是什么(What): 布尔标志;
-    # ② 为什么(Why):  当法条校验器判断【全部引用都为假】(即引用的法条全部不存在)
-    #    时置为 True,触发"回到条款填充节点重新生成引用法条"的重试循环;
-    # ③ 谁写入(Who writes): doc_law_validate_node(法条校验节点)写入
-    #    (见其节点代码: 全部虚假 → need_refill=True);
-    # ④ 谁读取(Who reads): langgraph_main.py 中的条件路由函数
-    #    doc_law_validate_router: 若 need_refill=True 且重试未达上限 → 回到
-    #    doc_clause_fill_node 重新填充(refill);否则继续进入风险提示节点;
+    # ② 为什么(Why):  V3 架构中, risk_advisor 内部调检索子图获取的法条/案例,
+    #    质量分低于阈值(70)时置为 True,触发"回到 clause_fill 重新生成草稿"的重试循环;
+    # ③ 谁写入(Who writes): doc_risk_advisor_node(风险提示+质量门控节点)写入;
+    # ④ 谁读取(Who reads): docgen_subgraph._risk_gate_router 路由函数
+    #    (need_refill=True 且 doc_retry_count<3 → retry 回 clause_fill);
     # ⑤ 示例值(Example): True
     # ----------------------------------------------------------------------------
-    need_refill: bool                   # 是否需要回退重新生成引用法条：法条全部为假时置True，触发回退重填
+    need_refill: bool                   # 是否需要回退重新生成文书: 质量不达标时置True, 触发回退重试
 
     # ----------------------------------------------------------------------------
-    # 【字段】doc_retry_count —— 法条校验重试次数
-    # ① 是什么(What): 整数,记录法条校验→回退重填的累计重试轮数;
-    # ② 为什么(Why):  与 langgraph_main.py 中的
-    #    doc_law_validate_router 配合:当 need_refill=True 且
-    #    doc_retry_count < 3 时返回 "refill" 回到条款填充;达到 3 次上限后
-    #    返回 "proceed" 继续前进,防止死循环;
-    #    (注:原文件中该字段因注释中的换行符意外被折叠进注释,此处按作者
-    #    设计意图恢复为正式字段声明,方便类型检查器识别该状态键)
-    # ③ 谁写入(Who writes): 文书生成链路的重试逻辑(每轮回退重填后 +1);
-    # ④ 谁读取(Who reads): langgraph_main.py 的 doc_law_validate_router 路由函数
+    # 【字段】doc_retry_count —— 质量门控重试次数
+    # ① 是什么(What): 整数,记录 risk_advisor 质量不达标→回退 clause_fill 的累计重试轮数;
+    # ② 为什么(Why):  与 docgen_subgraph._risk_gate_router 配合:
+    #    当 need_refill=True 且 doc_retry_count < 3 时返回 "retry" 回到 clause_fill;
+    #    达到 3 次上限后返回 "pass" 强制放行,防止死循环;
+    # ③ 谁写入(Who writes): doc_risk_advisor_node (每轮重试+1, 由 risk_advisor 递增);
+    # ④ 谁读取(Who reads): docgen_subgraph._risk_gate_router 路由函数
     #    (state.get("doc_retry_count", 0) < 3 判断);
     # ⑤ 示例值(Example): 2
     # ----------------------------------------------------------------------------
-    doc_retry_count: int                # 法条校验重试次数：配合need_refill控制回退重填，上限3次防死循环
+    doc_retry_count: int                # 质量门控重试次数：配合need_refill控制回退重填，上限3次防死循环
+
+    # ----------------------------------------------------------------------------
+    # 【字段】review_empty_input —— 空输入标志(预处理守卫 + 双审守卫共用)
+    # ① 是什么(What): 布尔,标记合同/文档内容是否为空;
+    # ② 为什么(Why):  空输入时短路到提示终端, 返回「请确认输入/重新上传」,
+    #                  全程不调用任何 LLM(防止模型对空文本凭空编造风险项);
+    # ③ 谁写入(Who writes): preprocess_guard_node(预处理层, 早拦截)
+    #                        + review_input_guard_node(双审层, 不变量兜底);
+    # ④ 谁读取(Who reads): dual_review_subgraph._review_empty_router 路由函数
+    #                        + 前端展示层;
+    # ⑤ 示例值(Example): True / False
+    # ----------------------------------------------------------------------------
+    review_empty_input: bool
+
+    # ----------------------------------------------------------------------------
+    # 【字段】is_contract_input —— 文本是否为合同正文(输入分流 + 分类空值依据)
+    # ① 是什么(What): 布尔,标记【文本路径】用户输入是否为合同/协议正文;
+    # ② 为什么(Why):  文本路径由 text_recognize 判定, 供 contract_classify 决定
+    #                  是否允许输出为空 —— 非合同文本(如合规业务描述/闲聊)时
+    #                  contract_type 写 "" 而非瞎编"其他"; 文档路径未判定时默认 True
+    #                  (信任用户上传的文档);
+    # ③ 谁写入(Who writes): text_recognize_node(文本路径: 相关=True / 合规=False /
+    #                       非合同+合同审核=block 前已置 False); 文档路径不写(默认 True);
+    # ④ 谁读取(Who reads): contract_classify_node(非合同 → contract_type="");
+    # ⑤ 示例值(Example): True / False
+    # ----------------------------------------------------------------------------
+    is_contract_input: bool
+
+    # ----------------------------------------------------------------------------
+    # 【字段】text_recognize_flag —— 文本识别节点的放行/拦截判定
+    # ① 是什么(What): 字符串枚举 "pass" / "block",text_recognize_node 写入;
+    # ② 为什么(Why):  contract_review + 非合同文本时在主图层短路到 END, 不进
+    #                  预处理/检索/双审; compliance_review 一律 pass(输入可非合同);
+    # ③ 谁写入(Who writes): text_recognize_node;
+    # ④ 谁读取(Who reads): langgraph_main._after_text_recognize(主图分流路由);
+    # ⑤ 示例值(Example): "pass"
+    # ----------------------------------------------------------------------------
+    text_recognize_flag: str
+
+    # ----------------------------------------------------------------------------
+    # 【字段】doc_empty_flag —— 文档提取后空/损坏守卫的放行/拦截判定
+    # ① 是什么(What): 字符串枚举 "pass" / "block",doc_empty_guard_node 写入;
+    # ② 为什么(Why):  用户上传的文件为空/损坏/解析失败时, 在主图层短路到 END,
+    #                  不进预处理/检索/双审(防止对空 doc_text 跑完整流水线);
+    # ③ 谁写入(Who writes): doc_empty_guard_node(文档路径, doc_extract 之后);
+    # ④ 谁读取(Who reads): langgraph_main._after_doc_empty_guard(主图分流路由);
+    # ⑤ 示例值(Example): "pass"
+    # ----------------------------------------------------------------------------
+    doc_empty_flag: str
+
+    # ----------------------------------------------------------------------------
+    # 【字段】need_user_confirm —— 是否需要用户补充/重新上传
+    # ① 是什么(What): 布尔,空输入终端(review_empty_result_node)置 True,
+    #                  提示前端引导用户确认输入是否完整并重新提交;
+    # ② 为什么(Why):  给前端一个显式信号, 便于展示"请重新上传"交互;
+    # ③ 谁写入(Who writes): review_empty_result_node;
+    # ④ 谁读取(Who reads): 前端展示层;
+    # ⑤ 示例值(Example): True
+    # ----------------------------------------------------------------------------
+    need_user_confirm: bool
 
     # ----------------------------------------------------------------------------
     # 【字段】final_document —— 最终生成的文书正文
@@ -1004,10 +1147,12 @@ class AgentState(TypedDict, total=False):
     # ① 是什么(What): 字符串,用户选择的案由(如"买卖合同纠纷");
     # ② 为什么(Why):  案由是案例检索最重要的过滤维度;
     # ③ 谁写入(Who writes): 前端传入;
-    # ④ 谁读取(Who reads): case_search_node(案例检索节点)、law_query_node(法规查询节点);
+    # ④ 谁读取(Who reads): 前端法规/案例独立直查页 -> FastAPI /laws/search、/cases/search
+    #   (直接检索知识库, 不经 LangGraph); 聊天自动意图归类为 case_search 时
+    #   由 retrieval_intent_decompose_node 消费作关键词补充。
     # ⑤ 示例值(Example): "劳动争议"
     # ----------------------------------------------------------------------------
-    case_type_filter: str               # 案例案由筛选：case_search_node/law_query_node 读取的检索过滤条件
+    case_type_filter: str               # 案例案由筛选：前端直查页 / laws·cases 检索接口读取的过滤条件
 
     # ----------------------------------------------------------------------------
     # 【字段】court_level_filter —— 法院级别筛选
@@ -1024,7 +1169,8 @@ class AgentState(TypedDict, total=False):
     # ① 是什么(What): 字符串,用户指定的法规名称(如"民法典");
     # ② 为什么(Why):  法规查询时按名称精确过滤;
     # ③ 谁写入(Who writes): 前端传入;
-    # ④ 谁读取(Who reads): law_query_node(法规查询节点);
+    # ④ 谁读取(Who reads): 前端独立"法规查询"页走 FastAPI /laws/search 直查, 不经 LangGraph。
+    #   注: LangGraph 检索子图不再存在 law_query 任务类型。
     # ⑤ 示例值(Example): "民法典"
     # ----------------------------------------------------------------------------
     law_name_filter: str                # 法规名称筛选：法规查询时按名称过滤
@@ -1034,7 +1180,8 @@ class AgentState(TypedDict, total=False):
     # ① 是什么(What): 两个整数,分别表示"第几页"与"每页多少条";
     # ② 为什么(Why):  检索结果可能很多,分页返回避免一次性传输过大;
     # ③ 谁写入(Who writes): 前端传入;
-    # ④ 谁读取(Who reads): case_search_node、law_query_node;
+    # ④ 谁读取(Who reads): 统一检索子图(单源直查分支) / 前端独立检索页分页参数(FastAPI 直查);
+    #   注: case_search_node 文件已不存在, 已由统一检索子图替代。
     # ⑤ 示例值(Example): search_page=1, search_page_size=20
     # ----------------------------------------------------------------------------
     search_page: int                    # 分页页码：当前请求第几页
@@ -1057,20 +1204,6 @@ class AgentState(TypedDict, total=False):
     # ----------------------------------------------------------------------------
     case_search_total: int              # 案例检索命中总数：用于前端分页展示
     # 上面这行定义了 case_search_total 字段,类型是 int(整数)。
-
-    # ----------------------------------------------------------------------------
-    # 【字段】law_query_results / law_query_total —— 法规查询结果与总数
-    # ① 是什么(What): results 是法规查询结果列表,total 是命中总条数;
-    # ② 为什么(Why):  与案例检索同理,支撑法规查询页面的列表与分页;
-    # ③ 谁写入(Who writes): law_query_node 输出;
-    # ④ 谁读取(Who reads): 前端;
-    # ⑤ 示例值(Example): results=[{law_name, article_no, content, ...}], total=56
-    # ----------------------------------------------------------------------------
-    law_query_results: list             # 法规查询结果列表：law_query_node 输出的命中法规
-    # 上面这行定义了 law_query_results 字段,类型是小写 list(内置列表类型)。
-    # ----------------------------------------------------------------------------
-    law_query_total: int                # 法规查询命中总数：用于前端分页展示
-    # 上面这行定义了 law_query_total 字段,类型是 int(整数)。
 
     # ============================================================================
     # 【第十七类字段】==================== 知识图谱问答(Knowledge Graph QA) ====================
@@ -1174,20 +1307,33 @@ class AgentState(TypedDict, total=False):
     # ② 为什么(Why):  是答案生成节点的"原料"——图查询返回的关系/节点数据,
     #    供组装最终自然语言回答;
     # ③ 谁写入(Who writes): run_cypher_node(Cypher 执行节点)输出;
-    # ④ 谁读取(Who reads): neo4j_answer_generate_node(答案生成节点);
+    # ④ 谁读取(Who reads): legal_qa_answer_node(答案生成节点);
     # ⑤ 示例值(Example): [{"law": "民法典", "article": "第五百八十五条", "content": "..."}]
     # ----------------------------------------------------------------------------
     cypher_results: List[dict]          # cypher查询结果：run_cypher_node 执行后返回的记录字典列表，供答案生成
 
     # ----------------------------------------------------------------------------
-    # 【字段】neo4j_answer —— 知识图谱答案
-    # ① 是什么(What): 字符串,基于 cypher_results 生成的自然语言答案;
-    # ② 为什么(Why):  该字段会被填充到 output 字段,作为 legal_qa 链路的最终输出;
-    # ③ 谁写入(Who writes): neo4j_answer_generate_node 输出;
-    # ④ 谁读取(Who reads): 链路收尾逻辑(把 neo4j_answer 写入 output);
+    # 【字段】neo4j_answer —— 知识图谱答案(兼容字段, 见 legal_qa_answer)
+    # ① 是什么(What): 字符串,法律问答链路的答案;
+    # ② 为什么(Why):  历史字段, legal_qa_answer_node 仍会写入它以保持向后兼容,
+    #    真正面向前端的是 output 字段;
+    # ③ 谁写入(Who writes): legal_qa_answer_node(原 neo4j_answer_generate_node 改名复用);
+    # ④ 谁读取(Who reads): legal_response 系列函数读取 output 返回前端;
     # ⑤ 示例值(Example): "根据《民法典》第五百八十五条……"
     # ----------------------------------------------------------------------------
-    neo4j_answer: str                   # 知识图谱答案：基于cypher_results生成的自然语言答案，最终填充到output
+    neo4j_answer: str                   # 知识图谱答案(兼容别名)：legal_qa_answer_node 同时写入, 内容=融合后答案
+
+    # ----------------------------------------------------------------------------
+    # 【字段】legal_qa_answer —— 法律问答融合答案(双路 RAG)
+    # ① 是什么(What): 字符串,法律问答(legal_qa)链路的最终答案;
+    # ② 为什么(Why):  该链路走"共享 5 节点检索子图(轻量 3 库)+ Neo4j Cypher"双路,
+    #    本字段是【两路融合】后的答案:优先用向量召回条文(review_context_bundle),
+    #    无向量结果时回退到 KG(cypher_results),两路皆空才标注"无依据"兜底;
+    # ③ 谁写入(Who writes): legal_qa_answer_node 输出;
+    # ④ 谁读取(Who reads): legal_response 系列函数读取 output 返回前端;
+    # ⑤ 示例值(Example): "根据《民法典》第585条及知识图谱关系……"
+    # ----------------------------------------------------------------------------
+    legal_qa_answer: str                # 法律问答融合答案：向量召回 + KG 双路融合 RAG, 写入 output
 
     # ============================================================================
     # 【第十八类字段】==================== 思考过程(流式展示) ====================
@@ -1205,3 +1351,56 @@ class AgentState(TypedDict, total=False):
     # ⑤ 示例值(Example): "① 识别到任务类型:合同审核 → ② 正在解析文档…"
     # ----------------------------------------------------------------------------
     think_process: str                  # 思考过程文本(供前端展示)：各节点追加内容，前端流式渲染推理步骤
+
+    # ============================================================================
+    # 【第十九类字段】==================== QA 子图内部路由 ====================
+    # 法律问答(legal_qa)链路的内部三级路由:
+    #   当任务被分类为 legal_qa 后, 进入 QA 子图内部,
+    #   通过 qa_intent_classify 节点判断用户问题是"法律相关"还是"非法律相关",
+    #   法律相关 → 检索智能体(法律法规/案例)路径;
+    #   非法律相关 → LLM 直接回答(兜底)路径。
+    # ============================================================================
+
+    # ----------------------------------------------------------------------------
+    # 【字段】is_legal_related —— 问题是否法律相关
+    # ① 是什么(What): 布尔标志;True = 法律相关,False = 非法律相关;
+    # ② 为什么(Why):  QA 子图内部的三级路由判断依据:
+    #    - True → 走检索智能体(检索法规/案例 → 融合 → 质量门禁 → 最终回答);
+    #    - False → 走 LLM 直接回答(非法律问题,如闲聊/问候/编程问题);
+    # ③ 谁写入(Who writes): qa_intent_classify 节点(原 legal_qa_intent_node 重命名);
+    # ④ 谁读取(Who reads): QA 子图内部条件路由函数(qa_intent_router);
+    # ⑤ 示例值(Example): True
+    # ----------------------------------------------------------------------------
+    is_legal_related: bool              # 问题是否法律相关：QA子图内部三级路由依据，True→检索路径，False→LLM直接回答
+
+    # ============================================================================
+    # 【2026-08 补声明】以下 16 个字段此前被节点写入但未在本 TypedDict 中声明。
+    # LangGraph 对未声明字段【静默丢弃】(不报错) —— 已在 langgraph 1.2.9
+    # (ctm_kg py3.10) 环境下实测确认: 节点 return {"api_sources": [...]} 后,
+    # 下游节点 state.get("api_sources") 永远拿不到, 导致北大法宝付费门禁
+    # (beida_fabao_gate_node) 判断①"未挂载 beida_fabao 源"而永不生效。
+    # 全量 AST 审计(所有 *_node 函数 return dict 顶层键 vs 本类注解)收敛出此清单。
+    # ============================================================================
+    api_sources: List[str]              # L3 外部API源列表: retrieval_intent_decompose_node 写入; beida_fabao_gate_node 读取(含"beida_fabao"才启用付费门禁)
+    domain_sources: List[str]           # L1 领域知识源列表: retrieval_intent_decompose_node 写入(三层挂载详情)
+    graph_sources: List[str]            # L2 图谱知识源列表: retrieval_intent_decompose_node 写入(三层挂载详情)
+    planned_top_k: int                  # 期望检索返回条数: retrieval_intent_decompose_node 写入; beida_fabao_gate_node 读取
+    retrieval_plan: str                 # 检索计划文本 (已废弃, 保留兼容)
+    retrieval_strategy: str             # 检索策略标识 (已废弃, 保留兼容)
+    research_query: str                 # 研究查询字符串: llm_query_extract_node 写入; beida_fabao_gate_node 读取(fallback 查询)
+    retrieval_queries: List[str]        # 多路检索查询列表: llm_query_extract_node 写入
+    cross_layer_stats: Dict             # 跨层检索统计: retrieval_cross_layer_node 写入
+    result_summary: str                 # 检索结果摘要: retrieval_result_summarize_node 写入
+    similar_cases: List[Dict]           # 相似案例推荐列表: doc_risk_advisor_node 写入(V3: 内部调 case_search 子图获取)
+    draft_content: str                  # 文书草稿(Markdown): doc_clause_fill_node 写入(V3: 纯 LLM 生成, 不含检索)
+    cited_laws: List[Dict]              # 引用法条列表: doc_risk_advisor_node 写入(V3: 内部调 law_search 子图获取)
+    rag_retrieved_laws: List[Dict]      # RAG 检索法条(兼容保留): doc_clause_fill_node V3 不再写入
+    risk_items: List[Dict]              # 综合风险条目(空输入守卫清空用): review_empty_result_node 写入
+    post_conflict_risk_items: List[Dict]  # 冲突消解后风险条目(空输入守卫清空用): review_empty_result_node 写入
+
+    # ── V3 文书生成子图新增字段 ──
+    retrieval_quality_score: float      # 组合检索质量分: doc_risk_advisor_node 写入(0.5×law+0.5×case)
+    doc_force_delivery: bool            # 强制交付标志: doc_risk_advisor_node 写入(retry≥3 时为 True)
+    doc_law_done: bool                  # 法条分支完成标志: V3 保留(兼容, 不再 fan-in 使用)
+    doc_risk_done: bool                 # 风险分支完成标志: doc_risk_advisor_node 写入
+    doc_case_done: bool                 # 案例分支完成标志: V3 保留(兼容, 不再 fan-in 使用)

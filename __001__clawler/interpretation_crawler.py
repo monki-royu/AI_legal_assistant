@@ -5,12 +5,12 @@
 
 【数据源】
 1. 国家法律法规数据库 flk.npc.gov.cn — 利用 flk_client.py 的同步 API 搜索+详情+条文解析
-2. 通过 LLM（llm_gen.py）按真实条号补齐正文内容
 
 【策略】
 1. 调用 flk_client.search_laws(keyword) 搜索目标司法解释
 2. 解析真实元数据（司法解释名称/公布日期/时效性/制定机关）
-3. 条文正文由于外网拿不到 docx/OFD 原文，用 LLM 按真实条号补齐
+3. 条文正文仅采用 flk 真实原文；拿不到原文时保留「正文待补充」占位，绝不编造
+   （已删除原 LLM 按条号补全正文的逻辑 —— 防幻觉）
 4. 输出到 data/interpretations/*.txt，由 kb_builder.py 统一导入知识库
 
 【去重】
@@ -54,7 +54,7 @@ def crawl_interpretations(keywords: str = "", max_per_interpretation: int = 30) 
     """
     司法解释采集入口。
 
-    从 flk.npc.gov.cn 搜索目标司法解释，解析条文章节，用 LLM 补齐正文，
+    从 flk.npc.gov.cn 搜索目标司法解释，解析条文章节，正文仅用 flk 真实原文（不编造），
     写入 txt 文件到 data/interpretations/ 目录，供 kb_builder 消费。
 
     Parameters
@@ -87,7 +87,7 @@ def crawl_interpretations(keywords: str = "", max_per_interpretation: int = 30) 
         strip_tags,
         sxx_to_status,
     )
-    from __001__clawler.llm_gen import generate_article_contents
+    # 注: 已删除 LLM 条文补全 (generate_article_contents) —— 防幻觉, 不编造法条
 
     for name in targets:
         # 1) 搜索：同步调用，返回 (total, rows)
@@ -110,17 +110,13 @@ def crawl_interpretations(keywords: str = "", max_per_interpretation: int = 30) 
                 articles = articles[:max_per_interpretation]
 
         if not articles:
-            # API 未返回条文结构(司法解释常见)，生成合理的默认条号列表
-            # 按司法解释惯例，默认生成 30 条
-            print(f"  [IntCrawler] {real_name} API 未返回条文结构，生成默认 30 条占位...")
-            articles = [
-                {"article_no": f"第{i}条", "chapter": ""}
-                for i in range(1, 31)
-            ][:max_per_interpretation]
+            # API 未返回条文结构: 不编造条号/正文, 跳过该解释(留待人工补数据)
+            print(f"  [IntCrawler] {real_name} API 未返回条文结构, 跳过(不编造条文)")
+            continue
 
-        # 3) 用 LLM 补齐正文（与法律爬虫策略一致）
+        # 3) 正文: 不调用 LLM 编造法条; 无真实原文的条款保留「正文待补充」占位
         article_nos = [a["article_no"] for a in articles]
-        contents = generate_article_contents(real_name, article_nos)
+        contents = {}
 
         # 4) 写入 txt 文件
         out_path = os.path.join(OUTPUT_DIR, f"{real_name}.txt")

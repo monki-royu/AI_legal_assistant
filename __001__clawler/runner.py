@@ -68,7 +68,7 @@ def run_task(task_type: str, keywords: str = "") -> int:
         if task_type == "laws":
             from __001__clawler.__002__crawl_law_database import crawl_single_law, TARGET_LAWS, export_law_index
             from common.path_utils import root_dir
-            output_dir = os.path.join(root_dir, "__001__clawler", "法律法规")
+            output_dir = os.path.join(root_dir, "data", "laws_txt")
             os.makedirs(output_dir, exist_ok=True)
             if keywords.strip():
                 targets = [{"name": keywords.strip(), "code": "", "keywords": ""}]
@@ -94,12 +94,6 @@ def run_task(task_type: str, keywords: str = "") -> int:
             from __001__clawler.cases_collector import generate_cases
             count = generate_cases(keywords=keywords)
             print(f"[Runner] 裁判案例任务完成, 新增 {count} 个")
-            return count
-
-        elif task_type == "industry":
-            from __001__clawler.industry_standard_crawler import crawl_industry
-            count = crawl_industry(keywords=keywords)
-            print(f"[Runner] 行业标准任务完成, 采集 {count} 条")
             return count
 
         elif task_type == "interpretations":

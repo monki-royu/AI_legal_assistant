@@ -39,7 +39,6 @@
 #   - compliance_review_node     — 合规审查
 #   - intent_router_node          — 意图路由
 #   - contract_classify_node      — 合同分类
-#   - clause_split_node           — 条款切分
 #   - numeric_extract_node        — 数值抽取
 #   - party_identify_node         — 甲乙方识别
 #   - final_delivery_node         — 最终交付
@@ -51,6 +50,15 @@
 #   - doc_clause_fill_node        — 条款填充
 #   - doc_risk_advisor_node       — 风险提示
 #   - ... 以及所有需要 LLM 能力的节点
+#
+# 【哪些节点【不】用它？】
+#   纯本地计算的节点不依赖 LLM，零成本零延迟，例如：
+#   - full_text_segment_node      — 全文本统一切分（正则锚点 + 段落聚合 + 句界兜底）
+#   - context_pack_node           — 检索上下文打包（字符串匹配算覆盖率）
+#   - numeric_validate_node       — 数值校验（规则引擎）
+#   - risk_aggregate_node         — 风险聚合（加权计分）
+#   审核/审查节点内部的"规则预筛层"(common/review_context_utils.py)同样是纯正则，
+#   先用规则标出重点单元，再把 LLM 的算力集中花在语义判断上。
 #
 # 【支持的模型】
 #   本项目使用 OpenAI 兼容 API 协议，所以只要是支持这个协议的模型都能用：
@@ -122,6 +130,15 @@ my_llm = ChatOpenAI(
     # 指定具体调用哪个 AI 模型。服务器根据这个参数选择合适的模型权重。
     # 例如：deepseek-chat、qwen-max、glm-4 等。
     model=conf.MODEL_NAME,
+
+    # 【timeout】：单次 HTTP 请求超时(秒), 从配置 MODEL_TIMEOUT 读取(默认 300)。
+    # 闲聊/短问答 120s 足够; 但重负载任务(法条概念抽取: 8000 字输入 + 大 JSON 输出)
+    # 实测 120s 会 "Request timed out" 而降级规则抽取, 故调大并做成可配置。
+    timeout=conf.MODEL_TIMEOUT,
+
+    # 【max_retries】：请求失败重试次数。
+    # 默认 2 次; 降为 1 次以缩短最坏等待, 重试仍失败时由调用方降级(规则抽取)。
+    max_retries=1,
 )
 
 # 【llm 别名】：兼容旧代码中的 from common.llm import llm。

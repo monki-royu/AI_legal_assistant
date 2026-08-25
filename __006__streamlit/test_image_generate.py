@@ -27,7 +27,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # 导入被测模块
-from __004__langgraph_more_nodes.nodes.image_generate_node import (
+from __004__langgraph_more_nodes.nodes.xhs_publish_nodes.image_generate_node import (
     sanitize_title_for_filename,
     generate_legal_image_prompt,
     generate_placeholder_image,
@@ -192,9 +192,9 @@ def test_node_mock_jimeng_ai():
     print(f"  Mock图片: {mock_image_path}\n")
 
     # patch generate_image 使其返回mock路径，同时patch Config使其假装有AK/SK
-    with patch("__004__langgraph_more_nodes.nodes.image_generate_node.generate_image",
+    with patch("__004__langgraph_more_nodes.nodes.xhs_publish_nodes.image_generate_node.generate_image",
                return_value=mock_image_path) as mock_gen, \
-         patch("__004__langgraph_more_nodes.nodes.image_generate_node.conf") as mock_conf:
+         patch("__004__langgraph_more_nodes.nodes.xhs_publish_nodes.image_generate_node.conf") as mock_conf:
         mock_conf.JIMENG_AK = "fake_ak"
         mock_conf.JIMENG_SK = "fake_sk"
 

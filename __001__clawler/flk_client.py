@@ -563,25 +563,10 @@ def _parse_html_to_articles(full_text: str) -> dict:
 
 
 # ------------------------------------------------------------
-# 旧版 API (已下线, 保留函数签名但直接跳过, 防止旧代码崩溃)
+# 旧版 API (已下线)
+# 已删除已废弃的搜索方法: search_laws_old / get_download_path / download_law_docx
+# (flk.npc.gov.cn 已升级 SPA, 旧接口下线, 且全项目无任何调用)
 # ------------------------------------------------------------
-def search_laws_old(keyword: str, page: int = 1, size: int = 10,
-                    timeout: int = 15) -> list:
-    """旧版API已下线(flk.npc.gov.cn已升级SPA), 直接返回空."""
-    print(f"  [flk旧版] API已下线, 跳过")
-    return []
-
-
-def get_download_path(old_id: str, timeout: int = 15) -> str:
-    """旧版API已下线, 直接返回空."""
-    return ""
-
-
-def download_law_docx(url: str, timeout: int = 30) -> bytes:
-    """旧版API已下线, 直接抛错."""
-    raise RuntimeError("flk旧版API已下线, 不支持下载")
-
-
 def parse_docx_articles(content: bytes) -> dict:
     """解析 docx/doc 文件二进制 (保留给 law-flk-vol1 未来使用)."""
     import io

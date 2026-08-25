@@ -40,7 +40,7 @@ if _PROJECT_ROOT not in sys.path:
 
 # 直接复用 __004__langgraph_more_nodes.nodes.auto_publish_xiaohongshu_node 中的
 # XiaohongshuUploader / auto_publish_xiaohongshu，逻辑与 LangGraph 节点一致
-# (参考 auto_publish_xiaohongshu_node.py 第 178 行 auto_publish_xiaohongshu 函数)
+# (参考 xhs_auto_publish_node.py 第 178 行 auto_publish_xiaohongshu 函数)
 
 
 def main():
@@ -92,7 +92,7 @@ def main():
 
         # 直接复用项目内 auto_publish_xiaohongshu 函数（与 LangGraph 节点同一实现）
         try:
-            from __004__langgraph_more_nodes.nodes.auto_publish_xiaohongshu_node import (
+            from __004__langgraph_more_nodes.nodes.xhs_publish_nodes.xhs_auto_publish_node import (
                 auto_publish_xiaohongshu,
             )
         except ImportError as ie2:

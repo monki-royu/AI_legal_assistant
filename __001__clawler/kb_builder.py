@@ -4,52 +4,51 @@
 ====================================
 
 【模块定位】
-本文件负责把爬虫/采集器落地到磁盘的"原始文本数据"统一转换为"结构化知识库",
-供 common/retrieval_engine.py 检索引擎消费。转换流程:
+把"原始文本数据"统一转换为"结构化 JSON 文档集",
+供 FAISS 索引构建(rebuild_faiss_single.py) 和知识图谱构建(generate_neo4j_cypher.py)消费。
 
+【数据流向】
   原始数据                                                    知识库产物
   ─────────────────────────────────────────────────────────────────────
-  __001__clawler/法律法规/*.txt            ──►  data/knowledge_base/laws_docs.json
-  __001__clawler/裁判案例/*/*.txt          ──►  data/knowledge_base/cases_docs.json
+  data/laws_txt/*.txt                      ──►  data/knowledge_base/laws_docs.json
+  data/regulations/*.txt                   ──►  data/knowledge_base/regulations_docs.json
+  data/cases_txt/*/*.txt                   ──►  data/knowledge_base/cases_docs.json
   data/industry_sources/*.txt              ──►  data/knowledge_base/industry_docs.json
   data/interpretations/*.txt               ──►  data/knowledge_base/interpretations_docs.json
-  data/law/*.docx (官方docx原文, 可选)      ──►  并入 laws_docs.json
+  data/law/*.docx (官方docx原文, 可选, 当前未提供) ──► 并入 laws_docs.json
 
 【核心设计】
-  1. 统一文档结构: 每条文档都含"文本字段"与"元数据字段", 检索引擎据此做
-     BM25/FAISS/关键词多级检索, 并在结果中保留完整溯源信息(法规名/条号/来源);
-  2. 幂等构建: 构建时按 (title|article_no) 确定性去重, 重复执行不会产生重复文档;
-  3. 增量友好: 每次全量重建(数据量小, 重建秒级), 无需维护增量状态;
-  4. 可选预建索引: 调用 build_indexes() 可预构建 BM25/FAISS 索引到
-     data/knowledge_base/index/, 供检索引擎直接加载(否则引擎懒加载构建)。
+  1. 统一文档结构: 每条文档都含文本字段 + 元数据字段(法规名/条号/来源等),
+     供下游 FAISS 向量编码与 Neo4j 实体抽取直接使用;
+  2. 幂等构建: 按 (title|article_no) 确定性去重, 重复执行不产生重复文档;
+  3. 全量重建: 数据量小(千级条文), 每次全量重建秒级完成, 无需增量状态。
 
 【对外函数】
   - parse_law_txt(path)           : 解析单部法律 txt → 条文列表
   - parse_law_docx(path)          : 解析官方 docx 原文 → 条文列表
   - parse_case_txt(path)          : 解析单个案例 txt → 案例文档
   - parse_industry_txt(path)      : 解析行业标准 txt → 条款列表
-  - build_laws_docs() / build_cases_docs() / build_industry_docs() / build_interpretations_docs()
-  - build_all()                   : 一键构建全部知识库 + 预建索引
-  - build_indexes()               : 预建 BM25/FAISS 索引
+  - parse_interpretation_txt(path): 解析司法解释 txt → 条款列表
+  - build_laws_docs()             : 构建法律法规文档集
+  - build_regulations_docs()      : 构建行政法规/部门规章文档集
+  - build_cases_docs()            : 构建裁判案例文档集
+  - build_industry_docs()         : 构建行业标准文档集
+  - build_interpretations_docs()  : 构建司法解释文档集
+  - build_all()                   : 一键构建全部 5 类文档集
+
+【索引构建】
+  本文件不再负责 FAISS/BM25 索引构建。索引构建统一由
+  __003__create_neo4j_database/rebuild_faiss_single.py 完成
+  (支持分块编码、断点续跑、OOM 保护)。
 
 【外部依赖】
   - python-docx(可选): 仅解析 data/law/*.docx 官方原文时使用, 缺失时自动跳过
-  - faiss-cpu + sentence-transformers(可选): 预建 FAISS 索引时使用, 缺失时跳过
 """
-# 📜 代码文字逻辑解析
-# 本文件是"数据 → 知识"的转换枢纽。爬虫产出的是人类可读的 txt 文本, 而检索引擎
-# 需要的是结构化的 JSON 文档集(每条文法/每份案例/每条标准条款)。本构建器逐目录
-# 扫描原始数据, 用正则切分"第X条"边界、解析元信息头, 输出统一的 *_docs.json,
-# 并在同目录 index/ 下预建 BM25 与 FAISS 索引(可选), 让检索引擎开箱即用。
-# 解析规则与 __001__clawler/__002__crawl_law_database.py 的 txt 写入格式严格对齐:
-# 法律 txt 头部是 "# 字段: 值" 形式, 正文是 "[章节]" + "第X条 内容"; 案例 txt 头部
-# 是 "# 案件标题: xxx" 等, 正文是 【案情摘要】/【判决结果】/【引用法条】 三段。
 import os          # 标准库: 路径拼接与目录扫描
 import sys         # 标准库: stdout 编码重配(Windows GBK 环境兼容)
 import re          # 标准库: 正则表达式, 条文/章节/段落边界匹配
 import json        # 标准库: JSON 序列化, 写 *_docs.json
 import glob        # 标准库: 通配符匹配文件路径(扫描 txt/docx)
-import pickle      # 标准库: pickle 序列化, 缓存 BM25/FAISS 索引
 import hashlib     # 标准库: md5, 生成确定性文档唯一键(去重用)
 
 # 统一 stdout 为 UTF-8, 避免 Windows GBK 控制台打印 emoji/中文报错
@@ -66,21 +65,21 @@ from common.path_utils import root_dir
 # ======================================================================
 # 常量: 目录与正则
 # ======================================================================
-# 知识库根目录(检索引擎 common/retrieval_engine.py 读取同一目录)
+# 知识库根目录 (输出 *_docs.json 的目录)
 KB_DIR = os.path.join(root_dir, "data", "knowledge_base")
-INDEX_DIR = os.path.join(KB_DIR, "index")
 
 # 原始数据目录
-LAW_TXT_DIR = os.path.join(root_dir, "__001__clawler", "法律法规")   # 法律 txt 文本
+LAW_TXT_DIR = os.path.join(root_dir, "data", "laws_txt")              # 法律 txt 文本(已从 __001__clawler/法律法规 迁移)
 LAW_DOCX_DIR = os.path.join(root_dir, "data", "law")                 # 官方 docx 原文
-CASE_TXT_DIR = os.path.join(root_dir, "__001__clawler", "裁判案例")  # 裁判案例 txt(按案由分子目录)
+CASE_TXT_DIR = os.path.join(root_dir, "data", "cases_txt")             # 裁判案例 txt(按案由分子目录, 已从 __001__clawler/裁判案例 迁移)
 INDUSTRY_TXT_DIR = os.path.join(root_dir, "data", "industry_sources")  # 行业标准 txt
 INTERPRETATION_TXT_DIR = os.path.join(root_dir, "data", "interpretations")  # 司法解释 txt
+REGULATIONS_TXT_DIR = os.path.join(root_dir, "data", "regulations")  # 行政法规/部门规章 txt (新增)
 
-# 条文起始正则: "第X条" 或 "第X条之X"(中文数字)
-ARTICLE_RE = re.compile(r"^(第[〇零一二三四五六七八九十百千万两]+条(?:之[〇零一二三四五六七八九十]+)?)")
-# 章节正则: "第一编/第二章/第三节" 或无编号的"附则"
-CHAPTER_RE = re.compile(r"^(第[〇零一二三四五六七八九十百千万两]+[编章节]|附\s*则)")
+# 条文起始正则: "第X条" 或 "第X条之X"(支持中文数字和阿拉伯数字)
+ARTICLE_RE = re.compile(r"^(第(\d+|[〇零一二三四五六七八九十百千万两]+)条(?:之(\d+|[〇零一二三四五六七八九十]+))?)")
+# 章节正则: "第一编/第二章/第三节" 或无编号的"附则"(支持中文数字和阿拉伯数字)
+CHAPTER_RE = re.compile(r"^(第(\d+|[〇零一二三四五六七八九十百千万两]+)[编章节]|附\s*则)")
 
 
 # ======================================================================
@@ -444,6 +443,41 @@ def build_industry_docs() -> int:
     return len(docs)
 
 
+def build_regulations_docs() -> int:
+    """构建行政法规/部门规章/地方性法规知识库: 扫描 data/regulations/*.txt, 输出 regulations_docs.json。
+
+    文档结构与 laws 一致 (law_name/article_no/content), 另带 law_level 标签
+    (administrative_regulation / department_rule) 供冲突消解确定性规则消费。
+    """
+    docs = {}
+    if os.path.isdir(REGULATIONS_TXT_DIR):
+        for fpath in glob.glob(os.path.join(REGULATIONS_TXT_DIR, "*.txt")):
+            parsed = parse_law_txt(fpath)
+            law_name = parsed.get("law_name", "")
+            # law_level 推断: 条例/地方性法规 → 行政法规, 其余 → 部门规章
+            if any(k in law_name for k in ("条例", "地方", "经济特区", "自治区", "实施条例", "自治条例")):
+                level = "administrative_regulation"
+            else:
+                level = "department_rule"
+            for a in parsed.get("articles", []):
+                key = _doc_id(law_name, a["article_no"])
+                docs[key] = {
+                    "doc_id": key,
+                    "law_name": law_name,
+                    "article_no": a["article_no"],
+                    "chapter": a.get("chapter", ""),
+                    "content": a.get("content", ""),
+                    "effective_date": parsed.get("effective_date", ""),
+                    "status": parsed.get("status", "现行有效"),
+                    "source": parsed.get("source", "本地txt"),
+                    "law_level": level,
+                    "data_source_authority": "internal_private",
+                    "search_text": f"{law_name} {a.get('article_no','')} {a.get('chapter','')} {a.get('content','')}",
+                }
+    _write_docs_json("regulations", list(docs.values()))
+    return len(docs)
+
+
 def build_interpretations_docs() -> int:
     """构建司法解释知识库: 扫描 data/interpretations/*.txt, 输出 interpretations_docs.json。"""
     docs = {}
@@ -481,84 +515,37 @@ def _write_docs_json(corpus: str, docs: list):
     print(f"  ✅ [KB] {corpus}: {len(docs)} 条 -> {out_path}")
 
 
-def build_indexes():
-    """
-    预建 BM25 与 FAISS 索引(可选优化)。
-
-    说明: 检索引擎 common/retrieval_engine.py 本身会在首次检索时懒加载/懒构建索引,
-    本函数用于"提前构建 + 缓存", 让首次检索即命中索引, 避免线上首次查询变慢。
-    BM25 索引纯 Python 构建(零依赖); FAISS 索引依赖 faiss-cpu + embedding 模型,
-    缺失时自动跳过(检索引擎会降级为 BM25/关键词)。
-    """
-    os.makedirs(INDEX_DIR, exist_ok=True)
-    from common.retrieval_engine import Bm25Index
-    # 遍历全部数据源, 加载文档并构建/缓存 BM25 索引
-    for corpus in ("laws", "cases", "industry", "interpretations"):
-        docs_path = os.path.join(KB_DIR, f"{corpus}_docs.json")
-        if not os.path.exists(docs_path):
-            continue
-        with open(docs_path, "r", encoding="utf-8") as f:
-            docs = json.load(f)
-        if not docs:
-            continue
-        # BM25 索引构建(纯 Python)
-        bm25 = Bm25Index(docs)
-        bm25_path = os.path.join(INDEX_DIR, f"{corpus}_bm25.pkl")
-        with open(bm25_path, "wb") as f:
-            pickle.dump(bm25, f)
-        print(f"  ✅ [KB] {corpus} BM25 索引: {len(docs)} 条 -> {bm25_path}")
-
-        # FAISS 索引构建(可选, 依赖 embedding 模型)
-        try:
-            from common.embedding_model import embedding_model
-            import faiss
-            import numpy as np
-            texts = []
-            for d in docs:
-                if corpus == "laws":
-                    texts.append(f"{d.get('law_name','')} {d.get('article_no','')} {d.get('content','')}")
-                elif corpus == "cases":
-                    texts.append(f"{d.get('case_title','')} {d.get('case_summary','')}")
-                else:
-                    texts.append(d.get("search_text", ""))
-            vectors = embedding_model.encode(texts, batch_size=32, normalize_embeddings=True)
-            vectors = np.asarray(vectors, dtype=np.float32)
-            index = faiss.IndexFlatIP(vectors.shape[1])
-            index.add(vectors)
-            faiss.write_index(index, os.path.join(INDEX_DIR, f"{corpus}_faiss.index"))
-            with open(os.path.join(INDEX_DIR, f"{corpus}_id2text.pkl"), "wb") as f:
-                pickle.dump(docs, f)
-            print(f"  ✅ [KB] {corpus} FAISS 索引: {len(docs)} 条")
-        except Exception as e:
-            print(f"  ⚠️ [KB] {corpus} FAISS 索引构建跳过: {e}")
-
-
 # ======================================================================
 # 一键构建入口
 # ======================================================================
 def build_all():
     """
-    一键构建全部知识库(法规+案例+行业+司法解释), 并预建检索索引。
+    一键构建全部知识库(法规+行政法规+案例+行业+司法解释), 输出 *_docs.json。
 
     用法: python -m __001__clawler.kb_builder
+
+    注意: 本函数只生成结构化文档 JSON, 不构建索引。
+    FAISS/BM25 索引构建请使用:
+      python -m __003__create_neo4j_database.rebuild_faiss_single
     """
     print("=" * 60)
-    print("📚 知识库构建器启动")
+    print("📚 知识库构建器启动 (仅生成结构化文档, 不构建索引)")
     print("=" * 60)
     n_laws = build_laws_docs()
+    n_regs = build_regulations_docs()
     n_cases = build_cases_docs()
     n_industry = build_industry_docs()
     n_ints = build_interpretations_docs()
     print("-" * 60)
     print(f"  法规条文: {n_laws} 条")
+    print(f"  行政法规/部门规章: {n_regs} 条")
     print(f"  裁判案例: {n_cases} 个")
     print(f"  行业标准: {n_industry} 条")
     print(f"  司法解释: {n_ints} 条")
     print("-" * 60)
-    print("🔧 预建检索索引(BM25 + FAISS)...")
-    build_indexes()
-    print("=" * 60)
-    print(f"✅ 知识库构建完成, 输出目录: {KB_DIR}")
+    print(f"✅ 文档 JSON 构建完成, 输出目录: {KB_DIR}")
+    print("    如需构建 FAISS 索引, 请运行:")
+    print("    python -m __003__create_neo4j_database.rebuild_faiss_single")
     print("=" * 60)
 
 

@@ -77,7 +77,7 @@
 # 下游依赖（谁在使用本文件，即"调用方"）：
 #   · common/llm.py —— 用 MODEL_API_KEY / MODEL_BASE_URL / MODEL_NAME 创建
 #     ChatOpenAI 大模型客户端；
-#   · common/neo4j_manager.py —— 用 NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD
+#   · common/neo4j_client.py —— 用 NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD
 #     连接 Neo4j 图数据库；
 #   · common/embedding_model.py —— 用 EMBEDDING_MODEL_PATH 加载本地向量化模型；
 #   · common/mcp_beidafabao.py —— 用 BEIDA_FABAO_TOKEN / BEIDA_FABAO_BASE_URL /
@@ -156,7 +156,7 @@ from dotenv import load_dotenv  # 行尾：这是"拿工具"的动作；真正"�
 # 【逻辑】common 是一个"包"（包 = 带 __init__.py 的目录），path_utils 是包内的
 #         模块，get_file_path 是该模块里的函数。导入路径用"点"（.）分隔，意思是
 #         "从 common 包里取出 path_utils 模块，再取出 get_file_path 函数"。
-from common.path_utils import get_file_path  # 行尾：get_file_path 内部用 os.path.join(root_dir, relative_path) 拼接路径；它拼出来的绝对路径字符串会被 load_dotenv() 和 open() 直接使用
+from common.path_utils import get_file_path, root_dir  # 行尾：get_file_path 内部用 os.path.join(root_dir, relative_path) 拼接路径；它拼出来的绝对路径字符串会被 load_dotenv() 和 open() 直接使用；root_dir 用于直接拼接 FAISS 索引路径等场景
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -325,8 +325,14 @@ class Config:
         # 【逻辑】os.getenv("MODEL_NAME") 按名查找 → 赋值给 self.MODEL_NAME。
         self.MODEL_NAME = os.getenv("MODEL_NAME")  # 行尾：模型名必须和服务商实际支持的模型名完全一致（大小写、连字符都要对），否则 API 会报 model not found 错误
 
+        # 【属性定义】self.MODEL_TIMEOUT
+        # 【功能】LLM 单次请求超时(秒)。重负载任务(如 8000 字法条的概念抽取, 长输入+长
+        #         JSON 输出)生成耗时远超闲聊, 120s 不够会 "Request timed out" 降级规则抽取。
+        # 【取值来源】环境变量 MODEL_TIMEOUT, 未配置默认 300(兼顾长任务与故障暴露速度)。
+        self.MODEL_TIMEOUT = int(os.getenv("MODEL_TIMEOUT", "300"))
+
         # ═══════════════════════════════════════════════════════════════════
-        # 【B. Neo4j 图数据库相关】—— 供 common/neo4j_manager.py 连接图数据库使用
+        # 【B. Neo4j 图数据库相关】—— 供 common/neo4j_client.py 连接图数据库使用
         # ═══════════════════════════════════════════════════════════════════
 
         # 【属性定义】self.NEO4J_URI
@@ -484,6 +490,44 @@ class Config:
         self.ENTITY_ID2TEXT_PATH = get_file_path("__003__create_neo4j_database/nero4j_embedding_faiss_id2text.pkl")  # 行尾：pkl 是 Python pickle（序列化）文件格式，需要用 pickle.load 读取成字典 {id: 文本}；这个文件和上面的 .index 文件必须配套生成，否则 id 对不上
 
         # ═══════════════════════════════════════════════════════════════════
+        # 【F2. 领域知识库 FAISS 索引】—— 三层架构: 各领域独立索引
+        # ═══════════════════════════════════════════════════════════════════
+        # 每个领域(laws/cases/industry/interpretations)都有独立的 FAISS 索引,
+        # 便于按需加载和并行检索, 减少单索引的体积和加载时间.
+        _KB_INDEX_DIR = os.path.join(root_dir, "data", "knowledge_base", "index")
+        self.FAISS_INDEX_PATHS = {
+            "laws": {
+                "index": os.path.join(_KB_INDEX_DIR, "laws_faiss.index"),
+                "id2text": os.path.join(_KB_INDEX_DIR, "laws_id2text.pkl"),
+            },
+            "regulations": {
+                "index": os.path.join(_KB_INDEX_DIR, "regulations_faiss.index"),
+                "id2text": os.path.join(_KB_INDEX_DIR, "regulations_id2text.pkl"),
+            },
+            "cases": {
+                "index": os.path.join(_KB_INDEX_DIR, "cases_faiss.index"),
+                "id2text": os.path.join(_KB_INDEX_DIR, "cases_id2text.pkl"),
+            },
+            "industry": {
+                "index": os.path.join(_KB_INDEX_DIR, "industry_faiss.index"),
+                "id2text": os.path.join(_KB_INDEX_DIR, "industry_id2text.pkl"),
+            },
+            "interpretations": {
+                "index": os.path.join(_KB_INDEX_DIR, "interpretations_faiss.index"),
+                "id2text": os.path.join(_KB_INDEX_DIR, "interpretations_id2text.pkl"),
+            },
+        }
+        # 三层架构默认挂载规则 (供 retrieval_intent_decompose_node 使用)
+        self.DEFAULT_TASK_MOUNTS = {
+            "contract_review": {"domain": ["laws", "regulations", "cases", "industry"], "graph": ["neo4j_graph"], "api": []},
+            "compliance_review": {"domain": ["laws", "regulations", "interpretations", "industry"], "graph": ["neo4j_graph"], "api": []},
+            "legal_research": {"domain": ["laws", "regulations", "cases", "interpretations"], "graph": ["neo4j_graph"], "api": ["beida_fabao"]},
+            "case_search": {"domain": ["cases", "laws"], "graph": [], "api": []},
+            "legal_qa": {"domain": ["laws", "regulations", "cases", "interpretations"], "graph": [], "api": []},
+            "legal_document_gen": {"domain": ["laws", "regulations", "interpretations"], "graph": ["neo4j_graph"], "api": []},
+        }
+
+        # ═══════════════════════════════════════════════════════════════════
         # 【G. 对话记忆轮次】—— 供多轮对话的记忆管理使用
         # ═══════════════════════════════════════════════════════════════════
 
@@ -575,6 +619,35 @@ class Config:
         #         设计意图：资信查询是"附加信息"，不应阻塞主流程过久，所以超时设得
         #         比较短（10 秒），查不到就跳过。
         self.QICHACHA_TIMEOUT = int(os.getenv("QICHACHA_TIMEOUT", "10"))  # 行尾：与 BEIDA_FABAO_TIMEOUT 同理，这里也是"字符串 → int"转换 + 默认值兜底；如果环境变量配了非数字值同样会抛 ValueError，配置时务必写数字
+
+        # ═══════════════════════════════════════════════════════════════════
+        # 【J. MinerU 文档多模态解析 (magic-pdf)】—— 用户上传 PDF/DOCX 合同解析
+        # 【背景】首次解析时会下载布局/OCR/公式模型; AK/SK 未配置时自动降级纯文本
+        # ═══════════════════════════════════════════════════════════════════
+
+        # 【属性定义】self.MINERU_ACCESS_KEY
+        # 【功能】保存 MinerU (magic-pdf) 火山 TOS 模型仓库 Access Key,
+        #         首次解析会用它拉取布局/公式/OCR 预训练权重。
+        # 【参数】取值来源: 环境变量 MINERU_ACCESS_KEY 或 MINERU_AK (双别名兼容)。
+        # 【返回值】属性值类型: 字符串(str); 未配置则为 None。
+        # 【逻辑】优先取长名 MINERU_ACCESS_KEY, 为空再取短名 MINERU_AK。
+        self.MINERU_ACCESS_KEY = (
+            os.getenv("MINERU_ACCESS_KEY") or os.getenv("MINERU_AK")
+        )  # 行尾: MinerU 不同版本使用 MINERU_ACCESS_KEY 或 MINERU_AK 两种命名, 这里双别名兜底；两者都没配时 MinerU 模型下载会失败，但解析链路会退化为纯文本
+
+        # 【属性定义】self.MINERU_SECRET_KEY
+        # 【功能】保存 MinerU 对应的 Secret Key, 与 Access Key 配对做 TOS 鉴权。
+        # 【参数】取值来源: 环境变量 MINERU_SECRET_KEY 或 MINERU_SK (双别名兼容)。
+        # 【返回值】属性值类型: 字符串(str); 未配置则为 None。
+        self.MINERU_SECRET_KEY = (
+            os.getenv("MINERU_SECRET_KEY") or os.getenv("MINERU_SK")
+        )  # 行尾: Secret Key 是敏感信息, 泄露等同 TOS 仓库账号被盗, 绝不能提交到 Git
+
+        # 【属性定义】self.MINERU_AK / self.MINERU_SK
+        # 【功能】MINERU_ACCESS_KEY / SECRET_KEY 的简短别名, 方便下游代码书写。
+        # 【参数】取值来源: 直接复用上面两个属性 (保持同源, 单一配置事实)。
+        self.MINERU_AK = self.MINERU_ACCESS_KEY  # 行尾: 别名直接指向同一个"事实值", 避免再调一次 os.getenv 或产生两套"漂移值"
+        self.MINERU_SK = self.MINERU_SECRET_KEY
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -75,6 +75,15 @@ try:
 except ImportError:
     HAS_BACKEND = False  # 后端不可用，仅展示演示数据
 
+# 【2026-08 中断恢复】interrupt/resume 接口单独导入 —— 旧版 langgraph 无 Command(resume=) 时
+# legal_response_resume 可能不存在, 单独降级为 None, 不影响 HAS_BACKEND 主链路
+try:
+    from __004__langgraph_more_nodes.langgraph_main import legal_response_resume
+    HAS_RESUME = True
+except ImportError:
+    legal_response_resume = None
+    HAS_RESUME = False
+
 # ==================== 页面配置 ====================
 # st.set_page_config 必须在所有其他 Streamlit 命令之前调用一次，用于设置浏览器标签页元信息
 st.set_page_config(
@@ -764,10 +773,10 @@ st.markdown("""
         0% { box-shadow: 0 0 0 4px rgba(25,118,210,0.45), var(--shadow-sm); transform: scale(1.01); }
         100% { box-shadow: var(--shadow-sm); transform: scale(1); }
     }
-    .risk-card.critical { border-left: 4px solid #ef4444; }
-    .risk-card.high { border-left: 4px solid #f97316; }
-    .risk-card.medium { border-left: 4px solid #fbbf24; }
-    .risk-card.low { border-left: 4px solid #1976D2; }
+    .risk-card.critical { border-left: 4px solid #dc2626; }
+    .risk-card.high { border-left: 4px solid #ef4444; }
+    .risk-card.medium { border-left: 4px solid #f59e0b; }
+    .risk-card.low { border-left: 4px solid #22c55e; }
 
     .risk-header {
         display: flex;
@@ -784,10 +793,10 @@ st.markdown("""
         font-weight: 700;
         color: white;
     }
-    .risk-badge.critical { background: linear-gradient(135deg, #dc2626, #ef4444); }
-    .risk-badge.high { background: linear-gradient(135deg, #ea580c, #f97316); }
-    .risk-badge.medium { background: linear-gradient(135deg, #d97706, #fbbf24); color: #1f2937; }
-    .risk-badge.low { background: linear-gradient(135deg, #0D47A1, #1976D2); }
+    .risk-badge.critical { background: linear-gradient(135deg, #991b1b, #dc2626); }
+    .risk-badge.high { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    .risk-badge.medium { background: linear-gradient(135deg, #d97706, #f59e0b); color: #1f2937; }
+    .risk-badge.low { background: linear-gradient(135deg, #16a34a, #22c55e); }
 
     .risk-title {
         font-size: 15px;
@@ -886,21 +895,21 @@ st.markdown("""
         scroll-behavior: smooth;
     }
     .doc-paragraph.highlight-critical {
-        background: rgba(239, 68, 68, 0.08);
-        border-left: 3px solid #ef4444;
+        background: rgba(220, 38, 38, 0.1);
+        border-left: 3px solid #dc2626;
     }
     .doc-paragraph.highlight-high {
-        background: rgba(249, 115, 22, 0.08);
-        border-left: 3px solid #f97316;
+        background: rgba(239, 68, 68, 0.1);
+        border-left: 3px solid #ef4444;
     }
     .doc-paragraph.highlight-medium {
-        background: rgba(251, 191, 36, 0.08);
-        border-left: 3px solid #fbbf24;
+        background: rgba(245, 158, 11, 0.1);
+        border-left: 3px solid #f59e0b;
         color: var(--text-primary);
     }
     .doc-paragraph.highlight-low {
-        background: rgba(25, 118, 210, 0.08);
-        border-left: 3px solid #1976D2;
+        background: rgba(34, 197, 94, 0.1);
+        border-left: 3px solid #22c55e;
     }
 
     /* ===== 思考过程动画 ===== */
@@ -993,10 +1002,10 @@ st.markdown("""
         box-shadow: var(--shadow-sm);
     }
     .stat-mini .num { font-size: 24px; font-weight: 900; color: var(--text-primary); }
-    .stat-mini.critical .num { color: #ef4444; }
-    .stat-mini.high .num { color: #f97316; }
-    .stat-mini.medium .num { color: #fbbf24; }
-    .stat-mini.low .num { color: var(--blue-bright); }
+    .stat-mini.critical .num { color: #dc2626; }
+    .stat-mini.high .num { color: #ef4444; }
+    .stat-mini.medium .num { color: #f59e0b; }
+    .stat-mini.low .num { color: #22c55e; }
     .stat-mini .label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
     /* ===== 聊天消息 ===== */
@@ -1073,9 +1082,9 @@ st.markdown("""
 # 这样 st.radio 读到的 session_state 默认值就已经是目标页，能正确跳转到独立页面。
 ALLOWED_PAGES = [
     "🏠 首页", "📋 合同审核", "🛡️ 合规审查",
-    "📝 文书生成", "🔎 案例检索", "📜 法规查询", "📚 历史记录",
-    "📱 小红书发布",
-]  # 合法页面名集合（白名单兜底；8个功能页）
+        "📝 文书生成", "🔎 案例检索", "📜 法规查询",
+        "📚 历史记录", "📱 小红书发布",
+]  # 合法页面名集合（白名单兜底；已删除法律问答/法律检索，首页智能问答已覆盖此功能）
 if "_pending_switch_to_page" in st.session_state:
     _target = st.session_state["_pending_switch_to_page"]
     if _target in ALLOWED_PAGES:
@@ -1099,14 +1108,14 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     st.markdown("---")  # 分隔线，区分 Logo 与导航
 
-    # 主导航 radio：8 个功能页签，label_visibility="collapsed" 隐藏默认 label（用 HTML Logo 代替）
+    # 主导航 radio：8 个功能页签（已删除法律问答/法律检索，首页智能问答覆盖）
     # key="nav_page_radio" 用于与首页任务卡片双向绑定，让卡片点击能直接切换到对应独立页面
     page = st.radio(
         "功能导航",
         [
             "🏠 首页", "📋 合同审核", "🛡️ 合规审查",
-            "📝 文书生成", "🔎 案例检索", "📜 法规查询", "📚 历史记录",
-            "📱 小红书发布",
+            "📝 文书生成", "🔎 案例检索", "📜 法规查询",
+            "📚 历史记录", "📱 小红书发布",
         ],
         label_visibility="collapsed",
         key="nav_page_radio",
@@ -1131,10 +1140,10 @@ with st.sidebar:
 
 # SEVERITY_MAP：严重级别到中文标签/颜色/badge 类名的映射字典，供风险卡片渲染使用
 SEVERITY_MAP = {
-    "critical": {"label": "严重", "color": "#ef4444", "badge": "critical"},  # 严重：红色
-    "high": {"label": "高", "color": "#f97316", "badge": "high"},            # 高：橙色
-    "medium": {"label": "中", "color": "#fbbf24", "badge": "medium"},        # 中：黄色
-    "low": {"label": "低", "color": "#1976D2", "badge": "low"},              # 低：蓝色
+    "critical": {"label": "严重", "color": "#dc2626", "badge": "critical"},  # 严重：深红
+    "high": {"label": "高", "color": "#ef4444", "badge": "high"},            # 高：红色(警示)
+    "medium": {"label": "中", "color": "#f59e0b", "badge": "medium"},        # 中：橙色(注意)
+    "low": {"label": "低", "color": "#22c55e", "badge": "low"},              # 低：绿色(安全)
 }
 
 # RISK_LEVEL_MAP：综合风险等级到中文标签/颜色/描述的映射，供评分总览卡片使用
@@ -1158,7 +1167,7 @@ def _run_backend_isolated(input_text, task_type, timeout_sec=300):
 
     参数:
         input_text (str): 用户输入的合同/文档全文
-        task_type (str): 任务类型 contract_review / compliance_review / case_search / law_query / legal_document_gen
+        task_type (str): 任务类型 contract_review / compliance_review / case_search / legal_document_gen
         timeout_sec (int): 子进程最长运行秒数, 超时后强制 kill 并视为失败
 
     返回值:
@@ -1215,6 +1224,13 @@ def _run_backend_isolated(input_text, task_type, timeout_sec=300):
         sub_env["PYTHONIOENCODING"] = "utf-8"
         sub_env["PYTHONUTF8"] = "1"
         sub_env.pop("PYTHONLEGACYWINDOWSSTDIO", None)  # 禁用 legacy 模式
+        # 【2026-08-23】取消子进程禁用 interrupt: 北大法宝 + 企查查付费确认现已统一
+        # 改为 LangGraph interrupt() 真中断续跑, 对所有挂载任务生效。子进程退出后虽无法
+        # resume, 但前端对子进程返回的中断 payload 复用主进程 legal_response_resume 续跑
+        # (见 _render_pending_confirmations / _run_backend_isolated 中断回传处理),
+        # 故不再注入 LEGAL_DISABLE_INTERRUPT 强制拒绝。
+        # 注: 若运行环境无 Checkpointer, beida_fabao_gate / credit_check 的 _ask_user_interrupt
+        # 会降级为"拒绝/跳过", 不会卡死流程。
         try:
             completed = subprocess.run(
                 cmd,
@@ -1323,10 +1339,18 @@ def _stream_response(input_text, **kwargs):
             
             # 调用后端同步接口获取完整结果（实际项目中应改为真正消费 stream_gen）
             result = legal_response_sync(input_text, **kwargs)
+            # 【2026-08】结果可能是 dict(结构化): 提取 output 文本用于打字机输出;
+            # 携带 pending_interrupt/credit_confirm_needed 时缓存到 session_state,
+            # 由页面级 _render_pending_confirmations 渲染确认 UI(生成器内无法交互)。
+            if isinstance(result, dict):
+                _capture_pending_confirmations(result, input_text, kwargs)
+                result_text = result.get("output", "") or str(result)
+            else:
+                result_text = str(result)
             chunk_size = 8  # 每块 8 个字符，模拟打字机
             # 按字符切片分块 yield
-            for i in range(0, len(result), chunk_size):
-                chunk = result[i:i + chunk_size]
+            for i in range(0, len(result_text), chunk_size):
+                chunk = result_text[i:i + chunk_size]
                 yield chunk
                 time.sleep(0.03)  # 30ms 延迟，肉眼可见的打字效果
             loop.close()  # 关闭事件循环，释放资源
@@ -1459,23 +1483,67 @@ def _get_compliance_demo_result(doc_text):
         迁移到真实后端时后端需返回同结构字典。
     """
     doc = doc_text or "合规审查文档示例"  # 若传入空文本则使用默认示例
+    # 如果是占位符, 替换为真实合规文档内容
+    if doc == "合规审查文档示例":
+        doc = """合规审查文档
+
+一、合同双方
+甲方（用人单位）：北京科技有限公司
+乙方（劳动者）：张三
+
+二、合同期限
+本合同为固定期限劳动合同，自2023年1月1日起至2025年12月31日止。
+
+三、工作岗位与职责
+乙方担任技术总监职务，负责公司整体技术架构设计与研发团队管理。
+
+四、薪酬与福利
+4.1 甲方按月支付乙方税后人民币50,000元。
+4.2 社保缴纳：甲方将按照国家规定为乙方缴纳社会保险和住房公积金。
+4.3 双方确认，甲方支付的薪酬中已包含所有加班费、年假工资等。
+4.4 关于发票：乙方取得的工资收入达到纳税标准时，应自行申报纳税并开具发票。
+
+五、保密义务
+5.1 乙方承诺对甲方的商业秘密、技术信息、客户信息、数据信息等严格保密。
+5.2 合同终止后，乙方仍需履行保密义务，但未约定保密期限。
+5.3 关于个人信息保护：乙方应对工作中接触的甲方客户个人信息承担保密义务。
+
+六、竞业限制
+6.1 合同解除后，乙方两年内不得从事与甲方竞争的业务。
+6.2 但未约定竞业限制补偿金。
+
+七、知识产权
+乙方在职期间产生的所有知识产权归甲方所有。
+
+八、合同变更与解除
+8.1 合同变更需双方书面协商一致。
+8.2 乙方提前30日书面通知甲方即可解除合同。
+
+九、争议解决
+本合同争议协商不成的，提交甲方所在地人民法院管辖。
+
+十、其他
+本合同一式两份，甲乙双方各执一份。"""
     return {
-        "output": "# 合规审查报告\n\n本文档存在 **3项合规风险**。",  # 流式输出文本
+        "output": "# 合规审查报告\\n\\n本文档存在 **3项合规风险**。",
         "doc_text": doc,
-        "merged_risk_items": [  # 3 项合规风险：high/medium/low 各一项
+        "merged_risk_items": [
+            # high 数据合规 → 匹配 "五、保密义务" 段落(含"个人信息")
             {"severity": "high", "source": "数据合规",
              "description": "未明确个人信息保护条款，数据处理 隐私保护 个人信息告知义务缺失",
-             "clause": "数据保护 个人信息 隐私保护 数据处理 保密信息",
+             "clause": "个人信息 数据信息 数据保护 隐私保护 个人信息保护 客户信息",
              "legal_basis": "《个人信息保护法》第17条 个人信息 告知",
              "suggestion": "建议增加个人信息处理告知条款 个人信息保护 数据合规 隐私"},
+            # medium 税务合规 → 匹配 "四、薪酬与福利" 段落(含"发票"、"纳税")
             {"severity": "medium", "source": "税务合规",
              "description": "发票开具与税务承担约定不明确，税务发票 税率 税款承担 增值税",
-             "clause": "税务条款 发票开具 税率 税款 增值税 税费承担",
+             "clause": "发票 纳税 税务 税率 税款 增值税 社保 社会保险",
              "legal_basis": "《税收征收管理法》第21条 发票 税务",
              "suggestion": "建议明确发票类型和开具时间 发票 税务合规 增值税专用发票"},
+            # low 劳动合规 → 匹配 "六、竞业限制" 段落(含"竞业限制")
             {"severity": "low", "source": "劳动合规",
-             "description": "未涉及员工竞业限制 保密条款 商业秘密 劳动合同",
-             "clause": "保密条款 竞业限制 商业秘密 知识产权 劳动合同",
+             "description": "未涉及员工竞业限制补偿 保密条款 商业秘密 劳动合同",
+             "clause": "竞业限制 保密 商业秘密 补偿金 劳动合同",
              "legal_basis": "《劳动合同法》第23条 保密义务 竞业限制",
              "suggestion": "建议补充员工保密和竞业限制约定 保密条款 竞业限制 商业秘密"}
         ],
@@ -1702,6 +1770,153 @@ def _highlight_doc(doc_text, risk_items, card_id_prefix=""):
 def _inject_jump_script(para_to_risks, card_id_prefix):
     """(已弃用) 跳转改用纯 CSS 锚点实现, 见 _highlight_doc 中的 <a href> 生成."""
     pass
+
+
+def _capture_pending_confirmations(result, input_text=None, kwargs=None):
+    """捕获后端结果中的"等待用户付费确认"信号, 缓存到 session_state。
+
+    作用:
+        legal_response_sync 返回的 dict 可能携带两类确认信号:
+        1. pending_interrupt (dict): 图在 beida_fabao_gate_node 的 interrupt() 处暂停,
+           等待用户决定是否调用付费北大法宝 MCP —— 含 thread_id + payloads;
+        2. credit_confirm_needed (bool): credit_check_node 检测到企查查非 Mock 模式且
+           用户未确认, 图已带"空资信结果"跑完 —— credit_confirm_prompt 为弹窗文案。
+
+        Streamlit 按钮点击会触发整页 rerun, 原始 result 随脚本栈消失, 因此必须先
+        缓存到 session_state, 由 _render_pending_confirmations 在 rerun 后渲染确认 UI。
+
+    参数:
+        result: legal_response_sync / 子进程返回的原始 dict (非 dict 直接忽略)
+        input_text: 触发本次调用的用户输入 (资信确认后需带 credit_confirmed=True 重调)
+        kwargs: 本次调用的额外参数 (同上, 重调时透传)
+
+    返回值:
+        None (副作用: 写入 st.session_state["_beida_pending"] / ["_credit_pending"])
+    """
+    if not isinstance(result, dict):
+        return
+    # 【2026-08-23】企查查已改为 interrupt() 机制(payload type=qichacha_confirm),
+    # 与北大法宝(beida_fabao_confirm)统一走 pending_interrupt 分支;
+    # 旧 credit_confirm_needed 标志重跑机制已废弃, 不再单独缓存 _credit_pending。
+    if result.get("pending_interrupt"):
+        st.session_state["_beida_pending"] = result
+    if result.get("credit_confirm_needed"):
+        # 兼容旧版后端残留: 仅记录, 实际渲染由 _render_pending_confirmations 统一处理
+        st.session_state["_credit_pending"] = {
+            "input": input_text or result.get("input", ""),
+            "kwargs": dict(kwargs or {}),
+            "result": result,
+        }
+
+
+def _render_pending_confirmations():
+    """渲染付费确认 UI(北大法宝 interrupt / 企查查资信), 并在用户决策后恢复执行。
+
+    作用:
+        检查 session_state 中缓存的确认信号, 存在则渲染确认卡片:
+        - 北大法宝: st.warning 提示 + "确认调用(付费)/跳过" 双按钮;
+          点击后调 legal_response_resume(thread_id, True/False) 从暂停点恢复图执行,
+          最终结果缓存到 session_state["home_interrupt_final"] 并 rerun 展示。
+        - 企查查资信: 类似, 确认后带 credit_confirmed=True 重调 legal_response_sync
+          全流程(资信确认无 interrupt, 是"重跑"而非"续跑"); 跳过则直接丢弃待确认态
+          (原结果本就是"空资信"完整结果)。
+
+        必须在页面主脚本体调用(非生成器/spinner 内), 否则按钮无法交互。
+        resume/重调为长耗时操作, 已用 st.spinner 包裹。
+
+    返回值:
+        None (副作用: 渲染 UI / 消费 session_state / 触发 rerun)
+    """
+    # ---- 1. 付费确认 (interrupt 暂停, resume 续跑): 北大法宝 / 企查查统一处理 ----
+    beida = st.session_state.get("_beida_pending")
+    if isinstance(beida, dict):
+        pending = beida.get("pending_interrupt") or {}
+        payloads = pending.get("payloads") or []
+        p0 = payloads[0] if payloads and isinstance(payloads[0], dict) else {}
+        thread_id = pending.get("thread_id") or beida.get("thread_id")
+        itype = p0.get("type") or "beida_fabao_confirm"
+        # 【2026-08-23】interrupt 已统一: 北大法宝(beida_fabao_confirm)/企查查(qichacha_confirm)
+        # 都经 pending_interrupt 回传, 此处按 type 区分文案与按钮
+        if itype == "qichacha_confirm":
+            msg = p0.get("message") or "检测到合同相对方, 可调用企查查(付费)查询相对方资信。"
+            reminder = p0.get("reminder") or "企查查为按次计费的第三方数据源, 调用将产生费用。"
+            parties = p0.get("parties") or ""
+            st.warning(f"💰 **资信查询确认 — 图执行已暂停**\n\n{msg}\n\n> {reminder}")
+            if parties:
+                st.info(f"查询对象: {parties}")
+            col_yes, col_no = st.columns(2)
+            decision = None
+            with col_yes:
+                if st.button("✅ 确认查询（付费）", key=f"credit_yes_{thread_id}", type="primary"):
+                    decision = True
+            with col_no:
+                if st.button("❌ 跳过资信查询", key=f"credit_no_{thread_id}"):
+                    decision = False
+        else:
+            msg = p0.get("message") or "本地知识库检索质量不足, 可调用北大法宝(付费)补充检索。"
+            reminder = p0.get("reminder") or "北大法宝为按次计费的第三方数据源, 调用将产生费用。"
+            query = p0.get("query") or ""
+            st.warning(f"💳 **付费接口确认 — 图执行已暂停**\n\n{msg}\n\n> {reminder}")
+            if query:
+                st.info(f"将检索: {query}")
+            col_yes, col_no = st.columns(2)
+            decision = None
+            with col_yes:
+                if st.button("✅ 确认调用（付费）", key=f"beida_yes_{thread_id}", type="primary"):
+                    decision = True
+            with col_no:
+                if st.button("❌ 跳过，使用现有免费结果", key=f"beida_no_{thread_id}"):
+                    decision = False
+        if decision is None:
+            st.caption("⏸️ 等待您确认后继续执行...")
+            return
+        # 用户已决策 → 从暂停点恢复图执行
+        del st.session_state["_beida_pending"]
+        if not HAS_RESUME or legal_response_resume is None:
+            st.error("当前后端版本不支持会话恢复(resume), 已跳过付费调用。请升级 langgraph。")
+            return
+        with st.spinner("正在调用付费接口并生成最终结果..." if decision else "正在生成最终结果..."):
+            try:
+                final = legal_response_resume(thread_id, decision)
+            except Exception as e:
+                final = {"error": f"resume 异常: {e}"}
+        if isinstance(final, dict) and not final.get("error"):
+            st.session_state["home_interrupt_final"] = final
+            st.rerun()
+        else:
+            st.error(f"会话恢复失败: {(final or {}).get('error', '未知错误')}")
+
+    # ---- 2. 企查查资信确认 (旧版兼容: credit_confirm_needed 标志重跑) ----
+    # 【2026-08-23】企查查已改为 interrupt() 机制, 正常走上面的 pending_interrupt 分支;
+    # 此分支仅在旧版后端仍返回 credit_confirm_needed 标志时兜底触发(重跑全流程)。
+    credit = st.session_state.get("_credit_pending")
+    if isinstance(credit, dict):
+        result = credit.get("result") or {}
+        prompt = result.get("credit_confirm_prompt") or \
+            "查询合同相对方企查查资信需调用付费接口, 是否确认调用?"
+        st.warning(f"💰 **资信查询确认**\n\n{prompt}")
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("✅ 确认查询（付费）", key="credit_yes", type="primary"):
+                del st.session_state["_credit_pending"]
+                with st.spinner("正在查询企查查资信并完成审核..."):
+                    try:
+                        re_kwargs = dict(credit.get("kwargs") or {})
+                        re_kwargs["credit_confirmed"] = True
+                        final = legal_response_sync(credit.get("input", ""), **re_kwargs)
+                    except Exception as e:
+                        final = {"error": f"重跑异常: {e}"}
+                if isinstance(final, dict) and not final.get("error"):
+                    _capture_pending_confirmations(final, credit.get("input"), credit.get("kwargs"))
+                    st.session_state["home_interrupt_final"] = final
+                    st.rerun()
+                else:
+                    st.error(f"资信查询失败: {(final or {}).get('error', '未知错误')}")
+        with col_no:
+            if st.button("❌ 跳过资信查询", key="credit_no"):
+                del st.session_state["_credit_pending"]
+                st.info("已跳过资信查询, 沿用当前审核结果（资信部分为空）。")
+                st.rerun()
 
 
 def _normalize_result(raw_result, task_type, input_text):
@@ -2044,6 +2259,7 @@ if page == "🏠 首页":
             "description": "我会检索法律法规条文原文，支持按法律名称筛选（如民法典、劳动合同法、公司法等），所有结果可溯源至具体条款。",
             "upload_types": [],
             "upload_label": "",
+            # 注: 法规查询走 FastAPI /laws/search 独立直查, 不走 LangGraph task_type
         },
         "history": {
             "greeting": "您好, 我是历史记录智能体",
@@ -2078,7 +2294,7 @@ if page == "🏠 首页":
         {"key": "compliance",  "label": "🛡️ 合规审查",   "color": "green",  "task_type": "compliance_review", "page_target": "🛡️ 合规审查"},
         {"key": "docgen",      "label": "📝 文书生成",   "color": "indigo","task_type": "legal_document_gen", "page_target": "📝 文书生成"},
         {"key": "case_search", "label": "🔎 案例检索",   "color": "cyan",  "task_type": "case_search",       "page_target": "🔎 案例检索"},
-        {"key": "law_query",   "label": "📜 法规查询",   "color": "teal",  "task_type": "law_query",         "page_target": "📜 法规查询"},
+        {"key": "law_query",   "label": "📜 法规查询",   "color": "teal",  "task_type": "",                  "page_target": "📜 法规查询"},
         {"key": "history",     "label": "📚 历史记录",   "color": "gray",  "task_type": "history",           "page_target": "📚 历史记录"},
         {"key": "xiaohongshu", "label": "📱 小红书发布", "color": "pink", "task_type": "", "page_target": "📱 小红书发布"},
     ]
@@ -2228,25 +2444,6 @@ if page == "🏠 首页":
         </style>
         """, unsafe_allow_html=True)
 
-        # ===== 输入框下方：上传区 + 操作按钮（与其他智能体页面布局完全一致）=====
-        # 文件上传区：两列布局（文档上传 / 图片上传），与合同审核/合规审查等页面结构相同
-        upload_col1, upload_col2 = st.columns([1, 1])
-        with upload_col1:
-            # 文档上传器：支持多种文档格式，允许多文件
-            st.file_uploader(
-                "上传文档",
-                type=["txt", "md", "docx", "pdf"],
-                key="home_upload",
-                accept_multiple_files=True,
-            )
-        with upload_col2:
-            # 图片上传器：额外支持 webp
-            st.file_uploader(
-                "上传图片/截图",
-                type=["png", "jpg", "jpeg", "webp"],
-                key="home_upload_images",
-                accept_multiple_files=True,
-            )
 
         # 深度思考开关：启用后输出更详细的理由与引用
         deep_thinking = st.toggle(
@@ -2267,13 +2464,42 @@ if page == "🏠 首页":
                 st.markdown(f"- {q}")
 
         # 效果展示按钮（secondary 灰色，全宽，与其他智能体页面一致）
-        if st.button("🎭 效果展示", key="toggle_demo_home", type="secondary", use_container_width=True):
+        _is_demo = st.session_state.get("home_demo_result")
+        _btn_label = "🎭 效果展示（点击收回）" if _is_demo else "🎭 效果展示"
+        if st.button(_btn_label, key="toggle_demo_home", type="secondary", use_container_width=True):
             if "home_demo_result" in st.session_state:
                 del st.session_state["home_demo_result"]
                 st.rerun()
             else:
                 st.session_state["home_demo_result"] = True
                 st.rerun()
+
+        # ============ Demo 结果渲染区 ============
+        if st.session_state.get("home_demo_result"):
+            st.markdown("---")
+            st.markdown("#### 📋 演示问答结果")
+            with st.chat_message("user", avatar="👤"):
+                st.markdown("这份合同的违约金比例是否合理？")
+            with st.chat_message("assistant", avatar="⚖️"):
+                st.markdown("""
+                根据您的问题，我为您分析如下：
+
+                **违约金比例合理性判断**需要结合以下几个维度：
+
+                1. **法律上限**：根据《民法典》第585条，约定的违约金过分高于造成的损失的，人民法院或仲裁机构可以根据当事人的请求予以适当减少。
+
+                2. **行业惯例**：通常违约金占合同总金额的 **0.1%～0.5%/日** 是合理区间，超过 **1%/日** 可能被认定为过高。
+
+                3. **实际损失**：违约金应与违约造成的实际损失大致相当，不宜超过实际损失的30%。
+
+                **建议**：如果您合同中的违约金比例超过上述合理范围，可以考虑协商调整或在诉讼中请求法院酌减。
+                """)
+                with st.expander("📚 引用法条与案例", expanded=False):
+                    st.markdown("""
+                    - 《民法典》第585条 - 违约金的约定
+                    - (2023)京01民终12345号 - 违约金酌减典型案例
+                    - 《民法典合同编理解与适用》相关解读
+                    """)
 
         # 发送分析按钮（primary 蓝色主按钮，全宽，放到最下侧 —— 与其他智能体页面的"开始XX"按钮一致）
         send_pressed = st.button(
@@ -2293,7 +2519,7 @@ if page == "🏠 首页":
         <div class="tech-stack">依据《律师法》第13/28条 · LangGraph + RAG + Neo4j + FAISS + bge-m3</div>
     </div>
     <div class="footer-disclaimer">
-        内容由法智大模型生成，请仔细甄别　|　网站备案号：浙ICP备00000000号　|　© 2026 法智引擎 版权所有
+        内容由法智引擎大模型生成，请仔细甄别　|　网站备案号：浙ICP备00000000号　|　© 2026 法智引擎 版权所有
     </div>
     """, unsafe_allow_html=True)
 
@@ -2471,6 +2697,9 @@ if page == "🏠 首页":
                             else:
                                 try:
                                     response = legal_response_sync(user_input)
+                                    # 【2026-08】捕获付费确认信号(北大法宝 interrupt / 企查查资信)
+                                    # → 缓存 session_state, 由 _render_pending_confirmations 渲染确认 UI
+                                    _capture_pending_confirmations(response, user_input, full_kwargs)
                                     if isinstance(response, dict):
                                         demo_answer = response.get("output", str(response))
                                     else:
@@ -2508,6 +2737,28 @@ if page == "🏠 首页":
                         displayed += demo_answer[i:i+4]
                         output_area.markdown(displayed, unsafe_allow_html=True)
                         time.sleep(0.02)
+
+    # =========================================================
+    # 【2026-08】付费确认 UI + 中断恢复结果展示
+    # =========================================================
+    # 注意: 必须在 send_pressed 块之外调用 —— 用户点击确认按钮会触发整页 rerun,
+    # 此时 send_pressed=False, 只有页面级代码才会再次执行, 确认 UI 才能持续可见。
+    # ① 北大法宝 interrupt / 企查查资信确认(存在待确认信号时渲染双按钮)
+    _render_pending_confirmations()
+    # ② 用户决策 resume 后的最终结果(含付费检索补充的内容)
+    if st.session_state.get("home_interrupt_final"):
+        _final = st.session_state.pop("home_interrupt_final")
+        st.markdown("---")
+        with st.chat_message("assistant", avatar="⚖️"):
+            st.markdown(_final.get("output", "（无输出）"), unsafe_allow_html=True)
+            cits = _final.get("citations") or []
+            if cits:
+                with st.expander("📚 引用来源", expanded=False):
+                    for c in cits[:10]:
+                        if isinstance(c, dict):
+                            st.markdown(f"- {c.get('title', '')} {c.get('article_no', '')}")
+                        else:
+                            st.markdown(f"- {c}")
 
 
 # ==================== 合同审核独立页面 ====================
@@ -2595,6 +2846,11 @@ elif page == "📋 合同审核":
                     # 隔离调用若失败 (子进程崩溃/超时/编码错误/返回__cli_error__) 则直接 fallback demo.
                     raw_full = _run_backend_isolated(input_text, task_type="contract_review")
                     if raw_full is not None:
+                        # 【2026-08】捕获企查查资信确认信号(子进程模式 interrupt 已禁用,
+                        # 但 credit_confirm_needed 标志仍会随结果返回)
+                        _capture_pending_confirmations(
+                            raw_full, input_text, {"task_type": "contract_review"}
+                        )
                         try:
                             result = _normalize_result(raw_full, "contract_review", input_text)
                         except Exception as e_backend:
@@ -2612,6 +2868,9 @@ elif page == "📋 合同审核":
 
     # 若 session_state 中已有结果，则渲染结果区
     if "contract_full_result" in st.session_state:
+        # 【2026-08】资信确认 UI(子进程结果含 credit_confirm_needed 时渲染;
+        # 确认后主进程内重跑全流程, 见 _render_pending_confirmations 说明)
+        _render_pending_confirmations()
         result = st.session_state["contract_full_result"]
         # 渲染评分总览
         _render_score_overview(result["overall_risk_score"], result["risk_level"], result["need_lawyer_review"])
@@ -2655,7 +2914,14 @@ elif page == "🛡️ 合规审查":
     """, unsafe_allow_html=True)
 
     # 待审查文档输入框
-    compliance_text = st.text_area("粘贴待审查文档", height=200, placeholder="粘贴合同/制度/流程文档...", key="compliance_text_area")
+    # 修复: 使用中间键 _compliance_demo_doc 传递演示文本, 避免直接对已实例化的 widget key 赋值
+    # 如果有待填充的演示文档, 在 widget 实例化前用 value 参数注入
+    _demo_val = st.session_state.pop("_compliance_demo_doc", None)
+    compliance_text = st.text_area(
+        "粘贴待审查文档", height=200, placeholder="粘贴合同/制度/流程文档...",
+        key="compliance_text_area",
+        value=_demo_val if _demo_val else None,
+    )
     
     # 文件上传区：两列布局
     col_u1, col_u2 = st.columns([1, 1])
@@ -2682,10 +2948,16 @@ elif page == "🛡️ 合规审查":
         if "compliance_full_result" in st.session_state:
             # 已有结果则清除
             del st.session_state["compliance_full_result"]
+            # 使用中间键 _compliance_demo_doc 传递空值, 让下次 rerun 时 text_area 清空
+            st.session_state["_compliance_demo_doc"] = ""
             st.rerun()
         else:
             # 无结果则填入示例并生成演示结果
-            st.session_state["compliance_full_result"] = _get_compliance_demo_result("合规审查文档示例")
+            demo_doc = "合规审查文档示例"
+            st.session_state["compliance_full_result"] = _get_compliance_demo_result(demo_doc)
+            # 使用中间键 _compliance_demo_doc 传递演示文档, 在下次 rerun 时注入 text_area
+            full_doc_text = st.session_state["compliance_full_result"].get("doc_text", "")
+            st.session_state["_compliance_demo_doc"] = full_doc_text
             st.rerun()
 
     # 3) 开始合规审查按钮：按要求放到最下侧（primary 主色按钮，全宽）
@@ -2707,6 +2979,10 @@ elif page == "🛡️ 合规审查":
                     # === 严禁同进程调 legal_response_sync; 只用隔离子进程, 失败直接 fallback demo ===
                     raw_full = _run_backend_isolated(input_text, task_type="compliance_review")
                     if raw_full is not None:
+                        # 【2026-08】捕获企查查资信确认信号(同合同审核页)
+                        _capture_pending_confirmations(
+                            raw_full, input_text, {"task_type": "compliance_review"}
+                        )
                         try:
                             result = _normalize_result(raw_full, "compliance_review", input_text)
                         except Exception as e_backend:
@@ -2723,6 +2999,8 @@ elif page == "🛡️ 合规审查":
 
     # 渲染结果区
     if "compliance_full_result" in st.session_state:
+        # 【2026-08】资信确认 UI(同合同审核页)
+        _render_pending_confirmations()
         result = st.session_state["compliance_full_result"]
         # 评分总览
         _render_score_overview(result["overall_risk_score"], result["risk_level"], result["need_lawyer_review"])
@@ -2744,8 +3022,11 @@ elif page == "🛡️ 合规审查":
                 st.success("✅ 未检测到合规风险")
 
 
-# ==================== 法律检索独立页面 ====================
-# —— 设计原则：纯法条原文检索，不生成任何主观分析/结论/建议，所有结果可溯源至具体法律条文
+# 法律问答 和 法律检索 页面已删除
+# 原因: 首页的"智能问答"卡片已覆盖法律问答功能, 避免功能重复
+# 如需恢复, 取消下面的注释即可
+
+# ==================== 小红书发布独立页面 ====================
 elif page == "📱 小红书发布":
     # ========== 流程对齐 langgraph_more_nodes.py 图三 ==========
     # START → text_generate_node → image_generator_node → check_text_image_node
@@ -2806,10 +3087,25 @@ elif page == "📱 小红书发布":
         for q_item in ["租房合同避坑指南：5个关键条款必须看", "劳动合同维权：被裁员后如何争取赔偿", "投资理财陷阱：这些合同条款要警惕"]:
             st.markdown(f"- {q_item}")
 
-    # 效果展示（一键填充 demo 文案+图片）
-    if st.button("🎭 效果展示", key="toggle_demo_xhs", type="secondary", use_container_width=True):
-        st.session_state["xhs_title"] = "劳动合同维权必看！被裁员了怎么赔？"
-        st.session_state["xhs_content"] = """姐妹们！最近好多被裁员的私信，今天统一讲清楚👇
+    # 效果展示（一键填充/清除 demo 文案+图片）
+    _is_demo = st.session_state.get("xhs_is_demo", False)
+    _btn_label = "🎭 效果展示（点击收回）" if _is_demo else "🎭 效果展示"
+    if st.button(_btn_label, key="toggle_demo_xhs", type="secondary", use_container_width=True):
+        # 检查当前是否处于 demo 展示状态
+        is_demo = st.session_state.get("xhs_is_demo", False)
+        if is_demo:
+            # 关闭 demo: 清除所有 demo 数据
+            for key in ["xhs_title", "xhs_content", "xhs_image_path_list",
+                        "xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok",
+                        "xhs_markdown_output", "xhs_is_demo"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.success("✅ Demo 已清除")
+            st.rerun()
+        else:
+            # 开启 demo: 填充演示数据
+            st.session_state["xhs_title"] = "劳动合同维权必看！被裁员了怎么赔？"
+            st.session_state["xhs_content"] = """姐妹们！最近好多被裁员的私信，今天统一讲清楚👇
 
 ## 🔑 核心知识点
 
@@ -2829,11 +3125,12 @@ elif page == "📱 小红书发布":
 
 ---
 #职场维权 #劳动仲裁 #被裁员 #劳动合同法 #法律科普"""
-        demo_img = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "images", "20260813162307🔥劳动合同.png")
-        if os.path.exists(demo_img):
-            st.session_state["xhs_image_path_list"] = [demo_img]
-        st.success("✅ Demo 数据已填充，可直接跳转到「④ 检查并发布」")
-        st.rerun()
+            demo_img = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "images", "20260813162307🔥劳动合同.png")
+            if os.path.exists(demo_img):
+                st.session_state["xhs_image_path_list"] = [demo_img]
+            st.session_state["xhs_is_demo"] = True
+            st.success("✅ Demo 数据已填充，可直接跳转到「④ 检查并发布」")
+            st.rerun()
 
     st.markdown("---")
 
@@ -2846,7 +3143,7 @@ elif page == "📱 小红书发布":
         if st.button("🗑️ 重置所有结果", use_container_width=True, key="xhs_reset"):
             for key in ["xhs_title", "xhs_content", "xhs_image_path_list",
                         "xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok",
-                        "xhs_markdown_output", "xhs_upload_images"]:
+                        "xhs_markdown_output", "xhs_upload_images", "xhs_is_demo"]:
                 if key in st.session_state:
                     del st.session_state[key]
             st.rerun()
@@ -2858,12 +3155,12 @@ elif page == "📱 小红书发布":
         else:
             with st.spinner("✨ 正在调用 text_generate_node 生成小红书文案..."):
                 try:
-                    from __004__langgraph_more_nodes.nodes.text_generate_node import generate_xiaohongshu_text
+                    from __004__langgraph_more_nodes.nodes.xhs_publish_nodes.text_generate_node import generate_xiaohongshu_text
                     title, content = generate_xiaohongshu_text(input_topic)
                     st.session_state["xhs_title"] = title
                     st.session_state["xhs_content"] = content
-                    # 新阶段开始时清除后续阶段的缓存
-                    for k in ["xhs_image_path_list", "xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok", "xhs_markdown_output"]:
+                    # 新阶段开始时清除后续阶段的缓存 + demo 标记
+                    for k in ["xhs_image_path_list", "xhs_checked_ok", "xhs_publish_result", "xhs_publish_ok", "xhs_markdown_output", "xhs_is_demo"]:
                         st.session_state.pop(k, None)
                     st.success("✅ 文案生成成功！进入阶段②")
                     st.rerun()
@@ -2945,7 +3242,7 @@ elif page == "📱 小红书发布":
             with st.spinner("🎨 正在调用 image_generator_node 生成配图（即梦AI / 占位图兜底）..."):
                 try:
                     # 对齐节点状态字段名: xiaohongshu_title / xiaohongshu_content
-                    from __004__langgraph_more_nodes.nodes.image_generate_node import image_generator_node
+                    from __004__langgraph_more_nodes.nodes.xhs_publish_nodes.image_generate_node import image_generator_node
                     _state = {
                         "xiaohongshu_title": st.session_state.get("xhs_title", ""),
                         "xiaohongshu_content": st.session_state.get("xhs_content", ""),
@@ -3009,7 +3306,7 @@ elif page == "📱 小红书发布":
                      type="primary", use_container_width=True, key="xhs_auto_publish",
                      disabled=not all_ok):
             # ========== xiaohongshu_auto_publish_node ==========
-            # 参考 auto_publish_xiaohongshu_node.py，通过 subprocess 隔离 Streamlit
+            # 参考 xhs_auto_publish_node.py，通过 subprocess 隔离 Streamlit
             # 运行时，避免 ScriptRunner 线程事件循环与 Playwright 子进程冲突
             publish_status = st.empty()
             publish_status.info("⏳ 正在启动独立发布进程（将打开浏览器窗口）...")
@@ -3240,7 +3537,7 @@ elif page == "📱 小红书发布":
 
                     # ========== generate_markdown_node ==========
                     try:
-                        from __004__langgraph_more_nodes.nodes.generate_markdown_node import generate_markdown_node
+                        from __004__langgraph_more_nodes.nodes.xhs_publish_nodes.generate_markdown_node import generate_markdown_node
                         _md_state = {
                             "xiaohongshu_tcm_post_title": _cur_title,
                             "xiaohongshu_tcm_post_content": _cur_content,
@@ -3443,8 +3740,8 @@ elif page == "📝 文书生成":
         # SSE 未获结果时尝试直接调用后端
         if not doc_id:
             try:
-                from __004__langgraph_more_nodes.langgraph_main import legal_response_full
-                _result = legal_response_full(
+                from __004__langgraph_more_nodes.langgraph_main import legal_response_sync
+                _result = legal_response_sync(
                     form.get("description", ""),
                     task_type="legal_document_gen",
                     dispute_type=form.get("dispute_type", ""),
@@ -3454,7 +3751,7 @@ elif page == "📝 文书生成":
                     claims=form.get("claims", ""),
                     document_type=form.get("document_type", "complaint"),
                 )
-                doc_id = _result.get("document_id")
+                doc_id = _result.get("document_id") if isinstance(_result, dict) else None
             except Exception as _graph_err:
                 print(f"[docgen] 后端直调失败: {_graph_err}")
 
@@ -3628,11 +3925,12 @@ elif page == "📝 文书生成":
                 st.rerun()
         with col_b:
             if st.button("📋 查看历史记录", use_container_width=True):
-                st.session_state["nav_page_radio"] = "📚 历史记录"
+                # 修复: 使用中间键 _pending_switch_to_page 避免 nav_page_radio 被 widget 锁定
+                st.session_state["_pending_switch_to_page"] = "📚 历史记录"
                 st.rerun()
         with col_c:
             if st.button("🏠 返回首页", use_container_width=True):
-                st.session_state["nav_page_radio"] = "🏠 首页"
+                st.session_state["_pending_switch_to_page"] = "🏠 首页"
                 st.rerun()
 
 # ==================== 案例检索独立页面 ====================
@@ -3659,28 +3957,15 @@ elif page == "🔎 案例检索":
                                                  "中级人民法院", "基层人民法院"],
                                     key="case_search_court")
 
-    # 搜索按钮
-    if st.button("🔍 搜索案例", type="primary", use_container_width=True) and search_query.strip():
-        st.session_state["case_search_results"] = None
-        st.session_state["case_search_done"] = False
+    # 搜索按钮: 点击后标记触发, 避免每次 rerun 都重复搜索
+    search_clicked = st.button("🔍 搜索案例", type="primary", use_container_width=True)
+    if search_clicked and search_query.strip():
+        st.session_state["case_search_triggered"] = True
 
-    # 执行搜索
-    if st.session_state.get("case_search_query", "").strip() and \
-       st.button("🔍 执行搜索", type="primary", key="case_search_btn_alt",
-                 use_container_width=True):
-        pass  # 上面的按钮触发搜索
-
-    # 搜索逻辑
-    search_triggered = st.session_state.get("case_search_query", "").strip() and \
-        (st.session_state.get("case_search_trigger") or
-         st.button("🔍 搜索", type="primary", use_container_width=True, key="case_search_main"))
-
-    if search_triggered:
-        pass  # will handle below
-
-    # 统一搜索执行
+    # 统一搜索执行: 只在按钮点击后触发一次
     query = st.session_state.get("case_search_query", "").strip()
-    if query:
+    if query and st.session_state.get("case_search_triggered", False):
+        st.session_state["case_search_triggered"] = False  # 重置标记
         with st.spinner(f"正在搜索: {query}..."):
             results = {"data": [], "total": 0}
             try:
@@ -3836,7 +4121,7 @@ elif page == "📚 历史记录":
     with col_a:
         task_filter = st.selectbox("任务类型筛选",
                                    ["全部", "docgen", "contract_review", "compliance_review",
-                                    "legal_research", "legal_qa", "case_search", "law_query"],
+                                    "legal_research", "legal_qa", "case_search"],
                                    key="history_task_filter")
     with col_b:
         star_filter = st.checkbox("仅显示收藏", key="history_star_filter")
@@ -3884,7 +4169,7 @@ elif page == "📚 历史记录":
                     task_type = rec.get("task_type", "")
                     task_type_map = {"docgen": "📝", "contract_review": "📋",
                                      "compliance_review": "🛡️", "legal_research": "🔍",
-                                     "legal_qa": "💬", "case_search": "🔎", "law_query": "📜"}
+                                     "legal_qa": "💬", "case_search": "🔎"}
                     prefix = task_type_map.get(task_type, "📄")
                     st.caption(f"{prefix} {task_type} | {rec.get('created_at', '')} | "
                                f"{rec.get('summary', '')[:100]}")
@@ -3915,5 +4200,3 @@ elif page == "📚 历史记录":
     else:
         st.info("暂无历史记录")
 
-# ==================== 独立问答页面 ====================
-# —— 无干扰的纯问答界面，专注法律咨询

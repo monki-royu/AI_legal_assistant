@@ -9,9 +9,24 @@ python-dotenv>=1.0.0
 openpyxl>=3.0.0
 langchain>=0.1.0
 langchain-openai>=0.0.5
+# ⚠️ 注意: langgraph 0.0.x 在 Python 3.8 下无法导入
+# (from langgraph.graph import StateGraph 报 'type' object is not subscriptable)。
+# 项目实际在 Python 3.10+ (ctm_kg) / 3.12 (skill_demo) 环境下以 langgraph 1.2.x 运行。
+langgraph>=1.0.0
 openai>=1.12.0
 faiss-cpu>=1.7.4
 sentence-transformers>=2.2.0
 tqdm>=4.60.0
 typing-extensions>=4.0.0
 pydantic>=2.0.0
+neo4j>=5.0.0
+
+# 小红书发布链路 (xhs 子图): 已安装, 补齐声明
+volcengine>=1.0.0
+matplotlib>=3.7.0
+playwright>=1.40.0
+
+# 文档解析 (doc_extract_node · MinerU 多模态, 可选依赖): 已安装于 ctm_kg
+# ⚠️ 可选: 未安装时 doc_extract_node 自动降级为本地纯文本解析(段落+表格), 不影响主流程。
+# 注意: magic-pdf 较重(连带 torch/transformers), 且本地 UNIPipe 首次运行需下载模型权重(需联网)。
+magic-pdf>=1.3.0

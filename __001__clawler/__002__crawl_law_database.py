@@ -56,8 +56,7 @@ if _PROJECT_ROOT not in sys.path:
 from common.path_utils import root_dir  # 项目根目录
 # 导入新 flk 客户端(新接口)
 from __001__clawler.flk_client import search_laws, get_detail, parse_articles, pick_best_row, strip_tags, sxx_to_status, fetch_real_articles
-# 导入 LLM 条文补全 (降级兜底用)
-from __001__clawler.llm_gen import generate_article_contents
+# 注: 已删除 LLM 条文补全 (generate_article_contents) —— 防幻觉, 不编造法条
 
 
 # 目标法律清单(常用基础法律)
@@ -125,27 +124,27 @@ def crawl_single_law(law_info: dict, output_dir: str, max_articles: int = 60) ->
         rows = []
 
     if not rows:
-        # flk 搜索失败, 降级到 LLM 生成骨架
-        print(f"  [flk未搜到] {name}, 降级 LLM 生成骨架")
-        text = _llm_fallback_skeleton(name, keywords)
-        src = "LLM生成骨架(flk搜索失败)"
+        # flk 搜索失败: 不编造法条, 写占位文本
+        print(f"  [flk未搜到] {name}, 写入占位文本(不编造法条)")
+        text = _fallback_placeholder(name, keywords)
+        src = "flk未获取原文(占位)"
         _write_law_file(out_path, name, src, text)
         return (text, src)
 
     # 从搜索结果中挑选最佳匹配
     row = pick_best_row(rows, name)
     if not row:
-        print(f"  [未匹配] {name}, 降级 LLM 生成骨架")
-        text = _llm_fallback_skeleton(name, keywords)
-        src = "LLM生成骨架(未匹配)"
+        print(f"  [未匹配] {name}, 写入占位文本(不编造法条)")
+        text = _fallback_placeholder(name, keywords)
+        src = "flk未匹配原文(占位)"
         _write_law_file(out_path, name, src, text)
         return (text, src)
 
     bbbs = row.get("bbbs", "")
     if not bbbs:
-        print(f"  [无bbbs] {name}, 降级 LLM 生成骨架")
-        text = _llm_fallback_skeleton(name, keywords)
-        src = "LLM生成骨架(无bbbs)"
+        print(f"  [无bbbs] {name}, 写入占位文本(不编造法条)")
+        text = _fallback_placeholder(name, keywords)
+        src = "flk无bbbs(占位)"
         _write_law_file(out_path, name, src, text)
         return (text, src)
 
@@ -169,9 +168,9 @@ def crawl_single_law(law_info: dict, output_dir: str, max_articles: int = 60) ->
         articles = articles[:max_articles]
 
     if not articles:
-        print(f"  [无条文] {real_name}, 降级 LLM 生成骨架")
-        text = _llm_fallback_skeleton(name, keywords)
-        src = "LLM生成骨架(无条文树)"
+        print(f"  [无条文] {real_name}, 写入占位文本(不编造法条)")
+        text = _fallback_placeholder(name, keywords)
+        src = "flk无条文树(占位)"
         _write_law_file(out_path, name, src, text)
         return (text, src)
 
@@ -193,16 +192,14 @@ def crawl_single_law(law_info: dict, output_dir: str, max_articles: int = 60) ->
                 contents[no] = real_contents[no]
                 matched += 1
 
-    # 3b: 未匹配到的条款用 LLM 补全
+    # 3b: 未匹配到的条款不编造正文, 保留「正文待补充」占位
     missing_nos = [no for no in article_nos if no not in contents]
     if missing_nos:
         if matched > 0:
             print(f"  [docx] 真实正文匹配 {matched}/{len(article_nos)} 条, "
-                  f"剩余 {len(missing_nos)} 条用 LLM 补全")
+                  f"剩余 {len(missing_nos)} 条正文待补充(不编造)")
         else:
-            print(f"  [docx] 未能获取真实正文, 全部 {len(article_nos)} 条用 LLM 补全")
-        llm_contents = generate_article_contents(real_name, missing_nos)
-        contents.update(llm_contents)
+            print(f"  [docx] 未能获取真实正文, 全部 {len(article_nos)} 条正文待补充(不编造)")
     else:
         print(f"  [docx] 全部 {len(article_nos)} 条正文来自真实原文")
 
@@ -222,9 +219,9 @@ def crawl_single_law(law_info: dict, output_dir: str, max_articles: int = 60) ->
     if matched == len(article_nos):
         src = f"flk真实原文(时效:{status})"
     elif matched > 0:
-        src = f"flk真实原文{matched}条+LLM补{len(missing_nos)}条(时效:{status})"
+        src = f"flk真实原文{matched}条+{len(missing_nos)}条待补充(时效:{status})"
     else:
-        src = f"flk新接口+LLM补正文(时效:{status})"
+        src = f"flk原文未获取(时效:{status})"
 
     # ============ 写文件 ============
     _write_law_file(out_path, name, src, text,
@@ -237,33 +234,20 @@ def crawl_single_law(law_info: dict, output_dir: str, max_articles: int = 60) ->
     return (text, src)
 
 
-def _llm_fallback_skeleton(law_name: str, keywords: str) -> str:
+def _fallback_placeholder(law_name: str, keywords: str) -> str:
     """
-    LLM 兜底生成条文骨架(flk 搜索/详情失败时使用).
+    兜底占位文本(flk 搜索/详情失败时使用) —— 不编造法条。
 
-    复用 llm_gen.generate_article_contents 的 LLM 客户端, 但不依赖真实条号,
-    而是让 LLM 自行生成核心条文(15-30条).
+    【防幻觉 (2026-08 决策)】
+    此前的 _llm_fallback_skeleton 会让 LLM 凭空生成「第X条...」条文骨架,
+    属于编造法条, 已删除。本函数只返回明确的占位说明, 正文留待人工/联网后补充。
     """
-    from langchain_core.messages import SystemMessage, HumanMessage
-    try:
-        from common.llm import my_llm
-        prompt = f"""请生成《{law_name}》的核心条文骨架, 用于法律检索知识库。
-要求:
-1. 覆盖该法律最核心的 15-30 个重点条文
-2. 格式: 每条以"第X条"开头(中文数字), 后跟条文内容
-3. 内容要专业准确, 符合现行法规定
-4. 不要前言/目录/施行日期/附则, 只保留核心条款
-5. 重点围绕: {keywords}
-
-直接输出条文, 不要解释。"""
-        resp = my_llm.invoke([HumanMessage(content=prompt)])
-        text = resp.content.strip()
-        # 过滤: 仅保留以"第X条"开头的行
-        lines = [l for l in text.split("\n") if l.strip().startswith("第")]
-        return "\n\n".join(lines) if lines else text
-    except Exception as e:
-        print(f"  [LLM兜底失败] {law_name}: {e}")
-        return f"{law_name}\n核心关键词: {keywords}\n说明: 本文件为占位文本, 建议联网后重新运行爬虫。"
+    return (
+        f"{law_name}\n"
+        f"核心关键词: {keywords}\n"
+        f"说明: 未能从 flk 获取真实条文原文, 本文件为占位文本(未编造法条)。"
+        f"建议联网后重新运行爬虫获取原文。"
+    )
 
 
 def _write_law_file(out_path: str, name: str, src: str, text: str,
@@ -273,7 +257,7 @@ def _write_law_file(out_path: str, name: str, src: str, text: str,
     """
     写入法律 txt 文件(带头部元信息).
 
-    头部格式被下游 extract_law_data.py 的 _strip_header_lines 函数依赖,
+    头部格式(以 # 开头的元信息行)被下游 importer.py 的实体抽取器按行过滤依赖,
     修改时需同步.
     """
     # 构造头部元信息
@@ -342,7 +326,7 @@ def main():
 
     每部法律间随机休眠 0.3-0.8 秒, 避免请求过于密集被反爬.
     """
-    output_dir = os.path.join(root_dir, "__001__clawler", "法律法规")
+    output_dir = os.path.join(root_dir, "data", "laws_txt")
     os.makedirs(output_dir, exist_ok=True)
 
     results = []
