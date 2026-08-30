@@ -237,7 +237,7 @@
       <workItem from="1787733355226" duration="2965000" />
       <workItem from="1787816374795" duration="17536000" />
       <workItem from="1787836415497" duration="74798000" />
-      <workItem from="1788071702503" duration="1013000" />
+      <workItem from="1788071702503" duration="1446000" />
     </task>
     <task id="LOCAL-00001" summary="项目商业计划书与思路记录">
       <option name="closed" value="true" />
@@ -351,7 +351,15 @@
       <option name="project" value="LOCAL" />
       <updated>1788072688213</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="3.0.3前后端完整实现_8功能卡">
+      <option name="closed" value="true" />
+      <created>1788073002756</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1788073002756</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
