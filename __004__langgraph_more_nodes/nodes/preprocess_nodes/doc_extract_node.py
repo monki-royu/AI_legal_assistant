@@ -8,7 +8,7 @@
 # ============================================================
 
 【2026-08 改造说明】
-在保持子图接线不变(preprocess_subgraph 入口节点仍是本 doc_extract_node)的前提下,
+在保持子图接线不变(本 doc_extract_node 现由 contract_compliance 子图在入口编排调用)的前提下,
 把原 doc_extract_mineru_node 的 MinerU 多模态解析能力并入本节点:
 
   - .pdf      → MinerU 原生解析(版面/表格/图片/坐标标签), 失败降级

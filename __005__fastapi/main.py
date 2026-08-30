@@ -654,8 +654,7 @@ async def compliance_review(req: ComplianceReviewRequest):
 @router.post("/docgen/generate")
 async def docgen_generate(req: DocgenRequest):
     """
-    文书生成接口。
-    
+    文书生成接口
     执行流程 (V3 线性架构):
     案情分析 (LLM 结构化抽取) → 模板匹配 (LLM 选择最佳模板)
     → 条款填充 (纯 LLM 生成文书草稿) → 风险提示 + 质量门控 (内部调 law_search + case_search)

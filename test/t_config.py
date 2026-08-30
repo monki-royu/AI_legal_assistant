@@ -77,16 +77,16 @@ TASK_META = {
     },
     "contract_review": {
         "name": "合同审核",
-        "entry": "input_source_router",
+        "entry": "contract_compliance",
         "key_path": ["xiaohongshu_publish_intent", "intent_router",
-                     "input_source_router", "preprocess", "cc_retrieval", "dual_review"],
+                     "contract_compliance"],
         "output_fields": ["output", "risk_items"],
     },
     "compliance_review": {
         "name": "合规审查",
-        "entry": "input_source_router",
+        "entry": "contract_compliance",
         "key_path": ["xiaohongshu_publish_intent", "intent_router",
-                     "input_source_router", "preprocess", "cc_retrieval", "dual_review"],
+                     "contract_compliance"],
         "output_fields": ["output", "risk_items"],
     },
     "legal_research": {

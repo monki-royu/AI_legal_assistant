@@ -185,9 +185,25 @@ def generate_placeholder_image(title: str, output_path: str):
     # 使用 try/except 包裹占位图生成逻辑, 失败时返回 None
     try:
         # 延迟导入 matplotlib, 避免未安装时影响整个模块加载
+        # 关键: 强制 Agg 非交互后端。本节点在 LangGraph worker 子线程内执行,
+        # 默认的 TkAgg 后端会在子线程创建 Tk 对象, 其析构阶段触发致命错误
+        # "Tcl_AsyncDelete: async handler deleted by the wrong thread",
+        # 导致整个测试进程 / 服务进程崩溃。Agg 不依赖 Tk, 彻底规避该问题。
+        import matplotlib
+        matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        import matplotlib.font_manager as fm
         # 导入 mpatches 用于绘制圆角矩形背景
         import matplotlib.patches as mpatches
+        # 尽量让占位图显示中文(否则中文变方框); 找不到 CJK 字体时静默降级
+        _cjk = [f.name for f in fm.fontManager.ttflist
+                if any(k in f.name for k in
+                       ("SimHei", "Microsoft YaHei", "Hei", "Song",
+                        "STHeiti", "WenQuanYi", "Noto Sans CJK", "SourceHan"))]
+        if _cjk:
+            plt.rcParams["font.sans-serif"] = (
+                [_cjk[0]] + list(plt.rcParams["font.sans-serif"]))
+            plt.rcParams["axes.unicode_minus"] = False
 
         # 创建 8x8 英寸、100dpi 的画布与坐标轴
         fig, ax = plt.subplots(figsize=(8, 8), dpi=100)

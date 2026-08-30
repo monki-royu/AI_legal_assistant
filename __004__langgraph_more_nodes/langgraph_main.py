@@ -1,11 +1,11 @@
-"""LangGraph 主图构建与编译 ── 两级路由 + 6 子图组合架构
+"""LangGraph 主图构建与编译 ── 两级路由 + 7 子图组合架构
 
-本文件是 AI 法律助理(LangGraph 多智能体系统)的核心组装器，将 6 个独立编译的
+本文件是 AI 法律助理(LangGraph 多智能体系统)的核心组装器，将 7 个独立编译的
 子图组合为主图，覆盖 5 条入口路径：小红书发布（Level 1 直连）+ 合同合规 /
 独立检索 / 法律问答 / 文书生成（Level 2 四类任务）。
 
 职责：
-  1. 导入全部子图 (preprocess / retrieval / dual_review / qa / docgen / xhs)
+  1. 导入全部子图 (preprocess / retrieval / dual_review / qa / docgen / xhs / contract_compliance)
   2. 创建 StateGraph 构建器
   3. 注册两级路由节点 (Level 1 小红书意图 / Level 2 任务分类)
   4. 定义边与条件路由 (五大入口路径 → 子图组合复用)
@@ -24,25 +24,25 @@
            Level 2 二级路由 (按 task_type 分 5 路径)
         ┌───────────┼───────────┬───────────┐
         ▼           ▼           ▼           ▼
-  input_source  r_retrieval     qa        docgen
-  _router       (独立检索)   (法律问答)  (文书生成)
+  contract_    r_retrieval     qa        docgen
+  compliance   (独立检索)   (法律问答)  (文书生成)
   (合同合规)        │           │           │
         │          ▼           ▼           ▼
         │         END         END         END
         ▼
-  doc_extract / text_recognize → doc_empty_guard
-        │ (pass: 非空/合同相关)
-        ▼
-  preprocess → cc_retrieval → dual_review → END
+  (contract_compliance 子图内部编排:
+   input_source_router → doc_extract/doc_empty_guard
+   /text_recognize → preprocess → cc_retrieval → dual_review → END)
 
   【四大路径详解】 (各路径节点/边定义见下方详解与源码)
 
   ① 合同合规路径 (contract_review / compliance_review)
-     intent_router → input_source_router (分流: 文档/文本)
+     intent_router → contract_compliance 子图 (整条链路封装)
+         └─ 内部: input_source_router (分流: 文档/文本)
                    → 文档路径: doc_extract → doc_empty_guard(空/损坏守卫)
                    → 文本路径: text_recognize(是否合同相关 + 归一化为 doc_text)
                    → preprocess_subgraph (5 节点文档预处理)
-                   → retrieval_subgraph (检索复用)
+                   → retrieval_subgraph (检索复用, cc_retrieval)
                    → dual_review_subgraph (合同双审 fan-out / 合规单链)
                    → END
 
@@ -75,10 +75,12 @@
 
   【子图复用 (subgraph composition)】
     - retrieval_subgraph 被复用 3 次:
-      ① 合同合规路径 (cc_retrieval)
+      ① 合同合规子图内部 (cc_retrieval)
       ② 独立检索路径 (r_retrieval)
       ③ QA 子图内部嵌套 (qa_retrieval)
-    - 全部 6 个子图均在 subgraphs/ 目录独立编译, 主图仅做组合.
+    - contract_compliance 子图作为编排外壳, 内部嵌套 preprocess + cc_retrieval
+      + dual_review 三个子图, 主图层只 add_node 一个节点即可调度整条链路.
+    - 全部 7 个子图均在 subgraphs/ 目录独立编译, 主图仅做组合.
 """
 
 import sys
@@ -125,33 +127,16 @@ from __004__langgraph_more_nodes.nodes.intent_router_node import (
     LEVEL2_PATH_MAP,
 )
 
-# ── 合同合规链路·主图层单节点 (输入分流 + 文档提取 + 双守卫) ──
-from __004__langgraph_more_nodes.nodes.preprocess_nodes.input_source_router_node import (
-    input_source_router,
-)
-from __004__langgraph_more_nodes.nodes.preprocess_nodes.doc_extract_node import (
-    doc_extract_node,
-)
-from __004__langgraph_more_nodes.nodes.preprocess_nodes.doc_empty_guard_node import (
-    doc_empty_guard_node,
-)
-from __004__langgraph_more_nodes.nodes.preprocess_nodes.text_recognize_node import (
-    text_recognize_node,
-)
+# ── 合同合规链路·输入归一化管道 (input_source_router/doc_extract/doc_empty_guard
+#     /text_recognize) 已上移至 contract_compliance 子图 (subgraphs/contract_compliance_subgraph.py) ──
 
 # ── 主图层收尾节点 (未封装进子图的单节点) ──
 # 注: 原 retrieval_result_summarize_node 已于 2026-08-23 并入检索子图出口节点
 # (retrieval_output_pack_node), 独立检索路径的 output 由子图出口直接产出。
 
-# ── 6 个独立编译子图 (subgraphs/) ──
-from __004__langgraph_more_nodes.subgraphs.preprocess_subgraph import (
-    preprocess_subgraph,
-)
+# ── 7 个独立编译子图 (subgraphs/) ──
 from __004__langgraph_more_nodes.subgraphs.retrieval_subgraph import (
     build_retrieval_subgraph,
-)
-from __004__langgraph_more_nodes.subgraphs.dual_review_subgraph import (
-    dual_review_subgraph,
 )
 from __004__langgraph_more_nodes.subgraphs.qa_subgraph import (
     build_qa_subgraph,
@@ -161,6 +146,10 @@ from __004__langgraph_more_nodes.subgraphs.docgen_subgraph import (
 )
 from __004__langgraph_more_nodes.subgraphs.xhs_subgraph import (
     xhs_subgraph,
+)
+# 合同合规编排子图 (封装 input 归一化管道 + preprocess + cc_retrieval + dual_review)
+from __004__langgraph_more_nodes.subgraphs.contract_compliance_subgraph import (
+    build_contract_compliance_subgraph,
 )
 
 # ── Checkpointer (状态持久化, 支持断点续跑 / 多轮会话) ──
@@ -215,43 +204,11 @@ def after_xiaohongshu_intent_router(state: AgentState):
     return "intent_router"
 
 
-def after_doc_empty_guard(state: AgentState):
-    """【文档路径守卫出口路由】doc_empty_guard 判定空/损坏文档 → 直接 END
-
-    读取:
-        - doc_empty_flag (str): doc_empty_guard_node 写入 "pass"/"block"
-
-    返回:
-        "preprocess": 文档非空, 进预处理子图 → cc_retrieval → dual_review
-        "end":        文档为空/损坏/解析失败, 直接结束(提示用户重传)
-    """
-    if state.get("doc_empty_flag") == "block":
-        print("⛔ [主图] 文档为空/损坏 → 跳过预处理/检索/双审, 直接结束")
-        return "end"
-    return "preprocess"
-
-
-def after_text_recognize(state: AgentState):
-    """【文本路径识别出口路由】text_recognize 判定是否合同相关 → 分流
-
-    读取:
-        - text_recognize_flag (str): text_recognize_node 写入 "pass"/"block"
-
-    返回:
-        "preprocess": 文本已归一化为 doc_text, 进预处理子图 → cc_retrieval → dual_review
-        "end":        非合同 + 合同审核, 直接结束(提示用户粘贴/上传合同)
-    """
-    if state.get("text_recognize_flag") == "block":
-        print("⛔ [主图] 文本非合同 + 合同审核 → 跳过预处理/检索/双审, 直接结束")
-        return "end"
-    return "preprocess"
-
-
 def level2_router(state: AgentState):
     """【Level 2 路由】根据 task_type 路由到 4 大路径 (架构图中的 second_intent_router)
 
     路径分组 (LEVEL2_PATH_MAP):
-    - contract_compliance: contract_review / compliance_review → 合同合规路径 (input_source_router 输入分流 + 双守卫 + 预处理)
+    - contract_compliance: contract_review / compliance_review → 合同合规子图 (内部: 输入分流 + 双守卫 + 预处理 + 检索 + 双审)
     - retrieval:           legal_research / case_search → 检索子图
       (检索子图内部: retrieval_intent_decompose 按 task_type 挂载知识源;
        case_search 挂 cases+laws → 单源直查跳过跨源融合)
@@ -262,7 +219,7 @@ def level2_router(state: AgentState):
     path = LEVEL2_PATH_MAP.get(task_type, "legal_qa")
 
     if path == "contract_compliance":
-        return "input_source_router"       # → 输入分流(文档/文本) + 双守卫 + 预处理
+        return "contract_compliance"       # → 合同合规子图(输入分流 + 双守卫 + 预处理 + 检索 + 双审)
     elif path == "retrieval":
         return "r_retrieval"                # → 检索子图 (内部按条件挂载源, 单源不融合)
     elif path == "legal_document_gen":
@@ -286,21 +243,19 @@ builder.add_node("intent_router", intent_router_node)
 # ── 子图节点 (subgraph composition) ──
 # 小红书发布子图 (Level 1 命中后进入)
 builder.add_node("xhs", xhs_subgraph)
-# 合同合规路径: 输入分流 → (文档提取/文本识别 + 双守卫) → 预处理 → 检索复用 → 双审
-builder.add_node("input_source_router", input_source_router)
-builder.add_node("doc_extract", doc_extract_node)
-builder.add_node("doc_empty_guard", doc_empty_guard_node)
-builder.add_node("text_recognize", text_recognize_node)
-builder.add_node("preprocess", preprocess_subgraph)
-# retrieval_subgraph 复用两次: 使用独立编译实例避免状态串扰
-# 检索子图内部有北大法宝/企查查 interrupt，必须传递 checkpointer
+# 合同合规路径: 整条链路封装进 contract_compliance 子图(输入分流 + 双守卫
+# + 预处理 + 检索复用 + 双审), 主图层只留 1 个节点, 由子图内部编排
 if _HAS_CHECKPOINTER:
-    builder.add_node("cc_retrieval", build_retrieval_subgraph(_checkpointer))
+    builder.add_node("contract_compliance",
+                     build_contract_compliance_subgraph(_checkpointer))
+else:
+    builder.add_node("contract_compliance",
+                     build_contract_compliance_subgraph())
+# 独立检索路径: 单独挂载一份 retrieval 子图(与合同合规子图内的 cc_retrieval 互不串扰)
+if _HAS_CHECKPOINTER:
     builder.add_node("r_retrieval", build_retrieval_subgraph(_checkpointer))
 else:
-    builder.add_node("cc_retrieval", build_retrieval_subgraph())
     builder.add_node("r_retrieval", build_retrieval_subgraph())
-builder.add_node("dual_review", dual_review_subgraph)
 # 法律问答子图 (内部嵌套 retrieval_subgraph)，传递 checkpointer 支持 interrupt
 if _HAS_CHECKPOINTER:
     builder.add_node("qa", build_qa_subgraph(_checkpointer))
@@ -330,46 +285,17 @@ builder.add_conditional_edges(
     "intent_router",
     level2_router,
     {
-        "input_source_router": "input_source_router",  # 合同合规路径(输入分流)
+        "contract_compliance": "contract_compliance",  # 合同合规路径(整条链路子图)
         "r_retrieval": "r_retrieval",   # 独立检索路径
         "qa": "qa",                     # 法律问答路径
         "docgen": "docgen",             # 文书生成路径
     },
 )
 
-# ── ① 合同合规路径: 输入分流 → 文档提取/文本识别 + 双守卫 → 预处理 → 检索 → 双审 ──
-# 入口分流: 有上传文档 → doc_extract; 纯文本 → text_recognize
-builder.add_conditional_edges(
-    "input_source_router",
-    lambda s: "doc" if (s.get("uploaded_doc_path") and str(s.get("uploaded_doc_path")).strip()) else "text",
-    {
-        "doc": "doc_extract",
-        "text": "text_recognize",
-    },
-)
-# 文档路径: doc_extract → 空/损坏守卫 → (pass→预处理 | block→END)
-builder.add_edge("doc_extract", "doc_empty_guard")
-builder.add_conditional_edges(
-    "doc_empty_guard",
-    after_doc_empty_guard,
-    {
-        "preprocess": "preprocess",   # 文档非空: 进预处理子图
-        "end": END,                   # 空/损坏: 直接返回提示文案
-    },
-)
-# 文本路径: text_recognize → (pass→预处理 | block→END)
-builder.add_conditional_edges(
-    "text_recognize",
-    after_text_recognize,
-    {
-        "preprocess": "preprocess",   # 文本已归一化为 doc_text: 进预处理子图
-        "end": END,                   # 非合同+合同审核: 直接返回提示文案
-    },
-)
-# 预处理子图 → 检索复用 → 双审 (固定边: 守卫已在主图层前置拦截)
-builder.add_edge("preprocess", "cc_retrieval")
-builder.add_edge("cc_retrieval", "dual_review")
-builder.add_edge("dual_review", END)
+# ── ① 合同合规路径: 整条链路封装进 contract_compliance 子图, 出口直接 END ──
+#    (子图内部: input_source_router → doc_extract/doc_empty_guard
+#     /text_recognize → preprocess → cc_retrieval → dual_review → END)
+builder.add_edge("contract_compliance", END)
 
 # ── ② 独立检索路径: retrieval 子图出口直接产出 output, 出子图即 END ──
 #   (原 retrieval_summarize 节点已并入检索子图出口 retrieval_output_pack_node)
@@ -640,7 +566,7 @@ if __name__ == "__main__":
         服务主路径(legal_response_sync/legal_response_resume)本就同步 invoke, 不受影响。
         """
 
-        # 测试: 合同审核 (合同合规路径 → 文本路径 → preprocess → retrieval → dual_review)
+        # 测试: 合同审核 (contract_compliance 子图 → 文本路径 → preprocess → retrieval → dual_review)
         print("\n📋 测试1: 合同审核 (双审模式)")
         s1_input = (
             "房屋租赁合同\n甲方：张三\n乙方：李四\n"

@@ -64,32 +64,37 @@ xiaohongshu_publish_intent            (Level 1：小红书发布意图?)
                  ▼  level2_router（按 LEVEL2_PATH_MAP 分 4 组）
         ┌────────────┼──────────────┬──────────────┐
         ▼            ▼              ▼              ▼
-  input_source_  r_retrieval      qa            docgen
-  router         (独立检索)      (法律问答)     (文书生成)
+  contract_    r_retrieval      qa            docgen
+  compliance   (独立检索)      (法律问答)     (文书生成)
         │              │              │              │
         │              ▼              ▼              ▼
         │            END            END            END
         ▼
-  [doc] doc_extract → doc_empty_guard ──block──► END
-  [text] text_recognize ───────────block──► END
+  contract_compliance 子图内部:
+    [doc] doc_extract → doc_empty_guard ──block──► END
+    [text] text_recognize ───────────block──► END
         │ (pass)
         ▼
-  preprocess (子图) → cc_retrieval (子图·复用) → dual_review (子图) → END
+    preprocess (子图) → cc_retrieval (子图·复用) → dual_review (子图) → END
 ```
 
-**主图注册的节点（13 个）**：`xiaohongshu_publish_intent`、`intent_router`、`input_source_router`、`doc_extract`、`doc_empty_guard`、`text_recognize`、`preprocess`(子图)、`cc_retrieval`(子图)、`dual_review`(子图)、`r_retrieval`(子图)、`qa`(子图)、`docgen`(子图)、`xhs`(子图)。
+**主图注册的节点（7 个）**：`xiaohongshu_publish_intent`、`intent_router`、`contract_compliance`(子图·编排外壳，内部含 input_source_router/doc_extract/doc_empty_guard/text_recognize/preprocess/cc_retrieval/dual_review)、`r_retrieval`(子图)、`qa`(子图)、`docgen`(子图)、`xhs`(子图)。
 
 **条件路由函数（真实签名）**
 
 | 路由函数 | 判断字段 | 分支 |
 |---------|---------|------|
 | `after_xiaohongshu_intent_router` | `is_xiaohongshu_publish_intent` / `task_type=="xiaohongshu_publish"` | `xhs` / `intent_router` |
-| `level2_router` | `LEVEL2_PATH_MAP[task_type]` | `input_source_router`(合同合规) / `r_retrieval`(检索) / `qa`(问答) / `docgen`(文书) |
-| `after_doc_empty_guard` | `doc_empty_flag` | `preprocess` / `end` |
-| `after_text_recognize` | `text_recognize_flag` | `preprocess` / `end` |
-| `input_source_router` 内联 lambda | `uploaded_doc_path` 是否为空 | `doc`(文档提取) / `text`(文本识别) |
+| `level2_router` | `LEVEL2_PATH_MAP[task_type]` | `contract_compliance`(合同合规子图) / `r_retrieval`(检索) / `qa`(问答) / `docgen`(文书) |
+| `contract_compliance` 子图内部 · `after_doc_empty_guard` | `doc_empty_flag` | `preprocess` / `end` |
+| `contract_compliance` 子图内部 · `after_text_recognize` | `text_recognize_flag` | `preprocess` / `end` |
+| `contract_compliance` 子图内部 · `input_source_router` 内联 lambda | `uploaded_doc_path` 是否为空 | `doc`(文档提取) / `text`(文本识别) |
 
-### 3.2 六子图清单（真实节点与边）
+### 3.2 七子图清单（真实节点与边，含 1 个合同合规编排外壳）
+
+#### ⓪ 合同合规编排子图 `contract_compliance_subgraph`（编排外壳，非业务节点）
+`input_source_router → [doc] doc_extract → doc_empty_guard ──block──► END / [text] text_recognize ──block──► END → preprocess(子图) → cc_retrieval(子图·复用 retrieval) → dual_review(子图) → END`
+- 把"输入归一化管道（输入分流 + 文档提取 + 双守卫 + 文本识别）+ 预处理 + 检索 + 双审"整条链路封装为一个独立编译子图，主图只 `add_node("contract_compliance", ...)` 即可调度整条合同合规链路（主图从 13 节点精简到 7 节点）。`after_doc_empty_guard` / `after_text_recognize` 两个分流路由函数已上移至本子图内部。
 
 #### ① 预处理子图 `preprocess_subgraph`（5 节点）
 `party_identify → contract_classify → full_text_segment → numeric_extract → llm_query_extract → END`
@@ -141,7 +146,7 @@ xiaohongshu_publish_intent            (Level 1：小红书发布意图?)
 
 ### 3.5 节点复用（subgraph composition）
 
-`retrieval_subgraph` 被复用 3 次：`cc_retrieval`（合同合规）、`r_retrieval`（独立检索）、`qa_retrieval`（问答子图内部嵌套）。所有子图共享 `AgentState` 单一状态总线，避免重复实现。
+`retrieval_subgraph` 被复用 3 次：`cc_retrieval`（合同合规子图内部）、`r_retrieval`（独立检索）、`qa_retrieval`（问答子图内部嵌套）。所有子图共享 `AgentState` 单一状态总线，避免重复实现。
 
 ---
 

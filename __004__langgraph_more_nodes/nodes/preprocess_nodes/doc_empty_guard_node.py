@@ -42,7 +42,7 @@ def doc_empty_guard_node(state: AgentState):
         - doc_text (str): doc_extract 解析上传文件后的纯文本
 
     写入字段:
-        - doc_empty_flag ("pass" / "block"): 供主图 _after_doc_empty_guard 分流
+        - doc_empty_flag ("pass" / "block"): 供 contract_compliance 子图 after_doc_empty_guard 分流
         - block 时: output / final_report_markdown / need_user_confirm
     """
     print("--- 文档空/损坏守卫: 检查 doc_extract 解析结果是否为空 ---")

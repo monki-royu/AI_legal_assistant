@@ -3,8 +3,9 @@
 【架构定位】
     本子图是合同/合规链路 (contract_compliance) 的【文档预处理单元】。
     入口分流 (input_source_router) 与空/损坏守卫 (doc_empty_guard) /
-    文本识别 (text_recognize) 已上移到主图层, 子图只负责"拿到归一化后的
-    doc_text 后, 做合同结构化预处理", 供后续 retrieval + dual_review 使用。
+    文本识别 (text_recognize) 已由 contract_compliance 子图在入口编排,
+    本子图只负责"拿到归一化后的 doc_text 后, 做合同结构化预处理",
+    供后续 retrieval + dual_review 使用。
 
     主图层两条路径在此汇合:
         文档路径: doc_extract → doc_empty_guard(pass) → preprocess_subgraph

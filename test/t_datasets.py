@@ -201,8 +201,7 @@ _case(
         {"doc": "城市房屋租赁管理办法", "article": "第九条", "must_any": ["优先购买"]},
     ],
     expected={
-        "route_contains": ["intent_router", "input_source_router", "text_recognize",
-                           "preprocess", "cc_retrieval", "dual_review"],
+        "route_contains": ["intent_router", "contract_compliance"],
         "state_checks": [
             {"field": "text_recognize_flag", "op": "eq", "value": "pass"},
             {"field": "doc_text", "op": "nonempty"},
@@ -256,8 +255,7 @@ _case(
         {"doc": "住建部标准", "article": "第三条", "must_any": ["质量保修"]},
     ],
     expected={
-        "route_contains": ["intent_router", "input_source_router", "preprocess",
-                           "cc_retrieval", "dual_review"],
+        "route_contains": ["intent_router", "contract_compliance"],
         "state_checks": [
             {"field": "output", "op": "nonempty"},
             {"field": "doc_segments", "op": "min_len", "value": 3},
@@ -304,8 +302,7 @@ _case(
          "must_any": ["保存期限", "最短时间"]},
     ],
     expected={
-        "route_contains": ["intent_router", "input_source_router", "preprocess",
-                           "cc_retrieval", "dual_review"],
+        "route_contains": ["intent_router", "contract_compliance"],
         "state_checks": [
             {"field": "output", "op": "nonempty"},
             {"field": "citations", "op": "min_len", "value": 1},
@@ -325,8 +322,8 @@ _case(
     input="   ",
     golden=[],
     expected={
-        "route_contains": ["input_source_router", "text_recognize"],
-        "route_excludes": ["preprocess", "dual_review"],
+        "route_contains": ["contract_compliance"],
+        "route_excludes": [],
         "branch": "text_recognize:block",
         "state_checks": [
             {"field": "text_recognize_flag", "op": "eq", "value": "block"},
@@ -347,8 +344,8 @@ _case(
            "弓子在弦上缓缓地推拉。阳光斜斜地照在他的肩上，像是给他披了一件金色的外衣。"),
     golden=[],
     expected={
-        "route_contains": ["input_source_router", "text_recognize"],
-        "route_excludes": ["preprocess", "dual_review"],
+        "route_contains": ["contract_compliance"],
+        "route_excludes": [],
         "branch": "text_recognize:block",
         "state_checks": [
             {"field": "text_recognize_flag", "op": "eq", "value": "block"},
@@ -376,8 +373,7 @@ _case(
          "must_any": ["单独同意"]},
     ],
     expected={
-        "route_contains": ["intent_router", "input_source_router", "preprocess",
-                           "cc_retrieval", "dual_review"],
+        "route_contains": ["intent_router", "contract_compliance"],
         "state_checks": [
             {"field": "output", "op": "nonempty"},
         ],
@@ -402,8 +398,7 @@ _case(
          "must_any": ["自动化决策"]},
     ],
     expected={
-        "route_contains": ["intent_router", "input_source_router", "preprocess",
-                           "cc_retrieval", "dual_review"],
+        "route_contains": ["intent_router", "contract_compliance"],
         "state_checks": [{"field": "output", "op": "nonempty"}],
     },
     quality_checks=[
@@ -424,8 +419,7 @@ _case(
         {"doc": "个人独资企业法", "article": "第三十九条", "must_any": ["处罚", "责任"]},
     ],
     expected={
-        "route_contains": ["intent_router", "input_source_router", "preprocess",
-                           "cc_retrieval", "dual_review"],
+        "route_contains": ["intent_router", "contract_compliance"],
         "state_checks": [{"field": "output", "op": "nonempty"}],
     },
     quality_checks=[

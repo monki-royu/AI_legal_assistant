@@ -810,7 +810,7 @@ class AgentState(TypedDict, total=False):
     # ② 为什么(Why):  contract_review + 非合同文本时在主图层短路到 END, 不进
     #                  预处理/检索/双审; compliance_review 一律 pass(输入可非合同);
     # ③ 谁写入(Who writes): text_recognize_node;
-    # ④ 谁读取(Who reads): langgraph_main._after_text_recognize(主图分流路由);
+    # ④ 谁读取(Who reads): contract_compliance_subgraph.after_text_recognize(合同合规子图分流路由);
     # ⑤ 示例值(Example): "pass"
     # ----------------------------------------------------------------------------
     text_recognize_flag: str
@@ -821,7 +821,7 @@ class AgentState(TypedDict, total=False):
     # ② 为什么(Why):  用户上传的文件为空/损坏/解析失败时, 在主图层短路到 END,
     #                  不进预处理/检索/双审(防止对空 doc_text 跑完整流水线);
     # ③ 谁写入(Who writes): doc_empty_guard_node(文档路径, doc_extract 之后);
-    # ④ 谁读取(Who reads): langgraph_main._after_doc_empty_guard(主图分流路由);
+    # ④ 谁读取(Who reads): contract_compliance_subgraph.after_doc_empty_guard(合同合规子图分流路由);
     # ⑤ 示例值(Example): "pass"
     # ----------------------------------------------------------------------------
     doc_empty_flag: str

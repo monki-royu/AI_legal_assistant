@@ -31,6 +31,17 @@ from common.llm import my_llm
 # 导入 AgentState 类型, 它是整个 LangGraph 图中各节点共享的状态字典(TypedDict)
 from __004__langgraph_more_nodes.agent_state import AgentState
 
+# 小红书发布意图的强信号关键词: 自由文本自动识别时, 输入不含这些词直接判 False,
+# 避免法律问答等正常请求被 LLM 误判 "是" 劫持进发布流水线。
+_XHS_TRIGGER_KEYWORDS = (
+    "小红书", "笔记", "种草", "文案", "小红书笔记", "发笔记", "发内容",
+)
+
+
+def _has_xhs_signal(text: str) -> bool:
+    """输入是否包含小红书发布相关的强信号关键词"""
+    return any(k in (text or "") for k in _XHS_TRIGGER_KEYWORDS)
+
 
 def xiaohongshu_publish_intent_node(state: AgentState):
     """
@@ -57,6 +68,22 @@ def xiaohongshu_publish_intent_node(state: AgentState):
     print("开始识别是否有发小红书的意图")
     # 从 state 中读取用户原始输入, 缺失时为空字符串(避免 None 导致后续拼接异常)
     user_input = state.get("input", "")
+
+    # ① 前端已显式指定任务类型 → 直接尊重, 不再跑 LLM 意图识别。
+    #    否则明确的 legal_qa / contract_review 等任务会被不可靠的二次分类劫持。
+    task_type = state.get("task_type")
+    if task_type is not None:
+        state["is_xiaohongshu_publish_intent"] = (task_type == "xiaohongshu_publish")
+        print(f"完成小红书意图识别: {state['is_xiaohongshu_publish_intent']} "
+              f"(遵循显式 task_type={task_type}, 跳过 LLM)")
+        return state
+
+    # ② 自由文本自动识别: 先过关键词闸门。不含小红书信号直接判 False,
+    #    避免法律问答等正常请求被 LLM 误判 "是" 劫持进发布流水线。
+    if not _has_xhs_signal(user_input):
+        state["is_xiaohongshu_publish_intent"] = False
+        print("完成小红书意图识别: False (无小红书信号, 跳过 LLM)")
+        return state
 
     # 构造意图分类提示词, 使用 f-string 将用户输入嵌入, 要求 LLM 仅输出"是"或"否"
     prompt = f"""
