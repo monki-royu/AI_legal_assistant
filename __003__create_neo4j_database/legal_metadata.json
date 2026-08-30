@@ -1,0 +1,728 @@
+{
+  "labels": [
+    {
+      "name": "KnowledgeSource",
+      "description": "",
+      "properties": [
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Law",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Article",
+      "description": "",
+      "properties": [
+        {
+          "name": "content",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "LegalConcept",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "PartyRole",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Liability",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Action",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Condition",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Penalty",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Regulation",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Interpretation",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "IndustryStandard",
+      "description": "",
+      "properties": [
+        {
+          "name": "name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Case",
+      "description": "",
+      "properties": [
+        {
+          "name": "cause",
+          "description": ""
+        },
+        {
+          "name": "content",
+          "description": ""
+        },
+        {
+          "name": "court",
+          "description": ""
+        },
+        {
+          "name": "judge_date",
+          "description": ""
+        },
+        {
+          "name": "name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        },
+        {
+          "name": "title",
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "BELONGS_TO_SOURCE",
+      "description": "",
+      "properties": []
+    },
+    {
+      "type": "BELONGS_TO",
+      "description": "",
+      "properties": []
+    },
+    {
+      "type": "DEFINES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "INVOLVES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "HAS_LIABILITY",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "HAS_CONDITION",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "REGULATES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "HAS_PENALTY",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "RELATED_TO",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "PERFORMED_BY",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "ESTABLISHES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "INCLUDES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "LEADS_TO",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "CAUSES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "type": "CITES",
+      "description": "",
+      "properties": [
+        {
+          "name": "article_no",
+          "description": ""
+        },
+        {
+          "name": "file_name",
+          "description": ""
+        },
+        {
+          "name": "source_id",
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "triples": [
+    {
+      "from": "Law",
+      "rel_type": "BELONGS_TO_SOURCE",
+      "to": "KnowledgeSource",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "DEFINES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "INVOLVES",
+      "to": "PartyRole",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "INVOLVES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "BELONGS_TO",
+      "to": "Law",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_LIABILITY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_CONDITION",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "REGULATES",
+      "to": "Action",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "REGULATES",
+      "to": "Condition",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_CONDITION",
+      "to": "Condition",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "REGULATES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_PENALTY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_PENALTY",
+      "to": "Penalty",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_PENALTY",
+      "to": "Action",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "RELATED_TO",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "INCLUDES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "PERFORMED_BY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "ESTABLISHES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "PERFORMED_BY",
+      "to": "PartyRole",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "PERFORMED_BY",
+      "to": "PartyRole",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "CAUSES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "LEADS_TO",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "CAUSES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "LEADS_TO",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "PERFORMED_BY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "PERFORMED_BY",
+      "to": "PartyRole",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "PERFORMED_BY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "CAUSES",
+      "to": "Penalty",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "CAUSES",
+      "to": "Action",
+      "description": ""
+    },
+    {
+      "from": "Regulation",
+      "rel_type": "BELONGS_TO_SOURCE",
+      "to": "KnowledgeSource",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "BELONGS_TO",
+      "to": "Regulation",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "CAUSES",
+      "to": "Penalty",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "CAUSES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "CAUSES",
+      "to": "Penalty",
+      "description": ""
+    },
+    {
+      "from": "Condition",
+      "rel_type": "ESTABLISHES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Interpretation",
+      "rel_type": "BELONGS_TO_SOURCE",
+      "to": "KnowledgeSource",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "BELONGS_TO",
+      "to": "Interpretation",
+      "description": ""
+    },
+    {
+      "from": "IndustryStandard",
+      "rel_type": "BELONGS_TO_SOURCE",
+      "to": "KnowledgeSource",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "BELONGS_TO",
+      "to": "IndustryStandard",
+      "description": ""
+    },
+    {
+      "from": "Case",
+      "rel_type": "INVOLVES",
+      "to": "PartyRole",
+      "description": ""
+    },
+    {
+      "from": "Case",
+      "rel_type": "CITES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Case",
+      "rel_type": "HAS_PENALTY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Case",
+      "rel_type": "HAS_LIABILITY",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Case",
+      "rel_type": "BELONGS_TO_SOURCE",
+      "to": "KnowledgeSource",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "INCLUDES",
+      "to": "Penalty",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "LEADS_TO",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "LegalConcept",
+      "rel_type": "ESTABLISHES",
+      "to": "LegalConcept",
+      "description": ""
+    },
+    {
+      "from": "Action",
+      "rel_type": "CAUSES",
+      "to": "Action",
+      "description": ""
+    },
+    {
+      "from": "Article",
+      "rel_type": "HAS_CONDITION",
+      "to": "Action",
+      "description": ""
+    }
+  ]
+}

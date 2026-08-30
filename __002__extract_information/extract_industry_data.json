@@ -1,0 +1,3901 @@
+{
+  "results": [
+    {
+      "filename": "住建部标准.txt",
+      "source_id": "industry_sources",
+      "extract_dict": {
+        "entities": [
+          {
+            "name": "建设工程施工活动",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建设工程施工活动",
+            "type": "Action"
+          },
+          {
+            "name": "工程质量",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "安全",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "中华人民共和国建筑法",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建设工程施工",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建设工程施工",
+            "type": "Action"
+          },
+          {
+            "name": "施工单位",
+            "type": "PartyRole"
+          },
+          {
+            "name": "强制性标准",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "工程质量",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "安全",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "环境保护",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "质量管理体系",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "施工质量",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建立质量管理体系",
+            "type": "Action"
+          },
+          {
+            "name": "对施工质量负责",
+            "type": "Action"
+          },
+          {
+            "name": "建设工程",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "质量保修制度",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "最低保修期限",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "基础设施工程",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋建筑的地基基础工程",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "主体结构工程",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "设计文件",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "合理使用年限",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "实行质量保修制度",
+            "type": "Action"
+          },
+          {
+            "name": "建设工程发包与承包",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "公开",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "公平",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "公正",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "诚实信用",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "承包人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "单位",
+            "type": "PartyRole"
+          },
+          {
+            "name": "发包",
+            "type": "Action"
+          },
+          {
+            "name": "承包",
+            "type": "Action"
+          },
+          {
+            "name": "工程分包",
+            "type": "Action"
+          },
+          {
+            "name": "不具备相应资质条件",
+            "type": "Condition"
+          },
+          {
+            "name": "施工合同",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "工程价款",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "工期",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "质量标准",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "违约责任",
+            "type": "Liability"
+          },
+          {
+            "name": "违约责任",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "违约金",
+            "type": "Penalty"
+          },
+          {
+            "name": "违约金",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "合同总价",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "明确约定",
+            "type": "Action"
+          },
+          {
+            "name": "建设工程竣工验收",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建设工程竣工验收",
+            "type": "Action"
+          },
+          {
+            "name": "完成建设工程设计和合同约定的各项内容",
+            "type": "Action"
+          },
+          {
+            "name": "完成建设工程设计和合同约定的各项内容",
+            "type": "Condition"
+          },
+          {
+            "name": "有完整的技术档案和施工管理资料",
+            "type": "Action"
+          },
+          {
+            "name": "有完整的技术档案和施工管理资料",
+            "type": "Condition"
+          },
+          {
+            "name": "有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告",
+            "type": "Action"
+          },
+          {
+            "name": "有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告",
+            "type": "Condition"
+          },
+          {
+            "name": "建设工程设计",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "合同约定",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "技术档案",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "施工管理资料",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建筑材料",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建筑构配件",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "设备",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "进场试验报告",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建设单位",
+            "type": "PartyRole"
+          },
+          {
+            "name": "建设行政主管部门",
+            "type": "PartyRole"
+          },
+          {
+            "name": "建设工程竣工验收",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "建设工程竣工验收报告",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "认可文件",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "备案",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "备案",
+            "type": "Action"
+          },
+          {
+            "name": "报建设行政主管部门备案",
+            "type": "Action"
+          },
+          {
+            "name": "自建设工程竣工验收合格之日起十五日内",
+            "type": "Condition"
+          },
+          {
+            "name": "建设工程竣工验收合格",
+            "type": "Condition"
+          }
+        ],
+        "relations": [
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "建设工程施工活动",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程施工活动",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "工程质量",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "安全",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "中华人民共和国建筑法",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "建设工程施工活动",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "工程质量",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "工程质量",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "安全",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第一条",
+              "content": "为规范建设工程施工活动，保障工程质量与安全，依据《中华人民共和国建筑法》，制定本标准。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "施工单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程施工",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "强制性标准",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "工程质量",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "安全",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "环境保护",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "质量管理体系",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "施工质量",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "建设工程施工",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "建立质量管理体系",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "对施工质量负责",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "建立质量管理体系",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "施工单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "对施工质量负责",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "施工单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "建设工程施工",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "强制性标准",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "强制性标准",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "工程质量",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "强制性标准",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "安全",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "强制性标准",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "环境保护",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "质量管理体系",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "施工质量",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第二条",
+              "content": "建设工程施工应当符合国家有关工程质量、安全、环境保护的强制性标准。施工单位应当建立质量管理体系，对施工质量负责。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "质量保修制度",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "最低保修期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "基础设施工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋建筑的地基基础工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "主体结构工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "设计文件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合理使用年限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第三条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "实行质量保修制度",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "建设工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "质量保修制度",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "建设工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "最低保修期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "质量保修制度",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "最低保修期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "最低保修期限",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合理使用年限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "最低保修期限",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "设计文件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "设计文件",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合理使用年限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "基础设施工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋建筑的地基基础工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "基础设施工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "主体结构工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "房屋建筑的地基基础工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "主体结构工程",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "基础设施工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合理使用年限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "房屋建筑的地基基础工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合理使用年限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "主体结构工程",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合理使用年限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第三条",
+              "content": "建设工程实行质量保修制度。建设工程的最低保修期限为：基础设施工程、房屋建筑的地基基础工程和主体结构工程，为设计文件规定的该工程的合理使用年限。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程发包与承包",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "公开",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "公平",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "公正",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "诚实信用",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "发包",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "承包",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "工程分包",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "不具备相应资质条件",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "承包人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "工程分包",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承包人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "建设工程发包与承包",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "公开",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "建设工程发包与承包",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "公平",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "建设工程发包与承包",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "公正",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "建设工程发包与承包",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "诚实信用",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第四条",
+              "content": "建设工程发包与承包应当遵循公开、公平、公正和诚实信用的原则。禁止承包人将工程分包给不具备相应资质条件的单位。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "施工合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "工程价款",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "工期",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "质量标准",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "违约责任",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "违约金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合同总价",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "明确约定",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_PENALTY",
+            "object": "违约金",
+            "object_type": "Penalty",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_LIABILITY",
+            "object": "违约责任",
+            "object_type": "Liability",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "施工合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "工程价款",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "施工合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "工期",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "施工合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "质量标准",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "施工合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "违约责任",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "违约责任",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "违约金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "工程价款",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合同总价",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第五条",
+              "content": "施工合同应当明确约定工程价款、工期、质量标准、违约责任等条款。违约金一般不超过合同总价的百分之二十。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程竣工验收",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程设计",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合同约定",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "技术档案",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "施工管理资料",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建筑材料",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建筑构配件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "设备",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "进场试验报告",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "建设工程竣工验收",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "完成建设工程设计和合同约定的各项内容",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "有完整的技术档案和施工管理资料",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "完成建设工程设计和合同约定的各项内容",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "有完整的技术档案和施工管理资料",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "建设工程设计",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合同约定",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "技术档案",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "施工管理资料",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "建筑材料",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "建筑构配件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "建筑构配件",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "设备",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "设备",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "进场试验报告",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第六条",
+              "content": "建设工程竣工验收应当具备下列条件：完成建设工程设计和合同约定的各项内容；有完整的技术档案和施工管理资料；有工程使用的主要建筑材料、建筑构配件和设备的进场试验报告。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "建设单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "建设行政主管部门",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程竣工验收",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "建设工程竣工验收报告",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "认可文件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "备案",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "报建设行政主管部门备案",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "备案",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "自建设工程竣工验收合格之日起十五日内",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "建设工程竣工验收合格",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "报建设行政主管部门备案",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "建设单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "备案",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "建设单位",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "建设工程竣工验收报告",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "备案",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "认可文件",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "备案",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          },
+          {
+            "subject": "建设工程竣工验收",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "建设工程竣工验收报告",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "住建部标准",
+              "article_no": "第七条",
+              "content": "建设单位应当自建设工程竣工验收合格之日起十五日内，将建设工程竣工验收报告和规划、消防、环保等部门出具的认可文件报建设行政主管部门备案。"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "filename": "城市房屋租赁管理办法.txt",
+      "source_id": "industry_sources",
+      "extract_dict": {
+        "entities": [
+          {
+            "name": "房屋租赁",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋租赁",
+            "type": "Action"
+          },
+          {
+            "name": "城市房屋租赁管理",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋租赁市场秩序",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋租赁当事人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "合法权益",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "加强城市房屋租赁管理",
+            "type": "Action"
+          },
+          {
+            "name": "维护房屋租赁市场秩序",
+            "type": "Action"
+          },
+          {
+            "name": "保障房屋租赁当事人的合法权益",
+            "type": "Action"
+          },
+          {
+            "name": "中华人民共和国民法典",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋租赁",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋租赁",
+            "type": "Action"
+          },
+          {
+            "name": "转租",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "转租",
+            "type": "Action"
+          },
+          {
+            "name": "承租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "出租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "城市规划区内",
+            "type": "Condition"
+          },
+          {
+            "name": "经出租人同意",
+            "type": "Condition"
+          },
+          {
+            "name": "依照本办法",
+            "type": "Condition"
+          },
+          {
+            "name": "出租人同意",
+            "type": "Action"
+          },
+          {
+            "name": "房屋租赁期限",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁合同",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁期间",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "超过部分",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "当事人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "续订租赁合同",
+            "type": "Action"
+          },
+          {
+            "name": "超过二十年的",
+            "type": "Condition"
+          },
+          {
+            "name": "租赁期间届满",
+            "type": "Condition"
+          },
+          {
+            "name": "无效",
+            "type": "Penalty"
+          },
+          {
+            "name": "无效",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "出租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "承租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "合同",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租金",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁期间",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁期间",
+            "type": "Condition"
+          },
+          {
+            "name": "转租",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "违法活动",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "解除合同",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "解除合同",
+            "type": "Action"
+          },
+          {
+            "name": "不得解除合同",
+            "type": "Action"
+          },
+          {
+            "name": "违反合同约定",
+            "type": "Condition"
+          },
+          {
+            "name": "擅自将房屋转租",
+            "type": "Action"
+          },
+          {
+            "name": "擅自将房屋转租",
+            "type": "Condition"
+          },
+          {
+            "name": "利用房屋进行违法活动",
+            "type": "Action"
+          },
+          {
+            "name": "利用房屋进行违法活动",
+            "type": "Condition"
+          },
+          {
+            "name": "未按约定支付租金",
+            "type": "Action"
+          },
+          {
+            "name": "未按约定支付租金累计六个月以上",
+            "type": "Condition"
+          },
+          {
+            "name": "出租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "合同",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "维修义务",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "使用条件",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "按照合同约定",
+            "type": "Condition"
+          },
+          {
+            "name": "履行房屋的维修义务",
+            "type": "Action"
+          },
+          {
+            "name": "确保房屋符合约定的使用条件",
+            "type": "Action"
+          },
+          {
+            "name": "承租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "合同",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租金",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "违约责任",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "违约责任",
+            "type": "Liability"
+          },
+          {
+            "name": "支付租金",
+            "type": "Action"
+          },
+          {
+            "name": "无故拖欠",
+            "type": "Action"
+          },
+          {
+            "name": "未按期支付租金",
+            "type": "Action"
+          },
+          {
+            "name": "未按期支付租金",
+            "type": "Condition"
+          },
+          {
+            "name": "按照合同约定",
+            "type": "Condition"
+          },
+          {
+            "name": "承租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "出租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "房屋结构",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "房屋用途",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁期间",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "租赁期间",
+            "type": "Condition"
+          },
+          {
+            "name": "未经出租人同意",
+            "type": "Condition"
+          },
+          {
+            "name": "拆改房屋结构",
+            "type": "Action"
+          },
+          {
+            "name": "改变房屋用途",
+            "type": "Action"
+          },
+          {
+            "name": "出租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "承租人",
+            "type": "PartyRole"
+          },
+          {
+            "name": "租赁房屋",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "出卖租赁房屋",
+            "type": "Action"
+          },
+          {
+            "name": "出卖租赁房屋",
+            "type": "Condition"
+          },
+          {
+            "name": "通知承租人",
+            "type": "Action"
+          },
+          {
+            "name": "以同等条件优先购买",
+            "type": "Action"
+          },
+          {
+            "name": "优先购买权",
+            "type": "LegalConcept"
+          },
+          {
+            "name": "同等条件",
+            "type": "Condition"
+          },
+          {
+            "name": "在出卖之前的合理期限内",
+            "type": "Condition"
+          },
+          {
+            "name": "合理期限",
+            "type": "LegalConcept"
+          }
+        ],
+        "relations": [
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "房屋租赁当事人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋租赁",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "城市房屋租赁管理",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋租赁市场秩序",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合法权益",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "房屋租赁",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "加强城市房屋租赁管理",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "维护房屋租赁市场秩序",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第一条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "保障房屋租赁当事人的合法权益",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "房屋租赁",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "房屋租赁当事人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "房屋租赁",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "城市房屋租赁管理",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "房屋租赁",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋租赁市场秩序",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "房屋租赁",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合法权益",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "城市房屋租赁管理",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋租赁市场秩序",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "房屋租赁市场秩序",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合法权益",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "合法权益",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "中华人民共和国民法典",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第一条",
+              "content": "为加强城市房屋租赁管理，维护房屋租赁市场秩序，保障房屋租赁当事人的合法权益，根据《中华人民共和国民法典》，制定本办法。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋租赁",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "转租",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "房屋租赁",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "转租",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "城市规划区内",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "经出租人同意",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第二条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "依照本办法",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "转租",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "出租人同意",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "房屋租赁",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "转租",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第二条",
+              "content": "城市规划区内的房屋租赁，应当遵守本办法。承租人经出租人同意，可以依照本办法将承租房屋转租。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "当事人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋租赁期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租赁合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租赁期间",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "超过部分",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "无效",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "续订租赁合同",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "超过二十年的",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "租赁期间届满",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第四条",
+            "subject_type": "Article",
+            "relation": "HAS_PENALTY",
+            "object": "无效",
+            "object_type": "Penalty",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "续订租赁合同",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "当事人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "租赁合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋租赁期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "房屋租赁期限",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "租赁期间",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "超过部分",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋租赁期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第四条",
+              "content": "房屋租赁期限不得超过二十年。超过二十年的，超过部分无效。租赁期间届满，当事人可以续订租赁合同。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租赁",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租赁期间",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "转租",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "违法活动",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "解除合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "解除合同",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "不得解除合同",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "擅自将房屋转租",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "利用房屋进行违法活动",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "未按约定支付租金",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "租赁期间",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "违反合同约定",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "擅自将房屋转租",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "利用房屋进行违法活动",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第五条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "未按约定支付租金累计六个月以上",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "解除合同",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "不得解除合同",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "擅自将房屋转租",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "利用房屋进行违法活动",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "未按约定支付租金",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "租金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "解除合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "房屋",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "租金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "房屋",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "转租",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "房屋",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "违法活动",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "转租",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "租赁期间",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "租赁",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第五条",
+              "content": "租赁期间，出租人不得解除合同，但有下列情形之一的除外：承租人违反合同约定，擅自将房屋转租的；承租人利用房屋进行违法活动的；承租人未按约定支付租金累计六个月以上的。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "维修义务",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "使用条件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "履行房屋的维修义务",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "确保房屋符合约定的使用条件",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第六条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "按照合同约定",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "履行房屋的维修义务",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "确保房屋符合约定的使用条件",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "维修义务",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "使用条件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "房屋",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "维修义务",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "房屋",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "使用条件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "维修义务",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "使用条件",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第六条",
+              "content": "出租人应当按照合同约定履行房屋的维修义务，确保房屋符合约定的使用条件。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合同",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "违约责任",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "支付租金",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "无故拖欠",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "未按期支付租金",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "未按期支付租金",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "按照合同约定",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第七条",
+            "subject_type": "Article",
+            "relation": "HAS_LIABILITY",
+            "object": "违约责任",
+            "object_type": "Liability",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "支付租金",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "无故拖欠",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "未按期支付租金",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "未按期支付租金",
+            "subject_type": "Action",
+            "relation": "LEADS_TO",
+            "object": "违约责任",
+            "object_type": "Liability",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "租金",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "租金",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "违约责任",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "合同",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "违约责任",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第七条",
+              "content": "承租人应当按照合同约定支付租金，不得无故拖欠。承租人未按期支付租金的，应当承担违约责任。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋结构",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "房屋用途",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租赁期间",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "拆改房屋结构",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "改变房屋用途",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "未经出租人同意",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第八条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "租赁期间",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "拆改房屋结构",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "改变房屋用途",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "房屋结构",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "房屋用途",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第八条",
+              "content": "租赁期间，承租人未经出租人同意，不得拆改房屋结构，不得改变房屋用途。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "INVOLVES",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "租赁房屋",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "优先购买权",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "DEFINES",
+            "object": "合理期限",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "出卖租赁房屋",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "通知承租人",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "REGULATES",
+            "object": "以同等条件优先购买",
+            "object_type": "Action",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "出卖租赁房屋",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "在出卖之前的合理期限内",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "第九条",
+            "subject_type": "Article",
+            "relation": "HAS_CONDITION",
+            "object": "同等条件",
+            "object_type": "Condition",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "出卖租赁房屋",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "通知承租人",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "出租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "以同等条件优先购买",
+            "subject_type": "Action",
+            "relation": "PERFORMED_BY",
+            "object": "承租人",
+            "object_type": "PartyRole",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          },
+          {
+            "subject": "租赁房屋",
+            "subject_type": "LegalConcept",
+            "relation": "RELATED_TO",
+            "object": "优先购买权",
+            "object_type": "LegalConcept",
+            "provenance": {
+              "source_id": "industry_sources",
+              "file_name": "城市房屋租赁管理办法",
+              "article_no": "第九条",
+              "content": "出租人出卖租赁房屋的，应当在出卖之前的合理期限内通知承租人，承租人享有以同等条件优先购买的权利。"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
