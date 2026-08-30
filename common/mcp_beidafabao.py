@@ -1,41 +1,53 @@
 # -*- coding: utf-8 -*-
 # 📜 ============================================================
 # 文件名称: common/mcp_beidafabao.py
-# 文件作用: 北大法宝 MCP 数据源客户端 — "付费外挂"检索引擎
+# 文件作用: 北大法宝 MCP 付费外挂客户端 —— 仅作为「质量门 3 次重试失败后」的付费补充检索层
 # ============================================================
 #
 # 【这个文件是干什么的？】
-# 当法智引擎的"本地免费检索"质量不够好时（质量分 < 0.85），
-# 经过 3 轮重试还是不达标，就会问用户："要不要用北大法宝查？"
-# 如果用户说"要"，这个文件就会去调用【北大法宝】的付费 API
-# （Model Context Protocol，MCP 协议）来获取更权威的法规和案例。
+#   本文件只做一件事：封装北大法宝 MCP 付费 HTTP 接口的调用。
+#   它是「纯客户端工具层」，**不自己决定什么时候调用**；
+#   唯一的调用入口是 nodes/retrieval_nodes/beida_fabao_gate_node.py，
+#   触发前置条件在该节点顶部写死（V5 定稿）：
 #
-# 【为什么需要这个？】
-# 法智引擎默认用的是"本地免费检索"——FAISS 向量索引 + Neo4j 知识图谱 + 本地关键词。
-# 但有时候本地数据不够全（比如最新发布的法规还没加到索引里），
-# 或者用户问的问题太偏门。这时候就需要一个"付费外挂"来兜底。
-# 北大法宝是中国最权威的法律数据库之一，用它来补充检索结果。
+#      只有 nodes/retrieval_nodes/quality_gate_retry_node.py 在
+#      quality_retry_count >= MAX_QUALITY_RETRIES 且质量分仍低于
+#      QUALITY_GATE_THRESHOLD 时，写入 state.fabao_retry_eligible=True，
+#      beida_fabao_gate_node 才会 interrupt() 问用户，用户确认后才
+#      get_beida_mcp_client().search_all(query, top_k)。
+#
+#   因此：关键词命中（涉外/银行保险/反垄断）、低分第 1~2 次、前端手动指定
+#   api_sources=[...] 都**不会**触发本文件的任何方法。
 #
 # 【代码逻辑主线】
-# 1. BeidaFabaoMCPClient 类：封装了与北大法宝 MCP API 通信的所有逻辑。
-# 2. search_laws()：搜法律法规（调用 /law/search 接口）。
-# 3. search_cases()：搜裁判案例（调用 /case/search 接口）。
-# 4. search_all()：两样都搜，然后合并排序。
-# 5. get_beida_mcp_client()：工厂函数，返回一个全局单例客户端。
-# 6. 降级策略：没 Token 就返回空列表，不报错，不影响主流程。
+#   1. BeidaFabaoMCPClient：封装所有 HTTP / Token / 超时 / 降级逻辑。
+#   2. search_laws()    → /law/search
+#   3. search_cases()   → /case/search
+#   4. search_all()     → 同时搜法规 + 案例，合并取前 top_k*2
+#   5. get_beida_mcp_client() → 从 common.config.Config 读 Token/Base URL，
+#      暴露全局单例给 beida_fabao_gate_node 调用。
+#   6. 降级策略：没 Token / requests 未安装 / 非 200 / 任何异常 → 空列表，
+#      永远不抛错，不打断主流程输出免费结果。
 #
-# 【调用条件（逐级升级）】
-#   quality_score < 0.85 → 第1轮重试 → <0.85 → 第2轮重试 → <0.85 → 第3轮重试
-#   → <0.85 → human_intervention_needed=True → 用户确认 → 调此 MCP
+# 【谁在调用它？】
+#   __004__langgraph_more_nodes/nodes/retrieval_nodes/beida_fabao_gate_node.py
+#   (LangGraph interrupt 询问用户确认后，在「⑥ 用户确认」分支 import)
 #
-# 【谁在用它？】
-#   common/retrieval_engine.py — 质量门禁不达标时调用
-#   common/config.py — 读取 Token/URL/Timeout 配置
+# 【和 retrieval_nodes 目录的关系】
+#   retrieval_nodes 目录下已经**没有任何 beida_fabao 关键词规则 / API_SOURCES 白名单**；
+#   从 keyword → 挂载这个通道在 V5 被彻底删干净。本客户端是「付费执行层」，
+#   和挂载/检索矩阵的设计完全解耦。
 #
-# 【函数关系】
-#   本模块依赖: common.config.Config（读 Token）
-#              requests（HTTP 请求）
-#   本模块被依赖: common.retrieval_engine（检索智能体质量门禁降级调用）
+# 【调用前的逐级升级（免费 → 付费，严格单向）】
+#   retrieval_intent_decompose → entity_recall(3通道) × domain_sources
+#     → fusion_ranking / single_source_sort → quality_score
+#     → quality_gate_retry (MAX_QUALITY_RETRIES 次关键词扩展 + 源切换)
+#     → 仍低于阈值 → fabao_retry_eligible=True
+#     → beida_fabao_gate_node.interrupt() 真中断问用户
+#     → 用户确认 → 本文件的 search_all() 实际发起付费调用
+#
+# 本模块依赖: common.config.Config（读 Token/Base URL/Timeout）
+#             requests（HTTP 请求，在函数内部懒加载以避免 ImportError）
 
 import json          # 【import  json】：用于把 Python 字典转成 JSON 字符串（序列化）和把 JSON 字符串转回 Python 字典（反序列化）。这里主要在 __main__ 自测时用来打印格式化结果。
 import logging       # 【import  logging】：导入 Python 的日志系统，用来输出警告和调试信息（不会打断主流程）。

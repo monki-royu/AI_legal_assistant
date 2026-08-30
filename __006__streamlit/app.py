@@ -40,11 +40,13 @@
 # （任务切换、结果缓存、修改内容暂存）。
 """
 法智引擎 Streamlit 前端 v6
-功能: 合同审核 / 合规审查 / 文书生成(SSE) / 案例检索 / 法规查询 / 历史记录 / 小红书发布 / 智能问答
+功能: 合同审核 / 合规审查 / 文书生成 / 案例检索 / 法规查询 / 历史记录 / 小红书发布 / 智能问答
 特色: 8大功能2×4卡片 + 类DeepSeek中央大输入框 + 多色快捷卡片 + 流式输出 + 思考过程
 """
 # ===== 标准库导入区 =====
 import os  # 操作系统接口，用于路径拼接与目录定位
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
 import sys  # 系统相关参数与函数，用于修改 sys.path 以导入上层模块
 import json  # JSON 序列化/反序列化
 import time  # 时间相关函数
@@ -1167,7 +1169,8 @@ def _run_backend_isolated(input_text, task_type, timeout_sec=300):
 
     参数:
         input_text (str): 用户输入的合同/文档全文
-        task_type (str): 任务类型 contract_review / compliance_review / case_search / legal_document_gen
+        task_type (str): 任务类型, 当前仅 contract_review / compliance_review 走子进程隔离通道
+                          (案例检索 / 文书生成走 FastAPI HTTP 接口, 不经由本隔离函数)
         timeout_sec (int): 子进程最长运行秒数, 超时后强制 kill 并视为失败
 
     返回值:
@@ -3583,8 +3586,8 @@ elif page == "📱 小红书发布":
             st.markdown(f"**📋 上次发布结果**: {st.session_state['xhs_publish_result']}")
 
 # ==================== 法律文书生成独立页面 ====================
-# —— 三步流程: describe (案情描述) → confirm (SSE执行+进度展示) → result (结果展示+导出)
-# —— 复用 FastAPI 后端 SSE 端点, 通过 requests stream=True 后台线程消费
+# —— 三步流程: describe (案情描述) → generate (调用后端+进度展示) → result (结果展示+导出)
+# —— 调用 FastAPI /docgen/generate (普通 JSON 接口, 非 SSE), 失败回退后端直调 / 本地 demo
 elif page == "📝 文书生成":
     _DOCGEN_META = {
         "greeting": "您好, 我是法律文书生成智能体",
@@ -3698,46 +3701,30 @@ elif page == "📝 文书生成":
                     f"**被告**: {form.get('defendant', '')}")
         st.markdown("---")
 
-        # 执行进度展示: 尝试调用后端 SSE / 后端 full / 本地 demo
+        # 执行进度展示: 调用 FastAPI /docgen/generate (JSON) → 失败回退本地 direct / demo
         status_ph = st.status("正在生成文书, 请稍候...", expanded=True)
 
-        # 尝试通过 fastapi SSE 端点
+        # /docgen/generate 为普通 JSON 接口(非 SSE), 返回 data={document_id, final_document, ...}
         doc_id = None
         try:
             import requests as _req
-            import json as _json
 
             _resp = _req.post(
                 "http://localhost:8000/api/v1/docgen/generate",
                 json=form,
                 timeout=300,
-                stream=True,
             )
             if _resp.status_code == 200:
-                # 读取 SSE 流直到收到 complete 事件
-                _buffer = ""
-                for _chunk in _resp.iter_content(chunk_size=1, decode_unicode=True):
-                    if _chunk:
-                        _buffer += _chunk
-                        if _buffer.endswith("\n\n"):
-                            for _line in _buffer.strip().split("\n"):
-                                if _line.startswith("data:"):
-                                    try:
-                                        _data = _json.loads(_line[5:])
-                                        if "document_id" in _data:
-                                            doc_id = _data["document_id"]
-                                        elif "error" in _data:
-                                            status_ph.error(f"错误: {_data['error']}")
-                                    except Exception:
-                                        pass
-                            _buffer = ""
-                    if doc_id:
-                        break
+                _data = _resp.json().get("data", {}) or {}
+                doc_id = _data.get("document_id")
+                if not doc_id:
+                    status_ph.warning("后端未返回 document_id, 改用本地生成")
+            else:
+                status_ph.warning(f"文书生成接口返回 {_resp.status_code}, 改用本地生成")
+        except Exception as _gen_err:
+            print(f"[docgen] FastAPI 调用失败, 改用本地生成: {_gen_err}")
 
-        except Exception as _sse_err:
-            print(f"[docgen] SSE 直连失败: {_sse_err}")
-
-        # SSE 未获结果时尝试直接调用后端
+        # 未获 document_id 时尝试直接调用后端
         if not doc_id:
             try:
                 from __004__langgraph_more_nodes.langgraph_main import legal_response_sync
@@ -3967,14 +3954,17 @@ elif page == "🔎 案例检索":
     if query and st.session_state.get("case_search_triggered", False):
         st.session_state["case_search_triggered"] = False  # 重置标记
         with st.spinner(f"正在搜索: {query}..."):
-            results = {"data": [], "total": 0}
+            # FastAPI /cases/search 为 JSON body: {query, case_type, court_level, page, page_size}
+            # 注意: 前端筛选键 case_type/court 需映射为后端字段 query/court_level（keyword 并非后端字段）
+            results = {"code": 200, "data": {"items": [], "total": 0}}
             try:
                 import requests as _req
                 _r = _req.post(
                     "http://localhost:8000/api/v1/cases/search",
-                    params={
-                        "keyword": query,
+                    json={
+                        "query": query,
                         "case_type": case_type_filter if case_type_filter != "全部" else "",
+                        "court_level": court_filter if court_filter != "全部" else "",
                         "page": 1,
                         "page_size": 10,
                     },
@@ -3984,25 +3974,30 @@ elif page == "🔎 案例检索":
                     results = _r.json()
             except Exception as _e:
                 print(f"[cases] API 调用失败: {_e}")
-                # demo fallback
+                # demo fallback（结构与 FastAPI /cases/search 一致: data={items,total}）
                 results = {
-                    "data": [
-                        {"id": "1", "title": "张三诉某建筑公司建设工程施工合同纠纷案",
-                         "caseNo": "(2024)京0105民初12345号", "court": "北京市朝阳区人民法院",
-                         "caseType": "合同纠纷", "date": "2024-06-15",
-                         "summary": "原被告签订建设工程施工合同，被告未按约定支付工程款...",
-                         "tags": ["建设工程", "合同纠纷"]},
-                        {"id": "2", "title": "李四与某科技公司劳动争议案",
-                         "caseNo": "(2024)京0108民初67890号", "court": "北京市海淀区人民法院",
-                         "caseType": "劳动争议", "date": "2024-08-20",
-                         "summary": "原告主张被告违法解除劳动合同，要求支付赔偿金...",
-                         "tags": ["劳动争议", "违法解除"]},
-                    ],
-                    "total": 2,
+                    "code": 200,
+                    "data": {
+                        "items": [
+                            {"id": "1", "title": "张三诉某建筑公司建设工程施工合同纠纷案",
+                             "caseNo": "(2024)京0105民初12345号", "court": "北京市朝阳区人民法院",
+                             "caseType": "合同纠纷", "date": "2024-06-15",
+                             "summary": "原被告签订建设工程施工合同，被告未按约定支付工程款...",
+                             "tags": ["建设工程", "合同纠纷"]},
+                            {"id": "2", "title": "李四与某科技公司劳动争议案",
+                             "caseNo": "(2024)京0108民初67890号", "court": "北京市海淀区人民法院",
+                             "caseType": "劳动争议", "date": "2024-08-20",
+                             "summary": "原告主张被告违法解除劳动合同，要求支付赔偿金...",
+                             "tags": ["劳动争议", "违法解除"]},
+                        ],
+                        "total": 2,
+                    },
                 }
 
-        items = results.get("data", [])
-        total = results.get("total", 0)
+        # 拆包: 后端返回 data={items,total}，与 STATE_TO_API_MAP 统一响应封装对齐
+        payload = results.get("data", {}) if isinstance(results.get("data"), dict) else {}
+        items = payload.get("items", [])
+        total = payload.get("total", 0)
         st.markdown(f"**共找到 {total} 条相关案例**")
 
         if items:
@@ -4059,7 +4054,8 @@ elif page == "📜 法规查询":
     query = law_keyword.strip()
     if query:
         with st.spinner(f"正在检索: {query}..."):
-            results = {"data": [], "total": 0}
+            # 后端统一响应信封: {"code":200,"message":"success","data":{"items":[...],"total":N,...}}
+            results = {"data": {"items": [], "total": 0}}
             try:
                 import requests as _req
                 _r = _req.get(
@@ -4076,21 +4072,25 @@ elif page == "📜 法规查询":
                     results = _r.json()
             except Exception as _e:
                 print(f"[laws] API 调用失败: {_e}")
-                # demo fallback
+                # demo fallback (同样遵循 data:{items,total} 信封结构)
                 results = {
-                    "data": [
-                        {"id": "1", "lawName": "中华人民共和国民法典", "articleNo": "第五百七十七条",
-                         "chapter": "合同编", "content": "当事人一方不履行合同义务或者履行合同义务不符合约定的，应当承担继续履行、采取补救措施或者赔偿损失等违约责任。",
-                         "effectiveDate": "2021-01-01", "status": "现行有效"},
-                        {"id": "2", "lawName": "中华人民共和国民法典", "articleNo": "第五百八十五条",
-                         "chapter": "合同编", "content": "当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金...",
-                         "effectiveDate": "2021-01-01", "status": "现行有效"},
-                    ],
-                    "total": 2,
+                    "data": {
+                        "items": [
+                            {"id": "1", "lawName": "中华人民共和国民法典", "articleNo": "第五百七十七条",
+                             "chapter": "合同编", "content": "当事人一方不履行合同义务或者履行合同义务不符合约定的，应当承担继续履行、采取补救措施或者赔偿损失等违约责任。",
+                             "effectiveDate": "2021-01-01", "status": "现行有效"},
+                            {"id": "2", "lawName": "中华人民共和国民法典", "articleNo": "第五百八十五条",
+                             "chapter": "合同编", "content": "当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金...",
+                             "effectiveDate": "2021-01-01", "status": "现行有效"},
+                        ],
+                        "total": 2,
+                    }
                 }
 
-        items = results.get("data", [])
-        total = results.get("total", 0)
+        # 统一拆包: 先取 data(dict), 再取 data.items / data.total
+        payload = results.get("data") if isinstance(results.get("data"), dict) else {}
+        items = payload.get("items", []) if payload else []
+        total = payload.get("total", 0) if payload else 0
         st.markdown(f"**共 {total} 条记录**")
 
         if items:
@@ -4141,8 +4141,10 @@ elif page == "📚 历史记录":
         _r = _req.get("http://localhost:8000/api/v1/history", params=params, timeout=10)
         if _r.status_code == 200:
             res = _r.json()
-            records = res.get("data", [])
-            total = res.get("total", 0)
+            # 后端统一响应信封: data:{items, total}; 先取 data(dict), 再拆 items/total
+            payload = res.get("data") if isinstance(res.get("data"), dict) else {}
+            records = payload.get("items", []) if payload else []
+            total = payload.get("total", 0) if payload else 0
     except Exception as _e:
         print(f"[history] API 调用失败: {_e}")
 

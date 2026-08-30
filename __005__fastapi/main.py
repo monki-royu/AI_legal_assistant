@@ -21,7 +21,7 @@
 与 LangGraph v5.0 两级路由 + 6 子图组合架构完全对齐:
   - Level 1 (binary): 小红书发布意图 → 小红书/非小红书
   - Level 2 (4 paths): 合同合规 / 检索 / 法律问答 / 文书生成
-  - 三层检索: L1 领域知识库 → L2 跨域图谱 → L3 外部API (逐级降级)
+  - 检索三阶段: Stage1 实体召回(图谱+FAISS+关键词并行) → Stage2 精准过滤(关键词AND+重排序+权威过滤) → Stage3 融合排序(多信号打分+去重+分级)
 
 【延迟加载策略】
 LangGraph 主图初始化涉及大量子图编译、LLM 初始化和知识库加载,
@@ -37,10 +37,13 @@ LangGraph 主图初始化涉及大量子图编译、LLM 初始化和知识库加
 """
 
 import os
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
 import sys
 import json
 import asyncio
 import traceback
+from contextlib import asynccontextmanager
 from datetime import datetime
 
 # ============================================================
@@ -128,10 +131,66 @@ async def _ensure_langgraph():
 # 项目内部模块导入 (轻量级模块可提前加载)
 # ============================================================
 from common.history_store import store as history_store
+from common.logger import get_logger, setup_logging
+
+# 初始化统一日志 (幂等; 级别可用 LEGAL_LOG_LEVEL 覆盖, 默认 INFO)
+setup_logging(level=os.getenv("LEGAL_LOG_LEVEL", "INFO"))
+logger = get_logger(__name__)
+
+# ============================================================
+# CORS 配置 (必须在 app 实例化之前解析)
+# ============================================================
+# 【历史问题】原实现写死 allow_origins=["*"] + allow_credentials=True。
+#   这是 W3C 规范**禁止**的组合: 凭证请求不允许通配符源, 浏览器会直接拒绝响应,
+#   导致前端带 cookie/Authorization 的请求全部失败, 而服务端日志完全看不出来。
+#   现改为: 读环境变量, 未配置时给出安全的默认值(同源, 不带凭证)。
+_CORS_ORIGINS = [
+    o.strip() for o in os.getenv("LEGAL_CORS_ORIGINS", "").split(",") if o.strip()
+]
+# 允许凭证的前提是**显式**列出来源, 不能是通配符
+_CORS_ALLOW_CREDENTIALS = bool(_CORS_ORIGINS) and "*" not in _CORS_ORIGINS
 
 # ============================================================
 # FastAPI 应用实例化
 # ============================================================
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期管理
+
+    【为什么需要它】原实现没有任何启动/关闭钩子:
+      - LangGraph 的 SqliteSaver 连接 (checkpoints.sqlite) 永不关闭
+      - history_store 的 SQLite 连接永不 close()
+      - 首次请求才触发 30-60s 的初始化, 无预热、无保护
+
+    当前策略: 保持 LangGraph 懒加载(避免启动过慢), 但在关闭时正确释放资源。
+    若部署环境希望启动时预热, 把 LEGAL_PREWARM=1 即可(会显著拉长启动时间)。
+    """
+    # ---- 启动 ----
+    if os.getenv("LEGAL_PREWARM", "").strip() in ("1", "true", "True"):
+        logger.info("LEGAL_PREWARM=1, 启动预热 LangGraph 主图 ...")
+        try:
+            await _ensure_langgraph()
+            logger.info("LangGraph 预热完成")
+        except Exception as e:
+            # 预热失败不应阻断服务启动, 让首个请求重试
+            logger.warning("LangGraph 预热失败, 将在首次请求时重试: %s", e)
+    else:
+        logger.info("LangGraph 采用懒加载, 首次业务请求触发初始化")
+
+    yield
+
+    # ---- 关闭 ----
+    logger.info("服务关闭中, 释放资源 ...")
+    try:
+        if hasattr(history_store, "close"):
+            history_store.close()
+            logger.info("history_store 连接已关闭")
+    except Exception as e:
+        logger.warning("关闭 history_store 失败: %s", e)
+
+
 app = FastAPI(
     title="法智引擎 AI 法律助理 API",
     description="""
@@ -148,18 +207,19 @@ app = FastAPI(
     - 小红书内容生成与发布
     
     注: LangGraph 主图采用延迟加载, 首次业务请求会触发初始化(耗时较长),
-    后续请求响应正常。
+    后续请求响应正常。可用 LEGAL_PREWARM=1 改为启动预热。
     """,
-    version="5.1.0",
+    version="5.2.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
-# CORS 中间件 (开发环境全开放, 生产环境应限制域名)
+# CORS 中间件: 来源与凭证均来自环境变量, 不再硬编码通配符
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_CORS_ORIGINS or ["*"],
+    allow_credentials=_CORS_ALLOW_CREDENTIALS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -179,9 +239,13 @@ class QaRequest(BaseModel):
 class ContractReviewRequest(BaseModel):
     """合同审核请求 (支持文本或文件)"""
     input: Optional[str] = Field(None, description="合同文本 (与上传文件二选一)")
-    user_side: str = Field(default="甲方", description="用户立场 (甲方/乙方)")
+    # 【字段修复】原默认值 "甲方" 与 AgentState 约定不符:
+    #   agent_state.user_side 的取值域是 "A" / "B" / "Unknown",
+    #   contract_ai_review_node 的默认值也是 "Unknown"。传"甲方"走不到 A/B 分支,
+    #   立场加权的逻辑等于没生效。这里改为 Unknown, 由适配层做中文→代号的归一化。
+    user_side: str = Field(default="Unknown",
+                           description="用户立场: A(甲方) / B(乙方) / Unknown; 也接受中文'甲方'/'乙方'")
     contract_type: str = Field(default="", description="合同类型 (租赁/买卖/劳动等)")
-    review_mode: str = Field(default="AI_AUTO", description="审核模式 (AI_AUTO/CUSTOM_RULES/CUSTOM_RULES_WITH_AI)")
 
 class ComplianceReviewRequest(BaseModel):
     """合规审查请求"""
@@ -247,6 +311,129 @@ def _extract_citations_from_result(result: Dict) -> List[Dict]:
     if isinstance(result, dict):
         return result.get("citations", []) or []
     return []
+
+
+# ============================================================
+# 【单一真相源】AgentState 字段 → API 响应字段 映射
+# ============================================================
+# 【为什么需要它】
+#   2026-08-29 审计发现: 本文件多处用 `(result or {}).get("<字段名>")` 直接取
+#   LangGraph 的状态字段, 但其中 7 个字段名在 AgentState 里根本不存在
+#   (risk_items / risk_score / xhs_published / xhs_content / xhs_images /
+#    contract_ai_review / compliance_review), 还有一些读的是已声明但无人写入的字段。
+#   结果就是: 接口**不报错, 但永远返回空值或默认值**, 属于最难排查的静默故障。
+#
+#   把所有"状态字段 → 响应字段"的映射集中到这一张表, 好处是:
+#     1. 新增/改名只需改一处, 不会漏改某个接口
+#     2. 配合 tools/check_state_fields.py, 字段名错了一眼可见
+#     3. 读的时候统一走 _pick(), 不存在即取默认值, 行为可预期
+#
+# 【字段校验基准】下表左侧的键均来自 __004__langgraph_more_nodes/agent_state.py
+#   的 AgentState TypedDict; 修改前请先确认该字段确实被某个节点写入。
+STATE_TO_API_MAP: Dict[str, Dict[str, Any]] = {
+    # ---- 合同审核 / 合规审查 ----
+    "merged_risk_items":     {"api_key": "risks", "default": []},
+    "compliance_risk_items": {"api_key": "compliance_risks", "default": []},
+    "contract_risk_items":   {"api_key": "contract_risks", "default": []},
+    "numeric_risk_items":    {"api_key": "numeric_risks", "default": []},
+    "credit_risk_items":     {"api_key": "credit_risks", "default": []},
+    # 签约结论: 合规一票否决权的载体 (conflict_resolution / risk_aggregate 写入)
+    "can_sign":              {"api_key": "can_sign", "default": "pass"},
+    # 注意: 真实字段是 overall_risk_score, 原实现读的 risk_score 并不存在
+    "overall_risk_score":    {"api_key": "risk_score", "default": 0},
+    "risk_level":            {"api_key": "risk_level", "default": "Unknown"},
+    "need_lawyer_review":    {"api_key": "need_lawyer_review", "default": False},
+    "contract_type":         {"api_key": "contract_type", "default": ""},
+    "user_side":             {"api_key": "user_side", "default": "Unknown"},
+    "party_a":               {"api_key": "party_a", "default": ""},
+    "party_b":               {"api_key": "party_b", "default": ""},
+    "final_report_markdown": {"api_key": "final_report_markdown", "default": ""},
+
+    # ---- 文书生成 ----
+    "final_document":        {"api_key": "final_document", "default": ""},
+    "document_id":           {"api_key": "document_id", "default": None},
+    "cited_laws":            {"api_key": "cited_laws", "default": []},
+    "similar_cases":         {"api_key": "similar_cases", "default": []},
+    "template_id":           {"api_key": "template_id", "default": ""},
+    "template_name":         {"api_key": "template_name", "default": ""},
+    "template_confidence":   {"api_key": "template_confidence", "default": 0.0},
+    # 文书链路的风险项字段名就是 risks (doc_risk_analysis_node 写入)
+    "risks":                 {"api_key": "risks", "default": []},
+    "retrieval_quality_score": {"api_key": "quality_score", "default": 0},
+    "doc_force_delivery":    {"api_key": "force_delivery", "default": False},
+    # 澄清分支: 信息不足时返回追问文案而非文书
+    "need_clarify":          {"api_key": "need_clarify", "default": False},
+    "clarify_question":      {"api_key": "clarify_question", "default": ""},
+
+    # ---- 检索 / 问答 ----
+    "citations":             {"api_key": "citations", "default": []},
+    "quality_score":         {"api_key": "retrieval_quality_score", "default": 0},
+    "quality_gate_passed":   {"api_key": "quality_gate_passed", "default": False},
+    "fusion_mode":           {"api_key": "fusion_mode", "default": ""},
+    "retrieval_eval":        {"api_key": "retrieval_eval", "default": {}},
+
+    # ---- 小红书 ----
+    # 真实字段是 xiaohongshu_*, 原实现读的 xhs_* 三个键全都不存在
+    "xiaohongshu_title":           {"api_key": "title", "default": ""},
+    "xiaohongshu_content":         {"api_key": "content", "default": ""},
+    "xiaohongshu_image_path_list": {"api_key": "images", "default": []},
+    "xiaohongshu_tip":             {"api_key": "tip", "default": ""},
+    "xiaohongshu_markdown_output": {"api_key": "markdown", "default": ""},
+    # 发布成功与否由 check_text_image + auto_publish 共同决定
+    "is_can_publish_xiaohongshu":  {"api_key": "published", "default": False},
+
+    # ---- 通用 ----
+    "output":                {"api_key": "output", "default": ""},
+    "task_type":             {"api_key": "task_type", "default": ""},
+    "thread_id":             {"api_key": "thread_id", "default": None},
+}
+
+
+def _pick(result: Dict, *state_keys: str) -> Dict[str, Any]:
+    """按 STATE_TO_API_MAP 从 LangGraph 结果中挑字段, 返回 {api_key: value}
+
+    参数:
+        result: legal_response_sync / legal_response_resume 的返回值(完整 AgentState)
+        *state_keys: 需要的 AgentState 字段名(必须是 STATE_TO_API_MAP 里的键)
+
+    返回:
+        Dict[str, Any]: 以 api_key 为键的响应片段
+
+    说明:
+        传入了不在映射表里的键会打一条 warning —— 这正是防"字段名写错"的关键,
+        开发期就能发现, 而不是等到线上返回空值才发现。
+    """
+    result = result or {}
+    picked: Dict[str, Any] = {}
+    for key in state_keys:
+        spec = STATE_TO_API_MAP.get(key)
+        if spec is None:
+            logger.warning("STATE_TO_API_MAP 缺少字段 '%s', 请补映射后再使用", key)
+            continue
+        picked[spec["api_key"]] = result.get(key, spec["default"])
+    return picked
+
+
+def _attach_interrupt_fields(result: Dict, response_data: Dict[str, Any]) -> None:
+    """把中断信息挂到响应上, 供前端弹付费确认框并支持 resume
+
+    【为什么必须显式处理】
+        fabao_retry_eligible 字段补齐后, 北大法宝付费确认 interrupt 会**真的触发**
+        (此前永不触发)。图会在 interrupt() 处暂停, 若接口不返回
+        pending_interrupt / thread_id, 前端既不知道要确认、也拿不到 resume
+        所需的 thread_id → 请求就此卡死。
+        原实现只有 /docgen/generate 处理了, /contract/review 与
+        /compliance/review 都没有, 本轮统一补齐。
+    """
+    if not isinstance(result, dict):
+        return
+    if result.get("pending_interrupt"):
+        response_data["pending_interrupt"] = result["pending_interrupt"]
+        response_data["thread_id"] = result.get("thread_id")
+        logger.info("触发中断, thread_id=%s", result.get("thread_id"))
+    elif result.get("thread_id"):
+        # 非中断场景也透传 thread_id, 支持多轮对话
+        response_data["thread_id"] = result["thread_id"]
 
 # ============================================================
 # API 端点实现
@@ -336,7 +523,7 @@ async def contract_review(req: ContractReviewRequest):
     
     执行流程:
     文本/文件输入 → 输入分流 → 文档提取/文本识别 → 文档预处理
-    → 检索子图 (挂载法律知识源) → 双审子图 (合同AI审核 + 合规审查)
+    → 检索子图 (三阶段检索: 实体召回→精准过滤→融合排序) → 双审子图 (合同AI审核 + 合规审查)
     → 风险聚合 → 最终交付
     
     返回结构化审核报告, 包含:
@@ -353,7 +540,6 @@ async def contract_review(req: ContractReviewRequest):
         # 构建额外参数
         kwargs = {
             "user_side": req.user_side,
-            "review_mode": req.review_mode,
         }
         if req.contract_type:
             kwargs["contract_type"] = req.contract_type
@@ -373,17 +559,27 @@ async def contract_review(req: ContractReviewRequest):
         response_data = {
             "output": _extract_output_from_result(result),
             "citations": _extract_citations_from_result(result),
-            "risks": (result or {}).get("risk_items", []) or [],
+            "risks": (result or {}).get("merged_risk_items", []) or [],
             "compliance_risks": (result or {}).get("compliance_risk_items", []) or [],
             "can_sign": (result or {}).get("can_sign", False),
         }
         
         # 透传更多有用的字段
         if isinstance(result, dict):
-            for key in ["risk_score", "contract_ai_review", "compliance_review", 
+            # 风险总分: 真实字段是 overall_risk_score (原 risk_score 在 AgentState 中不存在)
+            if result.get("overall_risk_score") is not None:
+                response_data["risk_score"] = result["overall_risk_score"]
+            for key in ["contract_ai_review", "compliance_review",
                         "user_side", "contract_type", "thread_id"]:
                 if key in result:
                     response_data[key] = result[key]
+        
+        # 中断透传 (如北大法宝付费确认) — 与 QA/docgen 端点对齐
+        if isinstance(result, dict) and result.get("pending_interrupt"):
+            response_data["pending_interrupt"] = result["pending_interrupt"]
+            response_data["thread_id"] = result.get("thread_id")
+        elif isinstance(result, dict) and result.get("thread_id"):
+            response_data["thread_id"] = result["thread_id"]
         
         return _build_success_response(response_data)
     except Exception as e:
@@ -401,7 +597,7 @@ async def compliance_review(req: ComplianceReviewRequest):
     合规审查接口 (单审模式)。
     
     执行流程:
-    文本/文件输入 → 输入分流 → 文档预处理 → 检索子图 → 合规审查 (单路)
+    文本/文件输入 → 输入分流 → 文档预处理 → 检索子图 (三阶段检索) → 合规审查 (单路)
     
     返回合规审查结果, 包含:
     - 合规风险点列表
@@ -437,6 +633,13 @@ async def compliance_review(req: ComplianceReviewRequest):
             for key in ["compliance_review", "compliance_score", "thread_id"]:
                 if key in result:
                     response_data[key] = result[key]
+        
+        # 中断透传 (如北大法宝付费确认) — 与 QA/docgen/contract 端点对齐
+        if isinstance(result, dict) and result.get("pending_interrupt"):
+            response_data["pending_interrupt"] = result["pending_interrupt"]
+            response_data["thread_id"] = result.get("thread_id")
+        elif isinstance(result, dict) and result.get("thread_id"):
+            response_data["thread_id"] = result["thread_id"]
         
         return _build_success_response(response_data)
     except Exception as e:
@@ -531,8 +734,8 @@ async def laws_search(
     法规查询接口。
     
     走 LangGraph 检索子图 (task_type="legal_research"), 
-    挂载法律法规、行政法规、司法解释等知识源,
-    经过融合排序和质量门控后返回法规条目列表。
+    单源挂载 laws 知识源 (法规查询直查模式, 不做多源融合),
+    经过三阶段检索 (实体召回→精准过滤→融合排序) 和质量门控后返回法规条目列表。
     """
     try:
         await _ensure_langgraph()
@@ -620,8 +823,8 @@ async def cases_search(req: CaseSearchRequest):
     案例检索接口。
     
     走 LangGraph 检索子图 (task_type="case_search"),
-    挂载案例库知识源 (cases + laws), 单源直查模式跳过跨源融合。
-    支持关键词 + 案由 + 法院级别筛选, 分页返回。
+    单源挂载 cases 知识源 (案例检索直查模式, 不做多源融合),
+    经过三阶段检索 (实体召回→精准过滤→融合排序) 返回案例列表。
     """
     try:
         await _ensure_langgraph()
@@ -800,9 +1003,12 @@ async def xhs_publish(req: XhsRequest):
         
         response_data = {
             "output": output,
-            "published": (result or {}).get("xhs_published", False),
-            "content": (result or {}).get("xhs_content", {}),
-            "images": (result or {}).get("xhs_images", []),
+            # 真实字段是 xiaohongshu_* (原 xhs_published/xhs_content/xhs_images 均不存在)
+            "published": (result or {}).get("is_can_publish_xiaohongshu", False),
+            "content": (result or {}).get("xiaohongshu_content", ""),
+            "images": (result or {}).get("xiaohongshu_image_path_list", []),
+            "title": (result or {}).get("xiaohongshu_title", ""),
+            "markdown": (result or {}).get("xiaohongshu_markdown_output", ""),
         }
         
         if isinstance(result, dict) and result.get("thread_id"):
@@ -909,7 +1115,10 @@ async def kb_stats():
             "laws": {"count": 0, "name": "法律法规"},
             "regulations": {"count": 0, "name": "行政法规/规章"},
             "cases": {"count": 0, "name": "裁判案例"},
-            "industry": {"count": 0, "name": "行业标准"},
+            # 统计键使用 "industry_sources" (与 retrieval_entity_recall_node._SOURCE_INDEX_MAP /
+            # Config.FAISS_INDEX_PATHS / 数据文件名 {industry_sources}_docs.json 前缀完全一致)。
+            # 旧简写 "industry" 已废弃，否则 kb 统计里行业标准栏永远 count=0。
+            "industry_sources": {"count": 0, "name": "行业标准"},
             "interpretations": {"count": 0, "name": "司法解释"},
         }
         # 尝试从本地知识库读取统计
@@ -1000,42 +1209,51 @@ async def stream_task(request: Request):
             start_data = json.dumps({"task_type": task_type, "message": "开始执行", "timeout": DEFAULT_TIMEOUT}, ensure_ascii=False)
             yield f"event: start\ndata: {start_data}\n\n"
 
-            # 在后台线程中运行 LangGraph stream (graph.stream 是同步的)
-            # 优化: 只执行一次 graph.stream, 获取所有节点输出 + 最终结果
+            # 【真流式重构】用 asyncio.Queue 在后台线程实时搬运 graph.stream 的 chunk,
+            #   SSE 生成器边消费边 emit, 不再等全图跑完再回放 (原 await run_in_executor
+            #   会阻塞到全图结束才回放, 长任务下前端 60-180s 收不到任何进度)。
             loop = asyncio.get_running_loop()
-            
-            def _run_stream_once():
-                """执行一次 graph.stream (含子图), 返回 ((timestamp, chunk)列表, 父图最终状态).
+            _queue: "asyncio.Queue" = asyncio.Queue()
+            _SENTINEL = object()  # 流结束哨兵
 
-                关键修复 (LB006 / BC001):
-                    - subgraphs=True 让检索子图/问答子图等内部节点也能被流式暴露,
-                      否则 stream 只会吐出顶层子图节点, 内部 10 节点被合并成一个事件,
-                      无法定位"到底哪个节点出问题"。
-                    - 开启后 chunk 结构变为 (namespace_tuple, {node: state}),
-                      namespace==() 表示父图顶层节点, 否则为子图路径(如 ('retrieval_subgraph',))。
-                    - 同时记录每个 chunk 的时间戳, 供节点级耗时 emit。
-                """
+            def _run_stream():
+                """后台线程: 驱动整张图 stream, 每产出一个 chunk 立即 put 进队列."""
                 try:
                     graph = _get_graph
-                    chunks = []
-                    final_state = None
                     for chunk in graph.stream(init_state, config=_default_config(), subgraphs=True):
-                        chunks.append((time.time(), chunk))
-                        # chunk = (namespace, data); 父图顶层节点 namespace == ()
-                        if isinstance(chunk, tuple) and len(chunk) == 2:
-                            _ns, _data = chunk
-                            if _ns == () and isinstance(_data, dict):
-                                final_state = _data
-                    return chunks, final_state
+                        try:
+                            _queue.put_nowait((time.time(), chunk))
+                        except Exception:
+                            pass
                 except Exception as e:
-                    return [(time.time(), ("__error__", {"__error__": str(e)}))], None
+                    try:
+                        _queue.put_nowait((time.time(), ("__error__", {"__error__": str(e)})))
+                    except Exception:
+                        pass
+                finally:
+                    try:
+                        _queue.put_nowait(_SENTINEL)
+                    except Exception:
+                        pass
 
-            # 执行流式调用
-            _stream_chunks, _final_state = await loop.run_in_executor(None, _run_stream_once)
+            # 后台线程驱动整张图的 stream, 主协程负责实时 emit (不 await, 避免阻塞)
+            loop.run_in_executor(None, _run_stream)
             
-            # 处理每个 chunk, 发送节点级完成事件
-            # 开启 subgraphs=True 后, chunk = (timestamp, (namespace_tuple, {node: output}))
-            for _ts, chunk in _stream_chunks:
+            # 实时消费队列: 每到一个 chunk 立即 emit node_done, 超时则发心跳保活
+            _final_state = None
+            while True:
+                try:
+                    item = await asyncio.wait_for(_queue.get(), timeout=HEARTBEAT_INTERVAL)
+                except asyncio.TimeoutError:
+                    _elapsed = round(time.time() - _start_time, 1)
+                    hb = json.dumps({"alive": True, "elapsed": _elapsed}, ensure_ascii=False)
+                    yield f"event: heartbeat\ndata: {hb}\n\n"
+                    continue
+
+                if item is _SENTINEL:
+                    break
+
+                _ts, chunk = item
                 # 错误 chunk: (ts, ("__error__", {"__error__": "..."}))
                 if isinstance(chunk, tuple) and chunk and chunk[0] == "__error__":
                     raise Exception(chunk[1].get("__error__", "未知错误"))
@@ -1045,6 +1263,10 @@ async def stream_task(request: Request):
                 _ns, chunk_data = chunk
                 if not isinstance(chunk_data, dict) or not chunk_data:
                     continue
+
+                # 父图顶层节点 namespace == () 时记录最终状态
+                if _ns == () and isinstance(chunk_data, dict):
+                    _final_state = chunk_data
 
                 _node_count += 1
                 node_name = list(chunk_data.keys())[0]
@@ -1070,21 +1292,22 @@ async def stream_task(request: Request):
                     "step": _node_count
                 }, ensure_ascii=False)
                 yield f"event: node_done\ndata: {event_data}\n\n"
-            
+
             _total_elapsed = time.time() - _start_time
-            
+
             # 发送完成事件 (包含最终状态摘要)
             _final_summary = {}
             if _final_state and isinstance(_final_state, dict):
                 # 只提取关键字段, 避免传输过大 payload
-                for key in ["task_type", "output", "risk_score", "can_sign", 
+                # 注意: 真实字段是 overall_risk_score (原 risk_score 在 AgentState 中不存在)
+                for key in ["task_type", "output", "overall_risk_score", "can_sign",
                            "retrieval_quality_score", "thread_id"]:
                     if key in _final_state:
                         val = _final_state[key]
                         if isinstance(val, str) and len(val) > 500:
                             val = val[:500] + "..."
                         _final_summary[key] = val
-            
+
             done_data = json.dumps({
                 "summary": _final_summary,
                 "total_elapsed": round(_total_elapsed, 1),
@@ -1116,49 +1339,41 @@ async def stream_task(request: Request):
 
 @router.post("/contract/review/stream")
 async def contract_review_stream(req: ContractReviewRequest):
-    """合同审核 - 流式端点 (POST /api/v1/contract/review/stream)"""
-    kwargs = {"user_side": req.user_side, "review_mode": req.review_mode}
+    """合同审核 - 流式端点 (POST /api/v1/contract/review/stream).
+
+    复用统一 /stream 端点的队列真流式 (不再自行阻塞式 to_thread 回放),
+    保证 node_done 实时推送 + 心跳保活。
+    """
+    if not req.input:
+        return _build_error_response("缺少 input 参数")
+
+    await _ensure_langgraph()
+
+    kwargs = {"user_side": req.user_side}
     if req.contract_type:
         kwargs["contract_type"] = req.contract_type
-    
-    # 使用统一流式端点
+
+    payload = json.dumps(
+        {"input": req.input, "task_type": "contract_review", "kwargs": kwargs},
+        ensure_ascii=False,
+    ).encode("utf-8")
+
+    def _make_receive(body: bytes):
+        async def _receive():
+            return {"type": "http.request", "body": body, "more_body": False}
+        return _receive
+
     proxy_req = Request(
         {
             "type": "http",
             "method": "POST",
-            "headers": [],
+            "headers": [(b"content-type", b"application/json")],
             "path": "/api/v1/stream",
             "query_string": b"",
         },
-        receive=lambda: None,
+        receive=_make_receive(payload),
     )
-    # 简化: 直接调用 stream 逻辑
-    await _ensure_langgraph()
-    
-    async def gen():
-        _start = time.time()
-        start_json = json.dumps({"task": "contract_review"}, ensure_ascii=False)
-        yield f"event: start\ndata: {start_json}\n\n"
-        
-        try:
-            result = await asyncio.to_thread(
-                _legal_response_sync,
-                req.input,
-                task_type="contract_review",
-                **kwargs
-            )
-            elapsed = time.time() - _start
-            done_json = json.dumps({
-                "result": result,
-                "elapsed": round(elapsed, 1)
-            }, ensure_ascii=False)
-            yield f"event: done\ndata: {done_json}\n\n"
-        except Exception as e:
-            err_json = json.dumps({"error": str(e)[:300]}, ensure_ascii=False)
-            yield f"event: error\ndata: {err_json}\n\n"
-    
-    return StreamingResponse(gen(), media_type="text/event-stream",
-                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return await stream_task(proxy_req)
 
 
 @router.post("/docgen/generate/stream")

@@ -15,7 +15,7 @@
   - LLM 去重: 生成前把已有案件标题喂给 LLM, 要求避免重复
 
 输出结构:
-  data/cases_txt/{案由}/{案件标题}.txt
+  data/cases/{案由}/{案件标题}.txt
   每个文件包含: 案件标题/案号/法院/日期/案情摘要/判决结果/引用法条
 """
 # 📜 代码文字逻辑解析
@@ -179,8 +179,8 @@ def generate_cases(keywords: str = "", case_types: list = None,
 
     print(f"[CasesCollector] 开始生成案例, 案由 {len(types)} 类, 每类 {count_per_type} 个")
 
-    # 输出根目录: data/cases_txt/
-    output_root = os.path.join(root_dir, "data", "cases_txt")
+    # 输出根目录: data/cases/
+    output_root = os.path.join(root_dir, "data", "cases")
     os.makedirs(output_root, exist_ok=True)
 
     total = 0

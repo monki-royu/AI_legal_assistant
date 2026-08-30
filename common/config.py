@@ -87,7 +87,7 @@
 #   · __001__clawler/llm_gen.py —— 读取大模型 API Key 做内容生成；
 #   · __004__langgraph_more_nodes/nodes/image_generate_node.py —— 用
 #     JIMENG_AK / JIMENG_SK 调文生图接口；
-#   · __004__langgraph_more_nodes/nodes/retrieval_base_layer_node.py —— 检索节点
+#   · __004__langgraph_more_nodes/nodes/retrieval_nodes/retrieval_entity_recall_node.py —— 检索节点
 #     读取各类配置。
 #   · 此外 TCM_METADATA（图谱 schema 描述）、ENTITY_INDEX_PATH / ENTITY_ID2TEXT_PATH
 #     （向量召回）、history_num（对话记忆轮次）还会被图谱构建脚本与 LangGraph
@@ -326,10 +326,10 @@ class Config:
         self.MODEL_NAME = os.getenv("MODEL_NAME")  # 行尾：模型名必须和服务商实际支持的模型名完全一致（大小写、连字符都要对），否则 API 会报 model not found 错误
 
         # 【属性定义】self.MODEL_TIMEOUT
-        # 【功能】LLM 单次请求超时(秒)。重负载任务(如 8000 字法条的概念抽取, 长输入+长
-        #         JSON 输出)生成耗时远超闲聊, 120s 不够会 "Request timed out" 降级规则抽取。
-        # 【取值来源】环境变量 MODEL_TIMEOUT, 未配置默认 300(兼顾长任务与故障暴露速度)。
-        self.MODEL_TIMEOUT = int(os.getenv("MODEL_TIMEOUT", "300"))
+        # 【功能】LLM 单次请求超时(秒)。重负载任务(如案例全文抽取, 长输入+长 JSON
+        #         输出)生成耗时远超闲聊, 300s 在大案例上会 "Request timed out"。
+        # 【取值来源】环境变量 MODEL_TIMEOUT, 未配置默认 600(兼顾长任务与故障暴露速度)。
+        self.MODEL_TIMEOUT = int(os.getenv("MODEL_TIMEOUT", "600"))
 
         # ═══════════════════════════════════════════════════════════════════
         # 【B. Neo4j 图数据库相关】—— 供 common/neo4j_client.py 连接图数据库使用
@@ -490,10 +490,14 @@ class Config:
         self.ENTITY_ID2TEXT_PATH = get_file_path("__003__create_neo4j_database/nero4j_embedding_faiss_id2text.pkl")  # 行尾：pkl 是 Python pickle（序列化）文件格式，需要用 pickle.load 读取成字典 {id: 文本}；这个文件和上面的 .index 文件必须配套生成，否则 id 对不上
 
         # ═══════════════════════════════════════════════════════════════════
-        # 【F2. 领域知识库 FAISS 索引】—— 三层架构: 各领域独立索引
+        # 【F2. 领域知识库 FAISS 索引】—— 各领域独立索引
         # ═══════════════════════════════════════════════════════════════════
-        # 每个领域(laws/cases/industry/interpretations)都有独立的 FAISS 索引,
-        # 便于按需加载和并行检索, 减少单索引的体积和加载时间.
+        # 注意：本处是全局配置的只读副本，实际被 FAISS 召回链路读取的「唯一真相」是
+        #   retrieval_entity_recall_node._SOURCE_INDEX_MAP，
+        #   两边必须 100% 对齐（键名、index 文件名、id2text 文件名）。
+        #   本 FAISS_INDEX_PATHS 用于 006_streamlit 展示 / __001__clawler 生成前校验等外围场景，
+        #   若改知识源文件，优先改 entity_recall_node._SOURCE_INDEX_MAP，再同步此处。
+        # 所有源 key 语义平等，不携带 priority / authority 分层（融合层有独立 authority_weights）。
         _KB_INDEX_DIR = os.path.join(root_dir, "data", "knowledge_base", "index")
         self.FAISS_INDEX_PATHS = {
             "laws": {
@@ -508,23 +512,31 @@ class Config:
                 "index": os.path.join(_KB_INDEX_DIR, "cases_faiss.index"),
                 "id2text": os.path.join(_KB_INDEX_DIR, "cases_id2text.pkl"),
             },
-            "industry": {
-                "index": os.path.join(_KB_INDEX_DIR, "industry_faiss.index"),
-                "id2text": os.path.join(_KB_INDEX_DIR, "industry_id2text.pkl"),
+            "industry_sources": {
+                # 注意: 键名必须是 "industry_sources"（和实际文件 industry_sources_faiss.index 前缀一致），
+                # 历史上的简写 "industry" 已废弃（因为 KNOWN_DOMAIN_SOURCES / FAISS 映射键统一用全称）。
+                "index": os.path.join(_KB_INDEX_DIR, "industry_sources_faiss.index"),
+                "id2text": os.path.join(_KB_INDEX_DIR, "industry_sources_id2text.pkl"),
             },
             "interpretations": {
                 "index": os.path.join(_KB_INDEX_DIR, "interpretations_faiss.index"),
                 "id2text": os.path.join(_KB_INDEX_DIR, "interpretations_id2text.pkl"),
             },
         }
-        # 三层架构默认挂载规则 (供 retrieval_intent_decompose_node 使用)
+        # 任务 → 挂载矩阵 (V4 用户定稿方案 · 与 retrieval_intent_decompose_node.TASK_SOURCE_DEFAULTS 完全对齐)
+        # 说明：本 DEFAULT_TASK_MOUNTS 是外围展示/前端任务卡片用的「镜像配置」，
+        #       LangGraph 实际运行时只读 intent_decompose_node 里那份 TASK_SOURCE_DEFAULTS；
+        #       两者修改时必须同步。字段仅保留 domain，graph/api 两类不存在于新挂载层 (V4 起删除)：
+        #         - graph 三通道是每个 domain 源内部默认包含的能力，不单独挂；
+        #         - api(beida_fabao) 只在 quality_gate 3 次重试失败后置 fabao_retry_eligible=True 生效，
+        #           与任务类型/关键词完全解耦。
         self.DEFAULT_TASK_MOUNTS = {
-            "contract_review": {"domain": ["laws", "regulations", "cases", "industry"], "graph": ["neo4j_graph"], "api": []},
-            "compliance_review": {"domain": ["laws", "regulations", "interpretations", "industry"], "graph": ["neo4j_graph"], "api": []},
-            "legal_research": {"domain": ["laws", "regulations", "cases", "interpretations"], "graph": ["neo4j_graph"], "api": ["beida_fabao"]},
-            "case_search": {"domain": ["cases", "laws"], "graph": [], "api": []},
-            "legal_qa": {"domain": ["laws", "regulations", "cases", "interpretations"], "graph": [], "api": []},
-            "legal_document_gen": {"domain": ["laws", "regulations", "interpretations"], "graph": ["neo4j_graph"], "api": []},
+            "contract_review":    {"domain": ["laws", "regulations", "interpretations", "cases"]},  # 4 源, industry 关键词触发追加
+            "compliance_review":  {"domain": ["laws", "regulations", "interpretations", "cases"]},  # 4 源
+            "legal_research":     {"domain": ["laws", "regulations", "interpretations"]},            # 3 源(纯法规, 不含 cases/industry)
+            "case_search":        {"domain": ["cases"]},                                             # 1 源, skip_fusion 透传
+            "legal_qa":           {"domain": ["laws", "regulations", "interpretations", "cases"]},  # 4 源
+            "legal_document_gen": {"domain": ["laws", "regulations", "interpretations"]},            # 3 源 (文书法条检索, cases 独立子图)
         }
 
         # ═══════════════════════════════════════════════════════════════════
@@ -542,7 +554,12 @@ class Config:
 
         # ═══════════════════════════════════════════════════════════════════
         # 【H. 北大法宝 MCP 相关】—— 付费外挂法规数据源
-        # 【背景】质量门禁 < 0.85 且经 3 轮重试后才会调用它来补充法规数据
+        # 【背景】V5 最终定稿: 只有 quality_gate_retry_node 达到 MAX_QUALITY_RETRIES 仍低于阈值
+        #       时（即免费链路的「三通道召回 + 融合/单源排序 + 关键词扩展 + 源切换 + fallback」
+        #       连续 3 次重试全用尽仍不达标），由它置 fabao_retry_eligible=True，
+        #       beida_fabao_gate_node 仅对该标记 True 生效时才 interrupt 询问用户，
+        #       用户确认后才真正走到 mcp_beidafabao.search_all() 这里。
+        #       不再按质量分阈值 < X 或关键词触发。
         # ═══════════════════════════════════════════════════════════════════
 
         # 【属性定义】self.BEIDA_FABAO_TOKEN

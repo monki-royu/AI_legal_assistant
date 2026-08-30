@@ -1,62 +1,39 @@
 """LangGraph 主图构建与编译 ── 两级路由 + 6 子图组合架构
 
-【当前版本 v5.0 架构演进 ── 详见下方【架构总览】与各路径详解】
-
 本文件是 AI 法律助理(LangGraph 多智能体系统)的核心组装器，将 6 个独立编译的
-子图按"四大任务类别"组合为主图。
+子图组合为主图，覆盖 5 条入口路径：小红书发布（Level 1 直连）+ 合同合规 /
+独立检索 / 法律问答 / 文书生成（Level 2 四类任务）。
 
 职责：
   1. 导入全部子图 (preprocess / retrieval / dual_review / qa / docgen / xhs)
   2. 创建 StateGraph 构建器
-  3. 注册两级路由节点 (Level 1 小红书 / Level 2 四类任务)
-  4. 定义边与条件路由 (四大路径 → 子图组合复用)
+  3. 注册两级路由节点 (Level 1 小红书意图 / Level 2 任务分类)
+  4. 定义边与条件路由 (五大入口路径 → 子图组合复用)
   5. 编译生成最终可调用的 compiled graph 对象
 
 【架构总览】
 
-  ┌───────────────────────────────────────────────────────────────────┐
-  │                        START                                      │
-  │                          │                                        │
-  │                          ▼                                        │
-  │            【Level 1 一级路由】                                    │
-  │        xiaohongshu_publish_intent                                │
-  │          (小红书发布意图? is_xiaohongshu_publish_intent)           │
-  │           ╱                    ╲                                  │
-  │         True                  False                               │
-  │          ╱                      ╲                                 │
-  │  ┌─ xhs_subgraph        intent_router_node                        │
-  │  │  (小红书发布子图)      (Level 2: 写入 task_type)                 │
-  │  │  text→image→check     │                                        │
-  │  │  →publish→markdown    ▼                                        │
-  │  │                   【Level 2 二级路由】                          │
-  │  │                   level2_router (second_intent_router)         │
-  │  │                    ╱      │      ╲        ╲                    │
-  │  └── END            ▼       ▼       ▼        ▼                    │
-  │               contract_  检索路径  QA路径    文书生成路径                     │
-  │               compliance                                          │
-  │                  │        │       │        │                      │
-  │                  ▼        ▼       ▼        ▼                      │
-  │         input_source  r_retrieval  qa_subgraph   docgen_subgraph  │
-  │         _router     _subgraph   (嵌套         (7节点+法条               │
-  │         (输入分流)    (10节点)   retrieval)    校验回边)                    │
-  │          ╱      ╲       │       │        │                        │
-  │   有上传文档  纯文本       ▼       ▼        ▼                             │
-  │    ╱          ╲     retrieval_  END       END                     │
-  │ doc_extract  text_recognize _summarize                            │
-  │    │          │(合规pass/合同判是否合同)                                   │
-  │ doc_empty_    │(非合同+合同审核→END)                                     │
-  │  guard        ▼                                                   │
-  │   ╱   ╲    preprocess_subgraph(5节点文档预处理)                          │
-  │ 空   非空      │                                                     │
-  │  │     │      ▼                                                   │
-  │ END    ▼      cc_retrieval(检索复用)                                  │
-  │       _subgraph   │                                               │
-  │          ▼        ▼                                               │
-  │   dual_review_    END                                             │
-  │   subgraph(双审fan-out/合规单链)                                        │
-  │      │                                                            │
-  │      ▼                                                            │
-  │     END                                                           │
+  START
+    │
+    ▼
+  xiaohongshu_publish_intent            (Level 1 一级路由: 小红书发布意图?)
+    ├─ 是 ─► xhs ─────────────────────► END
+    └─ 否 ─► intent_router
+                 │
+                 ▼
+           Level 2 二级路由 (按 task_type 分 5 路径)
+        ┌───────────┼───────────┬───────────┐
+        ▼           ▼           ▼           ▼
+  input_source  r_retrieval     qa        docgen
+  _router       (独立检索)   (法律问答)  (文书生成)
+  (合同合规)        │           │           │
+        │          ▼           ▼           ▼
+        │         END         END         END
+        ▼
+  doc_extract / text_recognize → doc_empty_guard
+        │ (pass: 非空/合同相关)
+        ▼
+  preprocess → cc_retrieval → dual_review → END
 
   【四大路径详解】 (各路径节点/边定义见下方详解与源码)
 
@@ -85,10 +62,10 @@
      → END
 
   ④ 文书生成路径 (legal_document_gen)
-     intent_router → docgen_subgraph (V3: 5节点线性链路)
-                    case_analyze → template_match → clause_fill(纯LLM)
-                    → risk_advisor(内部调 law_search+case_search 子图 + 质量门控)
-                    → final_delivery(含强制交付模式)
+     intent_router → docgen_subgraph (V6: 7节点, 含澄清守卫)
+                    case_analyze → [信息不足?→END 追问] → template_match
+                    → query_plan → parallel_retrieve(法条+类案并发)
+                    → clause_fill → risk_analysis → final_delivery
      → END
 
   ⑤ 小红书发布路径 (xiaohongshu)
@@ -106,6 +83,10 @@
 
 import sys
 import os
+# 双保险: 在任何 torch/faiss/sentence_transformers import 之前钉死 OpenMP 线程数,
+# 规避 Windows 下双 OpenMP 运行时冲突导致的 0xC0000005 段错误 (common.embedding_model 内已做同样处理)
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
 import uuid
 
 # 将项目根目录插入 sys.path，解决直接运行时找不到包的问题
@@ -397,7 +378,7 @@ builder.add_edge("r_retrieval", END)
 # ── ③ 法律问答路径: QA 子图内部三级路由, 出口直接 END ──
 builder.add_edge("qa", END)
 
-# ── ④ 文书生成路径: risk_advisor 质量门控回边, 出口直接 END ──
+# ── ④ 文书生成路径: docgen 子图内部含澄清守卫, 出口直接 END ──
 builder.add_edge("docgen", END)
 
 
@@ -639,10 +620,11 @@ if __name__ == "__main__":
         _cli_main()
 
     # ============================================================
-    # 【交互测试模式】无 CLI 参数时运行 5 个固定测试用例
+    # 【交互测试模式】无 CLI 参数时运行固定测试用例
+    #   (合同审核 / 合规审查 / 法规查询 / 文书生成 / 案例检索 / 法律问答 / 小红书)
     # ============================================================
     print("=" * 60)
-    print("【LangGraph 法律AI助理 v5.2 - 两级路由 + 6子图组合架构】")
+    print("【LangGraph 法律AI助理 - 两级路由 + 6子图组合架构】")
     print(f"  checkpointer: {'启用 (' + type(_checkpointer).__name__ + ')' if _HAS_CHECKPOINTER else '未启用 (降级无状态)'}")
     print("=" * 60)
 
@@ -695,8 +677,33 @@ if __name__ == "__main__":
         out5 = graph.invoke(s5, config=_default_config())
         print(f"  输出: {str(out5.get('output', ''))[:200]}...")
 
+        # 测试: 法规查询 (独立检索路径 → 检索子图 → 权威加权融合)
+        print("\n📋 测试6: 法规查询 (legal_research 独立检索)")
+        s6 = AgentState(input="民法典关于违约金的规定有哪些？", task_type="legal_research")
+        out6 = graph.invoke(s6, config=_default_config())
+        print(f"  输出: {str(out6.get('output', ''))[:200]}...")
+
+        # 测试: 案例检索 (独立检索路径 →
+        # 检索子图 → 单源直查 cases)
+        print("\n📋 测试7: 案例检索 (case_search 独立检索)")
+        s7 = AgentState(input="房屋租赁纠纷中租客拖欠租金被起诉的案例", task_type="case_search")
+        out7 = graph.invoke(s7, config=_default_config())
+        print(f"  输出: {str(out7.get('output', ''))[:200]}...")
+
+        # 测试: 文书生成 (文书生成路径 → docgen 子图 → 案情分析→模板→检索→填充→交付)
+        # 携带 plaintiff/defendant/claims/dispute_type, 避免触发澄清守卫提前 END
+        print("\n📋 测试8: 文书生成 (legal_document_gen 子图)")
+        s8 = AgentState(
+            input="2024年3月，被告李四向原告张三借款10万元，约定2024年9月归还，到期未还。",
+            task_type="legal_document_gen",
+            dispute_type="民间借贷",
+            plaintiff="张三",
+            defendant="李四",
+            claims="请求判令被告归还借款本金10万元及逾期利息",
+        )
+        out8 = graph.invoke(s8, config=_default_config())
+        print(f"  输出: {str(out8.get('output', ''))[:200]}...")
+
         print("\n✅ 所有测试完成!")
 
     main()
-
-    # 可视化 LangGraph 流程图 (graph.png 已在模块 import 期绘制, 此处无需重复)

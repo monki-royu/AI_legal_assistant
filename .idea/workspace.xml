@@ -5,195 +5,41 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e43c6610-5f1e-4428-8bbf-6e6d950a2e38" name="Changes" comment="2.0架构新增文书生成跑通">
-      <change afterPath="$PROJECT_DIR$/__004__langgraph_more_nodes/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/AI_legal_assistant.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/AI_legal_assistant.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/__001__local_docx_to_txt.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/__001__clawler/__002__crawl_law_database.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/__002__crawl_law_database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/__001__clawler/cases_collector.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/cases_collector.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/flk_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/flk_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/industry_standard_crawler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/interpretation_crawler.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/interpretation_crawler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/kb_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/kb_builder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/llm_gen.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/llm_gen.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/__001__clawler/kb_builder.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/__001__clawler/runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/__001__clawler/runner.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/法律法规/中华人民共和国刑法.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/法律法规/中华人民共和国劳动合同法.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/法律法规/中华人民共和国劳动法.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/法律法规/中华人民共和国民法典.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/交通事故/case_4387c6806e3fd534.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/交通事故/case_713a3dcc2ac2bbb2.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/交通事故/case_9a9eac77ca97bb6a.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/交通事故/case_b26db002867c6def.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/交通事故/case_cf79a4cc90a7d57d.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/交通事故/case_d960f133db453bc5.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/劳动争议/case_2508534f19bc95b2.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/劳动争议/case_4e33c8a57a378d5d.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/劳动争议/case_90d3db5e96e270c9.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/劳动争议/case_9f8d6d8df17da8f4.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/劳动争议/case_cea4ce99cad8d613.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/劳动争议/case_e3c98fb842047b20.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/合同纠纷/case_6082f0556caa6a44.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/合同纠纷/case_653ac2572e312f8b.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/合同纠纷/case_7c8ea2ff6921b109.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/合同纠纷/case_b8ebd210bc7c01ba.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/合同纠纷/case_c45b5a179bdfb47a.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/合同纠纷/case_f421495c524fade2.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/婚姻家庭/case_2cfa6aea133b5e7d.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/婚姻家庭/case_6a8c30c1173f7187.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/婚姻家庭/case_9b9a89cc41e40733.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/婚姻家庭/case_c39ee0b6e77d0dfe.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/婚姻家庭/case_e2841ede3e975a7e.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/婚姻家庭/case_ec80f70cfe586a91.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/房产纠纷/case_5dd284e4cc4f9f7d.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/房产纠纷/case_698be5cb1791f068.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/房产纠纷/case_95f717ca66ba40fb.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/房产纠纷/case_b4e2d3adf1ab75ab.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/房产纠纷/case_bd9074b1bc4132ac.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__001__clawler/裁判案例/房产纠纷/case_d93c0f671aa7ba91.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__002__extract_information/__000__extract_graph_data_utils.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__002__extract_information/__001__extract_law_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__002__extract_information/entity_extractor.py" beforeDir="false" afterPath="$PROJECT_DIR$/__002__extract_information/entity_extractor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/__001__graph_importer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/__002__export_metadata.py" beforeDir="false" afterPath="$PROJECT_DIR$/__003__create_neo4j_database/__002__export_metadata.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/__003__vector_index.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/cypher_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/__003__create_neo4j_database/cypher_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/importer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/neo4j_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/neo4j_client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/query_node.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/__002__extract_information/entity_extractor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/__002__export_metadata.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/__003__create_neo4j_database/cypher_generator.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/agent_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/__004__langgraph_more_nodes/agent_state.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/graph.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/langgraph_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/__004__langgraph_more_nodes/langgraph_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/auto_publish_xiaohongshu_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/case_search_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/check_cypher_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/check_text_image_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/clause_split_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/compliance_review_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/conflict_resolution_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/contract_ai_review_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/contract_classify_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/credit_check_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/credit_precheck_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_case_analyze_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_case_recommend_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_clause_fill_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_extract_mineru_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_extract_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_final_delivery_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_law_validate_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_risk_advisor_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/doc_template_match_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/extract_entity_from_user_input_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/final_delivery_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/generate_markdown_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/generate_neo4j_cypher_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/image_generate_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/intent_router_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/intent_router_node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/law_query_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/legal_qa_intent_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/legal_research_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/llm_direct_out_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/match_entity_from_neo4j_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/neo4j_answer_generate_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/numeric_extract_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/numeric_validate_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/party_identify_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_base_layer_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_enhance_query_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_fusion_sort_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_intent_decompose_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_output_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/risk_aggregate_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/run_cypher_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/text_generate_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/xiaohongshu_publish_intent_node.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/__005__fastapi/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/__005__fastapi/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/__005__fastapi/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/__005__fastapi/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/__006__streamlit/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/__006__streamlit/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__006__streamlit/test_image_generate.py" beforeDir="false" afterPath="$PROJECT_DIR$/__006__streamlit/test_image_generate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/__006__streamlit/xhs_publish_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/__006__streamlit/xhs_publish_runner.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/_fix_cypher_template.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/_fix_template_join.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/images/20260813201725被裁员？这.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/assets/images/20260816140018⚠️投资理.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/common/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/langgraph_compat.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/embedding_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/embedding_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/finetune_utils.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/common/llm.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/llm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/neo4j_manager.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/ouput_graph_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/ouput_graph_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common/retrieval_engine.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/mcp_beidafabao.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/mcp_beidafabao.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/neo4j_client.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/qichacha_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/common/qichacha_client.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/history.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/history.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/history.db-shm" beforeDir="false" afterPath="$PROJECT_DIR$/data/history.db-shm" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/history.db-wal" beforeDir="false" afterPath="$PROJECT_DIR$/data/history.db-wal" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/cases_bm25.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/cases_bm25.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/cases_faiss.index" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/cases_faiss.index" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/industry_bm25.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/industry_bm25.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/industry_faiss.index" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/industry_faiss.index" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/industry_id2text.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/industry_id2text.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/laws_bm25.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/laws_bm25.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/laws_faiss.index" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/laws_faiss.index" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/laws_id2text.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/index/laws_id2text.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/industry_docs.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/industry_docs.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/interpretations_docs.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/interpretations_docs.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/knowledge_base/laws_docs.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/knowledge_base/laws_docs.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/neo4j_import_progress.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sample/.gitkeep" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sample/MinerU测试合同_多模态.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sample/generate_mineru_test_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sample/测试合同_电脑采购合同.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/sample/测试合同_采购合同示例.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/_gen_flowcharts.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/architecture/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/00_index.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/01_architecture.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/02_contract_review.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/03_retrieval.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/04_compliance.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/05_legal_qa.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/06_xiaohongshu.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/07_docgen.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/_rebuild_nodes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/style.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/节点式流程图.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts/节点式流程图.html.bak.20260816_183915" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/合同审核智能体_法律实务架构.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/合规审查智能体_法律实务架构.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/小红书发布智能体_详细架构图.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/总架构_详细架构图.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/文书生成智能体_详细架构图.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/检索智能体_详细架构图.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/flowcharts_文字/法律问答智能体_详细架构图.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/1.0架构.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/2.0架构.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/各智能体架构/合同审核vs合规审查.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/各智能体架构/合同审核架构.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/各智能体架构/合规审查.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/各智能体架构/检索智能体架构.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/数据流转/合同审核and检索.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/数据流转/检索and其他_数据流转.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/数据流转/用户文档解析出的数据.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/数据流转/用户输入数据整体流转.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/核心文件说明.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/检索迭代/retrieval_arch_comparison.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/检索迭代/why_research1.0.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/检索迭代/最终检索智能体架构.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/检索迭代/检索策略优化.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/检索迭代/检索策略技术选择.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/检索迭代/法律法规数据入库处理逻辑.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/简历1.0架构介绍.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/简历2.0架构介绍.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/now_vs_future/节点功能.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/record/Record_of_ideas.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/record/howdo_work_record.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/record/time_work_record.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/record/法智引擎_商业计划书_项目背景与盈利模式.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/xmind/法律知识.xmind" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/xmind/法智引擎--您的AI法律助理.xmind" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/xmind/遇到的技术问题.xmind" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/cases_docs.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/cases_bm25.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/cases_faiss.index" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/cases_id2text.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/industry_bm25.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/industry_faiss.index" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/industry_id2text.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/laws_bm25.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/laws_faiss.index" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/index/laws_id2text.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/industry_docs.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/interpretations_docs.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/knowledge_base/laws_docs.json" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -247,7 +93,51 @@
       <recent name="E:\to_github_project\AI_legal_assistant\__004__langgraph_more_nodes\nodes\contract_compliance_nodes" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python.langgraph_main">
+    <configuration name="__000_main_build_graph" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="AI_legal_assistant" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__003__create_neo4j_database" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__003__create_neo4j_database/__000_main_build_graph.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="__002__export_legal_metadata" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="AI_legal_assistant" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__003__create_neo4j_database" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__003__create_neo4j_database/__002__export_legal_metadata.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="docgen_subgraph" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="AI_legal_assistant" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -270,7 +160,29 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="dual_review_subgraph" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="langgraph_main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="AI_legal_assistant" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__004__langgraph_more_nodes" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__004__langgraph_more_nodes/langgraph_main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="xhs_subgraph" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="AI_legal_assistant" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -283,73 +195,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs/dual_review_subgraph.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="AI_legal_assistant" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__005__fastapi" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__005__fastapi/main.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="retrieval_base_layer_node" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="AI_legal_assistant" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_nodes" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_nodes/retrieval_base_layer_node.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="retrieval_subgraph" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="AI_legal_assistant" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs/retrieval_subgraph.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs/xhs_subgraph.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -360,11 +206,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
-        <item itemvalue="Python.retrieval_base_layer_node" />
-        <item itemvalue="Python.retrieval_subgraph" />
+        <item itemvalue="Python.langgraph_main" />
+        <item itemvalue="Python.__002__export_legal_metadata" />
         <item itemvalue="Python.docgen_subgraph" />
-        <item itemvalue="Python.dual_review_subgraph" />
+        <item itemvalue="Python.__000_main_build_graph" />
+        <item itemvalue="Python.xhs_subgraph" />
       </list>
     </recent_temporary>
   </component>
@@ -424,6 +270,10 @@
       <workItem from="1787553555390" duration="23723000" />
       <workItem from="1787586426926" duration="7729000" />
       <workItem from="1787646954713" duration="1341000" />
+      <workItem from="1787733355226" duration="2965000" />
+      <workItem from="1787816374795" duration="17536000" />
+      <workItem from="1787836415497" duration="74798000" />
+      <workItem from="1788071702503" duration="664000" />
     </task>
     <task id="LOCAL-00001" summary="项目商业计划书与思路记录">
       <option name="closed" value="true" />
@@ -561,24 +411,33 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/_smoke_rules_py$main.coverage" NAME="main Coverage Results" MODIFIED="1787597716580" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__005__fastapi" />
+    <SUITE FILE_PATH="coverage/analyze_py$xhs_subgraph.coverage" NAME="xhs_subgraph Coverage Results" MODIFIED="1787829153254" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
+    <SUITE FILE_PATH="coverage/_smoke_rules_py$preprocess_subgraph.coverage" NAME="preprocess_subgraph Coverage Results" MODIFIED="1787197882423" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
+    <SUITE FILE_PATH="coverage/analyze_py$preprocess_subgraph.coverage" NAME="preprocess_subgraph Coverage Results" MODIFIED="1787828841457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
+    <SUITE FILE_PATH="coverage/embedding_model_py$__000__.coverage" NAME="__000__获取网页内容通用方法 Coverage Results" MODIFIED="1786419913152" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__001__clawler" />
+    <SUITE FILE_PATH="coverage/embedding_model_py$__001__local_docx_to_txt.coverage" NAME="__001__local_docx_to_txt Coverage Results" MODIFIED="1786419681222" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__001__clawler" />
+    <SUITE FILE_PATH="coverage/_smoke_rules_py$langgraph_more_nodes.coverage" NAME="langgraph_more_nodes Coverage Results" MODIFIED="1787149295939" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../itheima/xianxia/chinese_medical_project_bxg/__004__langgraph_more_nodes" />
+    <SUITE FILE_PATH="coverage/_smoke_rules_py$qa_subgraph.coverage" NAME="qa_subgraph Coverage Results" MODIFIED="1787471590517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
+    <SUITE FILE_PATH="coverage/analyze_py$langgraph_main.coverage" NAME="langgraph_main Coverage Results" MODIFIED="1788025068172" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes" />
+    <SUITE FILE_PATH="coverage/_smoke_rules_py$agent_state.coverage" NAME="agent_state Coverage Results" MODIFIED="1787148101413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes" />
+    <SUITE FILE_PATH="coverage/analyze_py$__000_main_build_graph.coverage" NAME="__000_main_build_graph Coverage Results" MODIFIED="1787846287852" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__003__create_neo4j_database" />
     <SUITE FILE_PATH="coverage/embedding_model_py$__002__crawl_law_database.coverage" NAME="__002__crawl_law_database Coverage Results" MODIFIED="1786419988364" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__001__clawler" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$retrieval_base_layer_node.coverage" NAME="retrieval_base_layer_node Coverage Results" MODIFIED="1787594680626" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_nodes" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$retrieval_subgraph.coverage" NAME="retrieval_subgraph Coverage Results" MODIFIED="1787593074008" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
-    <SUITE FILE_PATH="coverage/_smoke_rules_py$preprocess_subgraph.coverage" NAME="preprocess_subgraph Coverage Results" MODIFIED="1787197882423" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
-    <SUITE FILE_PATH="coverage/embedding_model_py$__000__.coverage" NAME="__000__获取网页内容通用方法 Coverage Results" MODIFIED="1786419913152" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__001__clawler" />
+    <SUITE FILE_PATH="coverage/analyze_py$retrieval_subgraph.coverage" NAME="retrieval_subgraph Coverage Results" MODIFIED="1787829113042" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
+    <SUITE FILE_PATH="coverage/analyze_py$dual_review_subgraph.coverage" NAME="dual_review_subgraph Coverage Results" MODIFIED="1787828805151" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
+    <SUITE FILE_PATH="coverage/analyze_py$docgen_subgraph.coverage" NAME="docgen_subgraph Coverage Results" MODIFIED="1787947784940" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$quality_gate_retry_node.coverage" NAME="quality_gate_retry_node Coverage Results" MODIFIED="1787490275898" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/nodes/retrieval_nodes" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$langgraph_main.coverage" NAME="langgraph_main Coverage Results" MODIFIED="1787554885739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes" />
     <SUITE FILE_PATH="coverage/embedding_model_py$path_utils.coverage" NAME="path_utils Coverage Results" MODIFIED="1786372640534" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/common" />
-    <SUITE FILE_PATH="coverage/embedding_model_py$__001__local_docx_to_txt.coverage" NAME="__001__local_docx_to_txt Coverage Results" MODIFIED="1786419681222" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__001__clawler" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$docgen_subgraph.coverage" NAME="docgen_subgraph Coverage Results" MODIFIED="1787574359074" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
-    <SUITE FILE_PATH="coverage/_smoke_rules_py$langgraph_more_nodes.coverage" NAME="langgraph_more_nodes Coverage Results" MODIFIED="1787149295939" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../itheima/xianxia/chinese_medical_project_bxg/__004__langgraph_more_nodes" />
+    <SUITE FILE_PATH="coverage/analyze_py$qa_subgraph.coverage" NAME="qa_subgraph Coverage Results" MODIFIED="1787828858131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$dual_review_subgraph.coverage" NAME="dual_review_subgraph Coverage Results" MODIFIED="1787574334953" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$template.coverage" NAME="template Coverage Results" MODIFIED="1787194429638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../../法律参考功能代码/自动生成法律文书/⭐️⭐️⭐️成品源码 + SQL脚本/legal-documents/backend/app/models" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$_smoke_test_entity_extractor.coverage" NAME="_smoke_test_entity_extractor Coverage Results" MODIFIED="1787388480688" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__002__extract_information" />
     <SUITE FILE_PATH="coverage/embedding_model_py$app.coverage" NAME="app Coverage Results" MODIFIED="1786622331418" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__006__streamlit" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$__init__.coverage" NAME="__init__ Coverage Results" MODIFIED="1787196443346" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
     <SUITE FILE_PATH="coverage/_smoke_rules_py$xhs_subgraph.coverage" NAME="xhs_subgraph Coverage Results" MODIFIED="1787196907342" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
-    <SUITE FILE_PATH="coverage/_smoke_rules_py$qa_subgraph.coverage" NAME="qa_subgraph Coverage Results" MODIFIED="1787471590517" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes/subgraphs" />
-    <SUITE FILE_PATH="coverage/_smoke_rules_py$agent_state.coverage" NAME="agent_state Coverage Results" MODIFIED="1787148101413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__004__langgraph_more_nodes" />
+    <SUITE FILE_PATH="coverage/analyze_py$__002__export_legal_metadata.coverage" NAME="__002__export_legal_metadata Coverage Results" MODIFIED="1788001221698" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/__003__create_neo4j_database" />
   </component>
 </project>

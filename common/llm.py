@@ -15,7 +15,7 @@
 #   - 合同审核AI节点：让LLM分析条款是否有风险
 #   - 合规审查节点：让LLM检查合同是否合规
 #   - 意图路由节点：让LLM判断用户想做什么
-#   - 检索增强节点：让LLM生成补充检索结果
+#   - 检索意图分解节点：让LLM生成子查询和关键词
 #   - 文书生成节点：让LLM撰写法律文书
 #   - ...等等
 # 如果每个文件都自己读配置、自己 new ChatOpenAI，就会造成：
@@ -45,7 +45,7 @@
 #   - llm_direct_out_node         — LLM直答
 #   - check_cypher_node           — Cypher校验
 #   - generate_neo4j_cypher_node  — Cypher生成
-#   - retrieval_enhance_query_node — 检索增强
+#   - retrieval_intent_decompose_node — 检索意图分解
 #   - doc_case_analyze_node       — 案情分析
 #   - doc_clause_fill_node        — 条款填充
 #   - doc_risk_advisor_node       — 风险提示

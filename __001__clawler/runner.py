@@ -7,7 +7,11 @@
 
 职责:
    按 task_type 分发到对应采集器, 支持: laws(法律法规)/cases(裁判案例)/
-   industry(行业标准)/interpretations(司法解释)/kb(知识库构建).
+   industry_sources(行业标准)/interpretations(司法解释)/kb(知识库构建).
+   注意: 行业标准的 CLI 参数与源 key 统一写 "industry_sources"
+   (与 retrieval_entity_recall_node._SOURCE_INDEX_MAP /
+    retrieval_intent_decompose_node.KNOWN_DOMAIN_SOURCES / Config.FAISS_INDEX_PATHS
+    一致), 旧简写 "industry" 不再接受。
 
 可被命令行直接调用, 也可被外部脚本 import 复用.
 
@@ -21,8 +25,8 @@
   # 生成所有默认案由的案例
   python -m __001__clawler.runner cases
 
-  # 爬取行业标准
-  python -m __001__clawler.runner industry --keywords "建设工程"
+  # 爬取行业标准 (参数名 = 统一源 key: industry_sources)
+  python -m __001__clawler.runner industry_sources --keywords "建设工程"
 
   # 爬取司法解释
   python -m __001__clawler.runner interpretations
@@ -53,8 +57,9 @@ def run_task(task_type: str, keywords: str = "") -> int:
     Parameters
     ----------
     task_type : str
-        任务类型: "laws"=法律法规, "cases"=裁判案例, "industry"=行业标准,
-                 "interpretations"=司法解释, "kb"=知识库构建.
+        任务类型: "laws"=法律法规, "cases"=裁判案例,
+                     "industry_sources"=行业标准, "interpretations"=司法解释,
+                     "kb"=知识库构建.
     keywords : str
         关键词. 非空时只爬指定法律/案由/标准; 为空时爬默认列表.
 
@@ -68,7 +73,7 @@ def run_task(task_type: str, keywords: str = "") -> int:
         if task_type == "laws":
             from __001__clawler.__002__crawl_law_database import crawl_single_law, TARGET_LAWS, export_law_index
             from common.path_utils import root_dir
-            output_dir = os.path.join(root_dir, "data", "laws_txt")
+            output_dir = os.path.join(root_dir, "data", "laws")
             os.makedirs(output_dir, exist_ok=True)
             if keywords.strip():
                 targets = [{"name": keywords.strip(), "code": "", "keywords": ""}]
@@ -102,6 +107,16 @@ def run_task(task_type: str, keywords: str = "") -> int:
             print(f"[Runner] 司法解释任务完成, 新增 {count} 条")
             return count
 
+        elif task_type == "industry_sources":
+            # 行业标准 (键名 industry_sources，与 retrieval_entity_recall_node._SOURCE_INDEX_MAP 一致)
+            # 注意：当前仓库尚未提供独立的行业标准采集器，若后续加入则在此处挂载。
+            # 这里显式抛出 NotImplementedError，避免落到 else 分支被误报为 "未知任务类型"
+            # （argparse choices 已经包含这个合法源 key）。
+            raise NotImplementedError(
+                "行业标准 (industry_sources) 采集器暂未接入 __001__clawler 子模块。"
+                "请在对应采集器实现后在此处新增 elif task_type=='industry_sources' 分支。"
+            )
+
         elif task_type == "kb":
             from __001__clawler.kb_builder import build_all
             build_all()
@@ -109,7 +124,10 @@ def run_task(task_type: str, keywords: str = "") -> int:
             return 1
 
         else:
-            raise ValueError(f"未知任务类型: {task_type} (支持: laws/cases/industry/interpretations/kb)")
+            raise ValueError(
+                f"未知任务类型: {task_type} "
+                f"(支持: laws/cases/industry_sources/interpretations/kb)"
+            )
 
     except Exception as e:
         print(f"[Runner] 任务失败: {e}")
@@ -121,8 +139,11 @@ def run_task(task_type: str, keywords: str = "") -> int:
 def main():
     """命令行入口: 解析参数并调用 run_task."""
     parser = argparse.ArgumentParser(description="法智引擎 · 爬虫任务执行器")
-    parser.add_argument("task_type", choices=["laws", "cases", "industry", "interpretations", "kb"],
-                        help="任务类型: laws=法律法规, cases=裁判案例, industry=行业标准, interpretations=司法解释, kb=知识库构建")
+    parser.add_argument("task_type",
+                        choices=["laws", "cases", "industry_sources", "interpretations", "kb"],
+                        help="任务类型: laws=法律法规, cases=裁判案例, "
+                             "industry_sources=行业标准(与知识库源 key 一致), "
+                             "interpretations=司法解释, kb=知识库构建")
     parser.add_argument("--keywords", "-k", default="",
                         help="关键词(非空时只爬指定法律/案由/标准)")
     args = parser.parse_args()

@@ -326,7 +326,7 @@ def main():
 
     每部法律间随机休眠 0.3-0.8 秒, 避免请求过于密集被反爬.
     """
-    output_dir = os.path.join(root_dir, "data", "laws_txt")
+    output_dir = os.path.join(root_dir, "data", "laws")
     os.makedirs(output_dir, exist_ok=True)
 
     results = []

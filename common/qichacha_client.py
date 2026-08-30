@@ -633,225 +633,114 @@ class QiChaChaClient:
                     return cleaned
         return []
 
-    def _get_shareholders(self, company_name: str) -> list:
-        """
-        查询股权结构 (股东名称 / 持股比例 / 认缴出资额 / 股东类型)。
-
-        数据源: MCP /company/stream 中含 shareholders / holder / 股东 键的事件
-                AppKey /company/getShareHolderList
-        返回: 归一化股东列表 (list of dict), 失败 []
-        """
-        result = []
-        # ------- MCP -------
-        if self.authorization:
-            # 真实工具名: get_shareholder_info
-            events = self._request_mcp_sse(MCP_ENDPOINTS["company"], company_name,
-                                           tool_keywords=["shareholder_info", "shareholder"])
-            all_dicts = self._collect_all_dicts(events)
-            # 键兼容: 英文旧键 + 企查查年报中文名 股东（发起人）及出资信息 / 股东
-            keys = ("shareholders", "shareholder", "holders", "stockHolders", "stockholders", "股东",
-                    "holderList", "gdList", "gdxx", "guDong",
-                    "股东（发起人）及出资信息", "股东信息", "股权信息")
-            for item in self._extract_list_from_dicts(all_dicts, keys):
-                n = self._normalize_shareholder(item)
-                if n:
-                    result.append(n)
-            # 兜底: 可能股东事件本身就是扁平 events list (不在子键里), 直接从 all_dicts 里挑出"像股东"的字典
-            if not result:
-                sh_like_keys = ("name", "stockName", "gdmc", "gudongName", "holderName", "ratio", "capital_contribution", "subcribeCapital")
-                for d in all_dicts:
-                    if any(k in d for k in sh_like_keys) and not any(k in d for k in ("companyName", "entName", "qymc")):
-                        n = self._normalize_shareholder(d)
-                        if n:
-                            result.append(n)
-        # ------- AppKey -------
-        if not result and self.app_key and self.secret_key:
-            data = self._request_appkey("/company/getShareHolderList", {"companyName": company_name, "pageSize": "20"})
-            if data and isinstance(data, dict):
-                payload = data.get("result") or data.get("data") or {}
-                if isinstance(payload, dict):
-                    lst = payload.get("list") or payload.get("items") or []
-                elif isinstance(payload, list):
-                    lst = payload
-                else:
-                    lst = []
-                for item in lst:
-                    n = self._normalize_shareholder(item)
-                    if n:
-                        result.append(n)
-        return result
-
-    def _get_dishonest(self, company_name: str) -> list:
-        """
-        查询失信被执行人 (俗称"老赖"): 案号 / 执行法院 / 失信情形 / 发布日期。
-
-        数据源: MCP /risk/stream 事件 dishonest / 失信 / laolaishixin
-                AppKey /company/getDishonestList
-        返回: 归一化列表, 失败 []
-        """
-        result = []
-        # ------- MCP /risk -------
-        if self.authorization:
-            # risk endpoint 真实工具名: get_dishonest_info
-            events = self._request_mcp_sse(MCP_ENDPOINTS["risk"], company_name,
-                                           tool_keywords=["dishonest_info", "dishonest", "失信"])
-            all_dicts = self._collect_all_dicts(events)
-            keys = ("dishonest", "dishonestList", "失信", "laolai", "shixin",
-                    "shixinList", "laolaiList", "dishonesty", "sxList", "beizhixingxinx",
-                    "失信被执行人", "失信信息")
-            for item in self._extract_list_from_dicts(all_dicts, keys):
-                n = self._normalize_dishonest(item)
-                if n:
-                    result.append(n)
-            if not result:
-                # 兜底: event 本身就是单条失信记录 (含有"caseNo/ah/失信情形"之一 且不是"基本信息/公司信息")
-                like_keys = ("caseNo", "case_code", "ah", "courtName", "court_name", "executedName", "iname",
-                             "duty", "performance", "sx情形", "失信情形", "publish", "publishDate")
-                for d in all_dicts:
-                    if any(k in d for k in like_keys) and not any(k in d for k in ("companyName", "entName", "qymc", "regCapital")):
-                        n = self._normalize_dishonest(d)
-                        if n:
-                            result.append(n)
-        # ------- AppKey -------
-        if not result and self.app_key and self.secret_key:
-            data = self._request_appkey("/company/getDishonestList", {"companyName": company_name, "pageSize": "20"})
-            if data and isinstance(data, dict):
-                payload = data.get("result") or data.get("data") or {}
-                lst = payload.get("list") if isinstance(payload, dict) else []
-                if isinstance(payload, list):
-                    lst = payload
-                for item in lst:
-                    n = self._normalize_dishonest(item)
-                    if n:
-                        result.append(n)
-        return result
-
-    def _get_executed(self, company_name: str) -> list:
-        """
-        查询被执行人: 案号 / 执行标的 / 执行法院 / 立案日期 / 状态。
-
-        数据源: MCP /risk/stream 键 executed / zhixing / 被执行人
-                AppKey /company/getZhixingList
-        """
-        result = []
-        if self.authorization:
-            # risk endpoint 真实工具名: get_judgment_debtor_info (判决债务人/被执行人), get_default_info (一般被执行人)
-            events = self._request_mcp_sse(MCP_ENDPOINTS["risk"], company_name,
-                                           tool_keywords=["judgment_debtor_info", "judgment", "default_info", "debtor",
-                                                          "executed", "被执行"])
-            all_dicts = self._collect_all_dicts(events)
-            keys = ("executed", "executedList", "zhixing", "被执行人", "zhixingList",
-                    "zxList", "executiveList", "beizhixing", "被执行人信息")
-            for item in self._extract_list_from_dicts(all_dicts, keys):
-                n = self._normalize_executed(item)
-                if n:
-                    result.append(n)
-            if not result:
-                like_keys = ("caseNo", "execCaseNo", "ah", "executedMoney", "executeMoney", "biaoDi",
-                             "execCourtName", "court", "status", "zhixingStatus")
-                for d in all_dicts:
-                    if any(k in d for k in like_keys) and not any(k in d for k in ("companyName", "entName", "qymc")):
-                        n = self._normalize_executed(d)
-                        if n:
-                            result.append(n)
-        if not result and self.app_key and self.secret_key:
-            data = self._request_appkey("/company/getZhixingList", {"companyName": company_name, "pageSize": "20"})
-            if data and isinstance(data, dict):
-                payload = data.get("result") or data.get("data") or {}
-                lst = payload.get("list") if isinstance(payload, dict) else []
-                if isinstance(payload, list):
-                    lst = payload
-                for item in lst:
-                    n = self._normalize_executed(item)
-                    if n:
-                        result.append(n)
-        return result
-
-    def _get_abnormal(self, company_name: str) -> list:
-        """
-        查询经营异常名录: 列入原因 / 列入机关 / 列入日期 / 移除日期。
-
-        数据源: MCP /risk/stream 键 abnormal / operating_abnormal / 经营异常
-                AppKey /company/getAbnormalList
-        """
-        result = []
-        if self.authorization:
-            # risk endpoint 真实工具名: get_business_exception (经营异常)
-            events = self._request_mcp_sse(MCP_ENDPOINTS["risk"], company_name,
-                                           tool_keywords=["business_exception", "exception", "abnormal", "经营异常"])
-            all_dicts = self._collect_all_dicts(events)
-            keys = ("abnormal", "abnormalList", "operatingAbnormal", "经营异常",
-                    "jyycList", "yycList", "经营异常名录", "经营异常信息",
-                    "yyc", "jyyc", "ycList", "abnormalOperation", "abnormal_info")
-            for item in self._extract_list_from_dicts(all_dicts, keys):
-                n = self._normalize_abnormal(item)
-                if n:
-                    result.append(n)
-            if not result:
-                like_keys = ("putReason", "inReason", "reason", "cause", "jgrq", "putDate", "listedDate", "date")
-                for d in all_dicts:
-                    if any(k in d for k in like_keys) and not any(k in d for k in ("companyName", "entName", "qymc")):
-                        n = self._normalize_abnormal(d)
-                        if n:
-                            result.append(n)
-        if not result and self.app_key and self.secret_key:
-            data = self._request_appkey("/company/getAbnormalList", {"companyName": company_name, "pageSize": "20"})
-            if data and isinstance(data, dict):
-                payload = data.get("result") or data.get("data") or {}
-                lst = payload.get("list") if isinstance(payload, dict) else []
-                if isinstance(payload, list):
-                    lst = payload
-                for item in lst:
-                    n = self._normalize_abnormal(item)
-                    if n:
-                        result.append(n)
-        return result
-
-    def _get_penalties(self, company_name: str) -> list:
-        """
-        查询行政处罚记录: 处罚机关 / 处罚事由 / 处罚内容 / 处罚日期 / 文号。
-
-        数据源: MCP /risk/stream 键 penalties / punishment / 行政处罚
-                AppKey /company/getPenaltyList
-        """
-        result = []
-        if self.authorization:
-            # risk endpoint 真实工具名: get_administrative_penalty (行政处罚)
-            events = self._request_mcp_sse(MCP_ENDPOINTS["risk"], company_name,
-                                           tool_keywords=["administrative_penalty", "penalty", "处罚", "administrative"])
-            all_dicts = self._collect_all_dicts(events)
-            keys = ("penalties", "penaltyList", "punishments", "行政处罚", "chufa",
-                    "penalty", "punish", "xzzf", "xzcf", "administrativePenalty",
-                    "行政处罚信息", "行政处罚决定书")
-            for item in self._extract_list_from_dicts(all_dicts, keys):
-                n = self._normalize_penalty(item)
-                if n:
-                    result.append(n)
-            if not result:
-                like_keys = ("penaltyAuthority", "penaltyOrg", "department", "organ", "authority",
-                             "penaltyReason", "penaltyType", "penaltyContent", "content", "documentNo", "penaltyNo")
-                for d in all_dicts:
-                    if any(k in d for k in like_keys) and not any(k in d for k in ("companyName", "entName", "qymc")):
-                        n = self._normalize_penalty(d)
-                        if n:
-                            result.append(n)
-        if not result and self.app_key and self.secret_key:
-            data = self._request_appkey("/company/getPenaltyList", {"companyName": company_name, "pageSize": "20"})
-            if data and isinstance(data, dict):
-                payload = data.get("result") or data.get("data") or {}
-                lst = payload.get("list") if isinstance(payload, dict) else []
-                if isinstance(payload, list):
-                    lst = payload
-                for item in lst:
-                    n = self._normalize_penalty(item)
-                    if n:
-                        result.append(n)
-        return result
-
     # ================================================================
-    # 内部归一化: 把真实 API 返回的五花八门键名统一为 mock 数据的结构
-    # 这样下游 credit_check_node / risk_aggregate_node 无需关心接口差异
+    # 列表型资信维度查询 (配置表驱动): shareholders / dishonest / executed /
+    # abnormal / penalties 这 5 个维度共享同一套 MCP(优先) + AppKey(兜底) 流程,
+    # 仅 endpoint / 工具关键词 / 命中键 / 兜底键 / 归一化函数 / AppKey 路径不同,
+    # 全部收口到 _LIST_DIMENSION_CONFIGS, 避免 5 份复制粘贴。
+    # basic_info 因需"最优工商卡片"打分, 仍走独立的 _get_basic_info。
     # ================================================================
+    _LIST_DIMENSION_CONFIGS = {
+        "shareholders": {
+            "endpoint": "company",
+            "tool_keywords": ["shareholder_info", "shareholder"],
+            "keys": ("shareholders", "shareholder", "holders", "stockHolders", "stockholders", "股东",
+                     "holderList", "gdList", "gdxx", "guDong", "股东（发起人）及出资信息", "股东信息", "股权信息"),
+            "like_keys": ("name", "stockName", "gdmc", "gudongName", "holderName", "ratio", "capital_contribution", "subcribeCapital"),
+            "exclude_keys": ("companyName", "entName", "qymc"),
+            "normalize": "_normalize_shareholder",
+            "appkey_path": "/company/getShareHolderList",
+            "appkey_param": "companyName",
+        },
+        "dishonest": {
+            "endpoint": "risk",
+            "tool_keywords": ["dishonest_info", "dishonest", "失信"],
+            "keys": ("dishonest", "dishonestList", "失信", "laolai", "shixin", "shixinList", "laolaiList",
+                     "dishonesty", "sxList", "beizhixingxinx", "失信被执行人", "失信信息"),
+            "like_keys": ("caseNo", "case_code", "ah", "courtName", "court_name", "executedName", "iname",
+                          "duty", "performance", "sx情形", "失信情形", "publish", "publishDate"),
+            "exclude_keys": ("companyName", "entName", "qymc", "regCapital"),
+            "normalize": "_normalize_dishonest",
+            "appkey_path": "/company/getDishonestList",
+            "appkey_param": "companyName",
+        },
+        "executed": {
+            "endpoint": "risk",
+            "tool_keywords": ["judgment_debtor_info", "judgment", "default_info", "debtor", "executed", "被执行"],
+            "keys": ("executed", "executedList", "zhixing", "被执行人", "zhixingList", "zxList", "executiveList",
+                     "beizhixing", "被执行人信息"),
+            "like_keys": ("caseNo", "execCaseNo", "ah", "executedMoney", "executeMoney", "biaoDi",
+                          "execCourtName", "court", "status", "zhixingStatus"),
+            "exclude_keys": ("companyName", "entName", "qymc"),
+            "normalize": "_normalize_executed",
+            "appkey_path": "/company/getZhixingList",
+            "appkey_param": "companyName",
+        },
+        "abnormal": {
+            "endpoint": "risk",
+            "tool_keywords": ["business_exception", "exception", "abnormal", "经营异常"],
+            "keys": ("abnormal", "abnormalList", "operatingAbnormal", "经营异常", "jyycList", "yycList",
+                     "经营异常名录", "经营异常信息", "yyc", "jyyc", "ycList", "abnormalOperation", "abnormal_info"),
+            "like_keys": ("putReason", "inReason", "reason", "cause", "jgrq", "putDate", "listedDate", "date"),
+            "exclude_keys": ("companyName", "entName", "qymc"),
+            "normalize": "_normalize_abnormal",
+            "appkey_path": "/company/getAbnormalList",
+            "appkey_param": "companyName",
+        },
+        "penalties": {
+            "endpoint": "risk",
+            "tool_keywords": ["administrative_penalty", "penalty", "处罚", "administrative"],
+            "keys": ("penalties", "penaltyList", "punishments", "行政处罚", "chufa", "penalty", "punish",
+                     "xzzf", "xzcf", "administrativePenalty", "行政处罚信息", "行政处罚决定书"),
+            "like_keys": ("penaltyAuthority", "penaltyOrg", "department", "organ", "authority",
+                          "penaltyReason", "penaltyType", "penaltyContent", "content", "documentNo", "penaltyNo"),
+            "exclude_keys": ("companyName", "entName", "qymc"),
+            "normalize": "_normalize_penalty",
+            "appkey_path": "/company/getPenaltyList",
+            "appkey_param": "companyName",
+        },
+    }
+
+    def _query_list_dimension(self, cfg: dict, company_name: str) -> list:
+        """配置表驱动的"列表型资信维度"查询: MCP(优先) + AppKey(兜底)。
+
+        参数:
+            cfg (dict): _LIST_DIMENSION_CONFIGS 中某一维度的配置
+            company_name (str): 查询公司名
+        返回:
+            List[dict]: 归一化后的记录列表, 失败/无数据 []
+        """
+        result = []
+        normalize = getattr(self, cfg["normalize"])
+        if self.authorization:
+            events = self._request_mcp_sse(MCP_ENDPOINTS[cfg["endpoint"]], company_name,
+                                           tool_keywords=cfg["tool_keywords"])
+            all_dicts = self._collect_all_dicts(events)
+            for item in self._extract_list_from_dicts(all_dicts, cfg["keys"]):
+                n = normalize(item)
+                if n:
+                    result.append(n)
+            if not result:
+                like = cfg["like_keys"]
+                exclude = cfg["exclude_keys"]
+                for d in all_dicts:
+                    if any(k in d for k in like) and not any(k in d for k in exclude):
+                        n = normalize(d)
+                        if n:
+                            result.append(n)
+        if not result and self.app_key and self.secret_key:
+            data = self._request_appkey(cfg["appkey_path"], {cfg["appkey_param"]: company_name, "pageSize": "20"})
+            if data and isinstance(data, dict):
+                payload = data.get("result") or data.get("data") or {}
+                lst = payload.get("list") if isinstance(payload, dict) else []
+                if isinstance(payload, list):
+                    lst = payload
+                for item in lst:
+                    n = normalize(item)
+                    if n:
+                        result.append(n)
+        return result
+
     def _normalize_basic_info(self, raw: dict, fallback_name: str) -> dict:
         """把真实 API 工商字段 归一化 为 mock 约定键名 (snake_case)。
 
@@ -1074,6 +963,265 @@ class QiChaChaClient:
     # ================================================================
     # 模拟数据生成 (配置缺失 / 真实 API 全部失败时)
     # ================================================================
+
+    # ================================================================
+    # 资信风险项生成 (severity / credit_category 判定收口到客户端, 与 _calc_credit_score 共用一套口径)
+    # 节点 credit_check_node 直接调用本方法, 不再在节点内重算 severity。
+    # ================================================================
+    def build_credit_risk_items(self, 
+        info: dict,
+        party_label: str,
+        party_name: str,
+        user_side: str,
+    ) -> list:
+        """
+        将单家企业的资信查询结果转换为 credit_risk_items 风险项列表。
+
+        映射规则 (严重程度 ↔ 负面记录类型):
+            - critical: 失信被执行人(老赖)、经营状态为吊销/注销
+            - high:     多条被执行人、经营异常未移除、重大行政处罚
+            - medium:   单条被执行人、已移除经营异常、一般行政处罚
+            - low:      注册资本过低提示、股东结构过度集中等软提示
+
+        立场加权:
+            若 user_side=A 且当前 party_label=乙方 -> 该方是用户对立方, 风险标记
+            is_counterparty=True (risk_aggregate_node 中会额外扣分)。反之 user_side=B
+            且为甲方亦然。Unknown 时双方都不额外加权。
+
+        参数:
+            info (dict):        QiChaChaClient 返回的单家企业资信结构
+            party_label (str):  "甲方" or "乙方"
+            party_name (str):   企业全称(用于风险描述中展示)
+            user_side (str):    用户立场 A / B / Unknown
+
+        返回值:
+            List[Dict]: 标准化风险项, 字段结构与 contract_risk_items 一致:
+                        {source, clause, severity, description, suggestion, legal_basis,
+                         credit_category, is_counterparty, party_label, party_name}
+        """
+        # 入参校验: info 为空直接返回空列表
+        if not info or not isinstance(info, dict):
+            return []
+
+        risks = []
+
+        # ------------------------------------------------------------------
+        # 判定是否为"用户对立方": 对立方的风险会在 risk_aggregate 中额外扣分
+        # ------------------------------------------------------------------
+        is_counterparty = False
+        if user_side == "A" and party_label == "乙方":
+            # 用户是甲方, 当前分析乙方 -> 是对立方
+            is_counterparty = True
+        elif user_side == "B" and party_label == "甲方":
+            # 用户是乙方, 当前分析甲方 -> 是对立方
+            is_counterparty = True
+
+        # 方便复用: 统一前缀 (在每条风险描述中标明是哪一方、什么公司)
+        name_display = party_name if party_name else party_label
+        prefix = f"{party_label}【{name_display}】"
+
+        # ------------------------------------------------------------------
+        # 维度 1: 经营状态 (吊销/注销 = critical, 停业 = medium)
+        # ------------------------------------------------------------------
+        basic = info.get("basic_info", {}) or {}
+        status = str(basic.get("status", "")) if isinstance(basic, dict) else ""
+        if status and ("吊销" in status or "注销" in status):
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}经营资质",
+                "severity": "critical",
+                "description": f"{prefix}经营状态为【{status}】，已丧失合法经营主体资格，合同存在主体无效风险。",
+                "suggestion": f"立即终止与该主体的合作，或更换具备合法经营资质的签约主体。如已签署合同，建议咨询律师评估合同效力与救济途径。",
+                "legal_basis": "《民法典》第一百四十三条、第六十八条；《市场主体登记管理条例》第三十一条。",
+                "credit_category": "经营状态异常",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+        elif status and ("停业" in status or "清算" in status):
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}经营资质",
+                "severity": "medium",
+                "description": f"{prefix}经营状态为【{status}】，履约能力存在重大不确定性。",
+                "suggestion": f"暂缓签约或要求对方提供履约担保（如保证金、连带保证人）；核实清算/停业进展后再决策。",
+                "legal_basis": "《民法典》第五百二十七条（不安抗辩权）。",
+                "credit_category": "经营状态异常",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+
+        # ------------------------------------------------------------------
+        # 维度 2: 失信被执行人 (每条 = critical)
+        # ------------------------------------------------------------------
+        dishonest = info.get("dishonest", []) or []
+        for idx, d in enumerate(dishonest, 1):
+            situation = d.get("situation", "有履行能力而拒不履行")
+            case_no = d.get("case_no", "")
+            court = d.get("court", "")
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}失信记录",
+                "severity": "critical",
+                "description": f"{prefix}存在失信被执行人记录（俗称「老赖」）第{idx}条：案号【{case_no}】，执行法院【{court}】，失信情形【{situation}】。表明该主体有能力履行却拒不履行债务，诚信度极差。",
+                "suggestion": f"强烈建议拒绝合作；如确需合作，必须要求其提供足额财产抵押或有实力的第三方连带担保，并约定严格的违约条款。",
+                "legal_basis": "《最高人民法院关于公布失信被执行人名单信息的若干规定》第一条；《民法典》第五百二十七条。",
+                "credit_category": "失信被执行人",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+
+        # ------------------------------------------------------------------
+        # 维度 3: 被执行人 (单条 = medium, ≥3 条或仍在执行中 = high)
+        # ------------------------------------------------------------------
+        executed = info.get("executed", []) or []
+        still_running = sum(1 for e in executed if "执行中" in str(e.get("status", "")))
+        exe_severity = "low"
+        if len(executed) >= 3 or still_running >= 2:
+            exe_severity = "high"
+        elif len(executed) >= 1 or still_running >= 1:
+            exe_severity = "medium"
+        if executed:
+            # 合并成 1 条总览风险（避免列表过长），并列出关键指标
+            total_amount_mention = ""
+            amounts = [e.get("exec_target", "") for e in executed if e.get("exec_target")]
+            if amounts:
+                total_amount_mention = f"，典型执行标的如 {amounts[0]}"
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}被执行人记录",
+                "severity": exe_severity,
+                "description": f"{prefix}存在 {len(executed)} 条被执行人记录（仍在执行中 {still_running} 条）{total_amount_mention}。表明该公司存在较多未了结的债务纠纷，偿债能力存疑。",
+                "suggestion": f"建议对其进行尽职调查，了解涉诉原因与实际清偿情况；签约前要求提供近期财务报表，并可适当提高保证金比例或增设担保条款。",
+                "legal_basis": "《民事诉讼法》第二百三十一条；《民法典》第五百二十七条。",
+                "credit_category": "被执行人",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+
+        # ------------------------------------------------------------------
+        # 维度 4: 经营异常 (未移除 = high, 已移除 = low)
+        # ------------------------------------------------------------------
+        abnormal = info.get("abnormal", []) or []
+        not_removed = [a for a in abnormal if not a.get("remove_date")]
+        removed = [a for a in abnormal if a.get("remove_date")]
+        # 未移除经营异常
+        if not_removed:
+            for a in not_removed:
+                reason = a.get("reason", "经营异常")
+                authority = a.get("authority", "")
+                put_date = a.get("put_date", "")
+                risks.append({
+                    "source": "资信审查",
+                    "clause": f"{party_label}经营异常",
+                    "severity": "high",
+                    "description": f"{prefix}目前被列入经营异常名录（尚未移除）：列入原因【{reason}】，列入机关【{authority}】，列入日期【{put_date}】。该异常可能影响企业开票、资质办理、招投标等经营活动。",
+                    "suggestion": f"要求对方立即办理经营异常移除手续，并在合同中约定因经营异常导致履约受阻的违约责任；移除完成前暂缓付款。",
+                    "legal_basis": "《企业信息公示暂行条例》第八条、第十七条；《市场主体登记管理条例实施细则》第六十三条。",
+                    "credit_category": "经营异常(未移除)",
+                    "is_counterparty": is_counterparty,
+                    "party_label": party_label,
+                    "party_name": party_name,
+                })
+        # 已移除经营异常 (历史记录, 软提示)
+        if removed:
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}经营异常历史",
+                "severity": "low",
+                "description": f"{prefix}历史上存在 {len(removed)} 条经营异常记录（已移除）。虽已整改，但提示其内部合规管理曾有疏漏。",
+                "suggestion": f"可在合同中适当增加合规性陈述与保证条款，要求对方承诺持续合法合规经营。",
+                "legal_basis": "《企业信息公示暂行条例》第八条。",
+                "credit_category": "经营异常(已移除)",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+
+        # ------------------------------------------------------------------
+        # 维度 5: 行政处罚 (≥3 条 = high, 1~2 条 = medium)
+        # ------------------------------------------------------------------
+        penalties = info.get("penalties", []) or []
+        if penalties:
+            pen_severity = "high" if len(penalties) >= 3 else "medium"
+            # 合并展示
+            types = list({p.get("reason", "违规") for p in penalties})
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}行政处罚",
+                "severity": pen_severity,
+                "description": f"{prefix}近年内存在 {len(penalties)} 条行政处罚记录，涉及【{'、'.join(types[:3])}{'等' if len(types) > 3 else ''}】，表明其在合规经营方面存在薄弱环节。",
+                "suggestion": f"重点核查处罚类型与合同履行是否相关（如环保处罚影响供货、税务处罚影响开票）；可在合同中设置合规违约条款。",
+                "legal_basis": "《民法典》第五百零九条（全面履行义务）、第五百二十七条。",
+                "credit_category": "行政处罚",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+
+        # ------------------------------------------------------------------
+        # 维度 6: 软风险 (资信评分 < 60 = high, 60~80 = medium, 股东过度集中 = low)
+        # ------------------------------------------------------------------
+        credit_score = info.get("credit_score")
+        if isinstance(credit_score, (int, float)) and credit_score < 60:
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}综合资信评分",
+                "severity": "high",
+                "description": f"{prefix}综合资信评分为 {credit_score} 分（满分 100），处于较低水平，整体履约能力与商业信誉偏弱。",
+                "suggestion": f"谨慎合作，建议提高预付款比例下限、增设履约保函或第三方担保，并分段控制付款节奏。",
+                "legal_basis": "《民法典》第五百二十七条（不安抗辩权）。",
+                "credit_category": "综合资信偏弱",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+        elif isinstance(credit_score, (int, float)) and credit_score < 80:
+            risks.append({
+                "source": "资信审查",
+                "clause": f"{party_label}综合资信评分",
+                "severity": "low",
+                "description": f"{prefix}综合资信评分为 {credit_score} 分（满分 100），属于中等水平，存在小幅资信瑕疵。",
+                "suggestion": f"合作中注意常规风控，如分阶段付款、保留适当质保金等。",
+                "legal_basis": "《民法典》第五百零九条。",
+                "credit_category": "综合资信一般",
+                "is_counterparty": is_counterparty,
+                "party_label": party_label,
+                "party_name": party_name,
+            })
+
+        # 股东过度集中（单人持股 ≥ 90% = low，提示一人有限责任公司风险）
+        holders = info.get("shareholders", []) or []
+        if holders:
+            # 尝试从 share_ratio 字符串中解析数值比例, 找到最大股东持股
+            max_ratio = 0.0
+            for h in holders:
+                ratio_str = str(h.get("share_ratio", "0%")).replace("%", "").strip()
+                try:
+                    ratio = float(ratio_str)
+                except ValueError:
+                    ratio = 0.0
+                if ratio > max_ratio:
+                    max_ratio = ratio
+            if max_ratio >= 90.0:
+                risks.append({
+                    "source": "资信审查",
+                    "clause": f"{party_label}股权集中度",
+                    "severity": "low",
+                    "description": f"{prefix}股权高度集中（单一大股东持股 {max_ratio}%），若为自然人独资的一人有限责任公司，存在股东个人财产与公司财产混同的法律风险。",
+                    "suggestion": f"可要求实际控制人/大股东承担个人连带保证责任；重大合同可查询其工商档案确认是否为一人公司。",
+                    "legal_basis": "《公司法》第六十三条（一人有限责任公司股东连带责任推定）。",
+                    "credit_category": "股权过度集中",
+                    "is_counterparty": is_counterparty,
+                    "party_label": party_label,
+                    "party_name": party_name,
+                })
+
+        return risks
+
     def _build_mock_data(self, company_name: str) -> dict:
         """
         基于公司名生成"贴近现实"的模拟资信数据。
@@ -1266,11 +1414,11 @@ class QiChaChaClient:
 
         # ---------- 3. 调用 6 个维度 (MCP 优先, AppKey 兼容模式兜底) ----------
         basic_info_raw = self._get_basic_info(company_name)
-        shareholders_raw = self._get_shareholders(company_name)
-        dishonest_raw = self._get_dishonest(company_name)
-        executed_raw = self._get_executed(company_name)
-        abnormal_raw = self._get_abnormal(company_name)
-        penalties_raw = self._get_penalties(company_name)
+        shareholders_raw = self._query_list_dimension(self._LIST_DIMENSION_CONFIGS["shareholders"], company_name)
+        dishonest_raw = self._query_list_dimension(self._LIST_DIMENSION_CONFIGS["dishonest"], company_name)
+        executed_raw = self._query_list_dimension(self._LIST_DIMENSION_CONFIGS["executed"], company_name)
+        abnormal_raw = self._query_list_dimension(self._LIST_DIMENSION_CONFIGS["abnormal"], company_name)
+        penalties_raw = self._query_list_dimension(self._LIST_DIMENSION_CONFIGS["penalties"], company_name)
 
         # 当 basic_info 缺失时给一个最小化结构, 避免评分计算空指针
         if not basic_info_raw:

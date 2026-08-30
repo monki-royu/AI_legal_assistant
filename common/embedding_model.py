@@ -39,6 +39,14 @@
 #     - common.retrieval_engine（检索时用 embedding_model.encode）
 #     - 所有向量化相关的模块
 
+# 【import os + 线程环境变量钉死（必须在任何 torch/sentence_transformers/faiss import 之前）】：
+# 规避 Windows 下 faiss 的 OpenMP 运行时与 torch 自带 OpenMP 运行时在同一进程内
+# 冲突导致的 0xC0000005 访问违规（SIGSEGV）。实测：先 import faiss 再调用 torch.encode 必崩，
+# 钉死 OMP/MKL/OPENBLAS/NUMEXPR 线程数为 1 后链路（read_index + encode + search）可正常跑通。
+import os
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+
 # 【import  sentence_transformers.SentenceTransformer】：
 #   从 sentence_transformers 库导入 SentenceTransformer 类。
 #   sentence_transformers 是一个专门做"句向量"的 Python 库。
@@ -86,3 +94,10 @@ conf = Config()
 #     vector = embedding_model.encode("民法典第584条")
 #   得到的 vector 是一个高维浮点数数组（维度由模型决定，bge-m3 是 1024 维）。
 embedding_model = SentenceTransformer(conf.EMBEDDING_MODEL_PATH)
+
+# 【import torch + torch.set_num_threads(1)（加固）】：
+# 模型加载完成后，把 torch 内部算子使用的 BLAS/OpenMP 线程池钉死为 1。
+# 这不影响 Python 层 ThreadPoolExecutor 的并发（双审 LLM 并行、文书法条+类案并行依赖的是 HTTP I/O 并发），
+# 仅约束单次 encode/matmul 内部用几核，从而消除与 faiss 的 OpenMP 冲突导致的段错误。
+import torch
+torch.set_num_threads(1)
