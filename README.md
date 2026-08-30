@@ -102,7 +102,7 @@ xiaohongshu_publish_intent            (Level 1：小红书发布意图?)
 
 #### ③ 双审子图 `dual_review_subgraph`（5 节点）
 `parallel_dual_review → [contract_review: conflict_resolution → numeric_validate] / [compliance_review: numeric_validate] → risk_aggregate → final_delivery → END`
-- `parallel_dual_review` 用 `ThreadPoolExecutor(max_workers=2)` 并发执行合规审查与合同审核，约省 40% 耗时（实测 ~20s→~12s）。
+- `parallel_dual_review` 按 `task_type` 分两路：`task_type == "compliance_review"` 走**单路**——直接执行 `compliance_review_node` 即返回，不进线程池（纯合规任务无需合同审查输出）；合同审核路径才用 `ThreadPoolExecutor(max_workers=2)` **并发**执行 `compliance_review_node` 与 `contract_ai_review_node`，约省 40% 耗时（实测 ~20s→~12s，取较慢者）。并发安全性双重保障：两线程共享同一只读 state 快照、各自返回独立增量 dict 且写入字段不同（`compliance_risk_items` vs `contract_risk_items`）故无竞态；`contract_ai_review` 仅把 `compliance_risk_items` 当可选上下文（`state.get(..., []) or []`，并发读到空也只少参考、不报错）；最终由 `conflict_resolution` 统一收敛双路。
 - `conflict_resolution` 实施「合规优先 5 规则」；`can_sign` 三态贯穿全链路；`risk_aggregate` 三路（合同/合规/资信）聚合；`final_delivery` 产出 Markdown 报告。
 
 #### ④ 法律问答子图 `qa_subgraph`（4 节点 + 嵌套检索子图）
