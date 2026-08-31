@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>法智引擎 · 业务架构图（基于真实代码）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0d141e;
+      color: #e0e8f0;
+      min-height: 100vh;
+      overflow-x: auto
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit
+    }
+
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(13, 20, 30, 0.97);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      padding: 0 24px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap
+    }
+
+    .topnav .brand {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60c5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-right: 16px
+    }
+
+    .topnav a {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all .2s;
+      cursor: pointer;
+      white-space: nowrap
+    }
+
+    .topnav a:hover {
+      background: rgba(255, 255, 255, 0.06)
+    }
+
+    .topnav .spacer {
+      flex: 1
+    }
+
+    .topnav .stat {
+      font-size: 11px;
+      color: #5a6a7a
+    }
+
+    section {
+      padding: 44px 32px;
+      min-width: 1100px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04)
+    }
+
+    .sec-head {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 6px;
+      flex-wrap: wrap
+    }
+
+    .sec-head h2 {
+      font-size: 24px;
+      font-weight: 800
+    }
+
+    .sec-num {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 3px 10px;
+      border-radius: 4px
+    }
+
+    .sec-desc {
+      font-size: 13px;
+      color: #7a8a9a;
+      margin-bottom: 18px;
+      line-height: 1.75
+    }
+
+    .sec-desc b {
+      color: #c0d8ef
+    }
+
+    .ph-blue {
+      background: rgba(96, 197, 250, .15);
+      color: #60c5fa
+    }
+
+    .ph-orange {
+      background: rgba(251, 146, 60, .15);
+      color: #fb923c
+    }
+
+    .ph-yellow {
+      background: rgba(251, 191, 36, .15);
+      color: #fcd34d
+    }
+
+    .ph-green {
+      background: rgba(52, 211, 153, .15);
+      color: #34d399
+    }
+
+    .ph-purple {
+      background: rgba(167, 139, 250, .15);
+      color: #a78bfa
+    }
+
+    .ph-red {
+      background: rgba(239, 68, 68, .15);
+      color: #ef4444
+    }
+
+    .ph-cyan {
+      background: rgba(34, 211, 238, .15);
+      color: #22d3ee
+    }
+
+    .ph-teal {
+      background: rgba(45, 212, 191, .15);
+      color: #2dd4bf
+    }
+
+    .svg-wrap {
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.01);
+      padding: 20px
+    }
+
+    .svg-wrap svg {
+      display: block;
+      margin: 0 auto;
+      min-width: 100%
+    }
+
+    .node-group {
+      cursor: pointer;
+      transition: filter .2s
+    }
+
+    .node-group:hover {
+      filter: brightness(1.3)
+    }
+
+    .node-rect {
+      stroke-width: 1.5;
+      transition: stroke-width .2s
+    }
+
+    .node-group:hover .node-rect {
+      stroke-width: 2.5
+    }
+
+    .node-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      user-select: none
+    }
+
+    .node-sub {
+      font-size: 10px;
+      font-weight: 400;
+      fill: #8a9aab;
+      pointer-events: none
+    }
+
+    .node-subgraph .node-rect {
+      stroke-width: 2.5
+    }
+
+    .node-subgraph .node-rect-inner {
+      fill: none;
+      stroke-width: 1;
+      stroke-dasharray: 3, 2;
+      opacity: 0.5
+    }
+
+    .edge {
+      fill: none;
+      stroke-width: 1.5
+    }
+
+    .edge-normal {
+      stroke: #4a6a8a
+    }
+
+    .edge-branch {
+      stroke: #7a8a9a;
+      stroke-dasharray: 5, 3
+    }
+
+    .edge-loop {
+      stroke: #fb923c;
+      stroke-width: 2;
+      stroke-dasharray: 6, 3
+    }
+
+    .edge-success {
+      stroke: #34d399
+    }
+
+    .edge-danger {
+      stroke: #ef4444;
+      stroke-dasharray: 5, 3
+    }
+
+    .edge-parallel {
+      stroke: #a78bfa;
+      stroke-width: 2;
+      stroke-dasharray: 4, 2
+    }
+
+    .edge-label {
+      font-size: 10px;
+      fill: #8a9aab;
+      text-anchor: middle;
+      pointer-events: none
+    }
+
+    .edge-label-loop {
+      fill: #fdba74;
+      font-weight: 600
+    }
+
+    .edge-label-danger {
+      fill: #fca5a5;
+      font-weight: 600
+    }
+
+    .edge-label-parallel {
+      fill: #c4b5fd;
+      font-weight: 600
+    }
+
+    .node-start .node-rect {
+      fill: rgba(52, 211, 153, .14);
+      stroke: #34d399
+    }
+
+    .node-start .node-label {
+      fill: #6ee7b7
+    }
+
+    .node-process .node-rect {
+      fill: rgba(96, 197, 250, .08);
+      stroke: rgba(96, 197, 250, .5)
+    }
+
+    .node-process .node-label {
+      fill: #c0d8ef
+    }
+
+    .node-decision .node-rect {
+      fill: rgba(251, 146, 60, .10);
+      stroke: rgba(251, 146, 60, .5)
+    }
+
+    .node-decision .node-label {
+      fill: #fdba74
+    }
+
+    .node-end .node-rect {
+      fill: rgba(148, 163, 184, .10);
+      stroke: #94a3b8
+    }
+
+    .node-end .node-label {
+      fill: #cbd5e1
+    }
+
+    .node-danger .node-rect {
+      fill: rgba(239, 68, 68, .08);
+      stroke: rgba(239, 68, 68, .5)
+    }
+
+    .node-danger .node-label {
+      fill: #fca5a5
+    }
+
+    .node-purple .node-rect {
+      fill: rgba(167, 139, 250, .08);
+      stroke: rgba(167, 139, 250, .5)
+    }
+
+    .node-purple .node-label {
+      fill: #c4b5fd
+    }
+
+    .node-cyan .node-rect {
+      fill: rgba(34, 211, 238, .08);
+      stroke: rgba(34, 211, 238, .5)
+    }
+
+    .node-cyan .node-label {
+      fill: #67e8f9
+    }
+
+    .node-pink .node-rect {
+      fill: rgba(236, 72, 153, .08);
+      stroke: rgba(236, 72, 153, .5)
+    }
+
+    .node-pink .node-label {
+      fill: #f9a8d4
+    }
+
+    .node-state .node-rect {
+      fill: rgba(251, 191, 36, .12);
+      stroke: #fcd34d
+    }
+
+    .node-state .node-label {
+      fill: #fde68a
+    }
+
+    .node-infra .node-rect {
+      fill: rgba(45, 212, 191, .08);
+      stroke: rgba(45, 212, 191, .5)
+    }
+
+    .node-infra .node-label {
+      fill: #5eead4
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .72);
+      z-index: 9999;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+      overflow-y: auto
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn .2s
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    .modal-content {
+      background: #1a2330;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 16px;
+      max-width: 900px;
+      width: 100%;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+      animation: slideUp .3s
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+      position: sticky;
+      top: 0;
+      background: #1a2330;
+      border-radius: 16px 16px 0 0;
+      z-index: 10
+    }
+
+    .modal-header .m-icon {
+      font-size: 24px
+    }
+
+    .modal-header h2 {
+      font-size: 17px;
+      font-weight: 700;
+      flex: 1
+    }
+
+    .modal-header .m-type {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border-radius: 4px
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .06);
+      border: none;
+      color: #8a9aab;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .modal-close:hover {
+      background: rgba(239, 68, 68, .2);
+      color: #fca5a5
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto
+    }
+
+    .modal-body::-webkit-scrollbar {
+      width: 6px
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .12);
+      border-radius: 3px
+    }
+
+    .popup-section {
+      margin-bottom: 20px
+    }
+
+    .popup-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      padding-left: 10px;
+      border-left: 3px solid #60c5fa
+    }
+
+    .popup-section h3.s-what {
+      border-color: #60c5fa;
+      color: #93c5fd
+    }
+
+    .popup-section h3.s-why {
+      border-color: #fbbf24;
+      color: #fcd34d
+    }
+
+    .popup-section h3.s-how {
+      border-color: #34d399;
+      color: #6ee7b7
+    }
+
+    .popup-section h3.s-iv {
+      border-color: #ec4899;
+      color: #f9a8d4
+    }
+
+    .popup-section p {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #b0c0d0
+    }
+
+    .popup-section ul {
+      padding-left: 20px
+    }
+
+    .popup-section ul li {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #b0c0d0;
+      margin-bottom: 4px
+    }
+
+    .code-block {
+      background: #0d141e;
+      border: 1px solid rgba(96, 197, 250, .18);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin-top: 4px
+    }
+
+    .code-block code {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #a5d8ff;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      white-space: pre
+    }
+
+    .qa-block {
+      background: rgba(255, 255, 255, .03);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      border-left: 3px solid #ec4899
+    }
+
+    .qa-block .qa-q {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f9a8d4;
+      margin-bottom: 6px
+    }
+
+    .qa-block .qa-a {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #b0c0d0
+    }
+
+    .cover {
+      text-align: center;
+      padding: 70px 40px;
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center
+    }
+
+    .cover h1 {
+      font-size: 42px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #60c5fa, #a78bfa, #2dd4bf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    .cover .subtitle {
+      font-size: 16px;
+      color: #7a8a9a;
+      margin-bottom: 30px
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      text-align: left;
+      max-width: 1100px;
+      width: 100%
+    }
+
+    .cover-card {
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 12px;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .cover-card:hover {
+      background: rgba(255, 255, 255, .06);
+      transform: translateY(-2px)
+    }
+
+    .cover-card .cc-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 4px
+    }
+
+    .cover-card .cc-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px
+    }
+
+    .cover-card .cc-desc {
+      font-size: 12px;
+      color: #8a9aab;
+      line-height: 1.7
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 14px 0;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, .02);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, .06)
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #8a9aab
+    }
+
+    .legend-swatch {
+      width: 16px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1.5px solid
+    }
+
+    .hint-bar {
+      background: rgba(251, 191, 36, .08);
+      border: 1px solid rgba(251, 191, 36, .2);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #fcd34d;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    footer {
+      padding: 28px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #4a5a6a;
+      line-height: 1.8
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="topnav">
+    <div class="brand">🏛️ 法智引擎 · 业务架构</div>
+    <a href="#sec-overview" style="color:#93c5fd">🌐 业务全景</a>
+    <a href="#sec-capability" style="color:#c4b5fd">🧩 能力矩阵</a>
+    <a href="#sec-flow" style="color:#67e8f9">🔄 端到端数据流</a>
+    <a href="#sec-compliance" style="color:#fdba74">⚖️ 合规边界</a>
+    <a href="#sec-deploy" style="color:#5eead4">🚀 部署交付</a>
+    <span class="spacer"></span>
+    <span class="stat">七大可复用子图智能体 · AI辅助+律师终审 · 五类用户</span>
+  </nav>
+
+  <section id="sec-index" class="cover">
+    <div>
+      <h1>🏛️ 法智引擎 · 业务架构图</h1>
+      <p class="subtitle">法律 AI 多智能体平台：用户场景 → 能力矩阵 → 端到端数据流 → 人机协同合规边界 → 部署交付</p>
+      <div class="cover-grid">
+        <a href="#sec-overview" class="cover-card">
+          <div class="cc-tag" style="color:#60c5fa">SECTION 01</div>
+          <div class="cc-title" style="color:#93c5fd">🌐 业务全景</div>
+          <div class="cc-desc">五类用户（政府便民/小微律所/集团法务/个人/运营）接入同一平台，由七大可复用子图智能体支撑，达成法律服务标准化、普惠化、降本三大业务目标。</div>
+        </a>
+        <a href="#sec-capability" class="cover-card">
+          <div class="cc-tag" style="color:#a78bfa">SECTION 02</div>
+          <div class="cc-title" style="color:#c4b5fd">🧩 七大能力矩阵</div>
+          <div class="cc-desc">通用检索 / 预处理 / 合同合规（编排外壳）/ 法律问答 / 文书生成 / 普法小红书 / 风险审查。共享检索与预处理底座，业务规则全在 YAML，法务可无代码迭代。
+          </div>
+        </a>
+        <a href="#sec-flow" class="cover-card">
+          <div class="cc-tag" style="color:#22d3ee">SECTION 03</div>
+          <div class="cc-title" style="color:#67e8f9">🔄 端到端数据流</div>
+          <div class="cc-desc">用户请求 → L1 小红书意图 → L2 二级意图 → 五条业务路径 → 结构化交付物 → 高风险人工签章 interrupt → 用户。全链路状态可追溯。</div>
+        </a>
+        <a href="#sec-compliance" class="cover-card">
+          <div class="cc-tag" style="color:#fb923c">SECTION 04</div>
+          <div class="cc-title" style="color:#fdba74">⚖️ 合规人机边界</div>
+          <div class="cc-desc">"AI 辅助、律师终审签章"：低/中风险 AI 自动处理，高风险文书、付费法规、企业资信三类人工断点（interrupt）强制人工确认，贴合《律师法》。</div>
+        </a>
+        <a href="#sec-deploy" class="cover-card">
+          <div class="cc-tag" style="color:#2dd4bf">SECTION 05</div>
+          <div class="cc-title" style="color:#5eead4">🚀 部署交付</div>
+          <div class="cc-desc">面向政府便民、小微律所、集团法务、个人用户提供私有化/演示双模式交付，适配不同合规与预算约束。</div>
+        </a>
+        <a href="#sec-metric" class="cover-card">
+          <div class="cc-tag" style="color:#fcd34d">SECTION 06</div>
+          <div class="cc-title" style="color:#fde68a">📊 量化指标</div>
+          <div class="cc-desc">合同审核 3h→30min、人力降 80%；风险识别 95%+；立场识别 94%；采纳率 78%；复杂合同人工介入仅 4%。</div>
+        </a>
+      </div>
+      <div style="margin-top:30px;font-size:13px;color:#5a6a7a;line-height:2">
+        <div>💡 <strong style="color:#fcd34d">交互说明：</strong>点击任意节点 → 弹出 what / why / how 三段深度解析（部分含面试问答）。</div>
+        <div>🔄 <strong style="color:#fb923c">边界标识：</strong>左侧=AI 自动处理区；右侧=律师终审/人工断点区；红色虚线=需人工确认的风险路径。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 01: 全景 ============ -->
+  <section id="sec-overview">
+    <div class="sec-head"><span class="sec-num ph-blue">SECTION 01</span>
+      <h2 style="color:#93c5fd">🌐 业务全景：用户 → 平台 → 目标</h2>
+    </div>
+    <p class="sec-desc">五类用户接入「法智引擎」统一平台，由七大可复用子图智能体 + 共享底座支撑，最终达成<strong>法律服务标准化、普惠化、降本增效</strong>三大业务目标。平台遵循"AI
+      辅助、律师终审签章"的权责边界。</p>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch" style="border-color:#34d399;background:rgba(52,211,153,.14)"></div>用户
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch"
+          style="border-color:#60c5fa;background:rgba(96,197,250,.08);border-style:double;border-width:3px"></div>平台/能力
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="border-color:#fcd34d;background:rgba(251,191,36,.12)"></div>业务目标
+      </div>
+    </div>
+    <div class="svg-wrap"><svg id="svg-overview" viewBox="0 0 1200 560"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 02: 能力矩阵 ============ -->
+  <section id="sec-capability">
+    <div class="sec-head"><span class="sec-num ph-purple">SECTION 02</span>
+      <h2 style="color:#c4b5fd">🧩 七大可复用子图智能体能力矩阵</h2>
+    </div>
+    <p class="sec-desc">七大智能体共享检索底座与预处理底座，业务规则全部沉淀在 YAML，法务可无代码迭代。下方「八大任务 × 智能体协作映射」按代码 task_type
+      枚举，展示每个任务由哪些智能体协作完成。点击每个能力查看其业务价值（what）、设计动机（why）与落地方式（how）。</p>
+    <div class="svg-wrap"><svg id="svg-capability" viewBox="0 0 1200 520"></svg></div>
+    <div class="sec-head" style="margin-top:36px"><span class="sec-num ph-purple">任务映射</span>
+      <h2 style="color:#c4b5fd;font-size:20px">🗂️ 八大任务 × 智能体协作映射</h2>
+    </div>
+    <p class="sec-desc">平台按代码 <code>task_type</code> 枚举承载八大任务（合同审核 / 合规审查 / 法律检索 / 案例检索 / 法律问答 / 文书生成 / 小红书 /
+      通用兜底）。每个任务由若干"可复用子图智能体"协作完成，仅列出代码真实存在的智能体：合同审核/合规审查经 <code>contract_compliance</code>
+      编排外壳调度预处理+检索+风险审查三智能体；法律问答/文书生成内部嵌套调用通用检索；小红书独立运行。</p>
+    <div class="hint-bar">💡 左侧为任务（按 task_type），右侧为智能体；实线＝任务→主导智能体，虚线＝智能体间协作调用。</div>
+    <div class="svg-wrap"><svg id="svg-task-agent" viewBox="0 0 1200 720"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 03: 数据流 ============ -->
+  <section id="sec-flow">
+    <div class="sec-head"><span class="sec-num ph-cyan">SECTION 03</span>
+      <h2 style="color:#67e8f9">🔄 端到端数据流（含人机协同断点）</h2>
+    </div>
+    <p class="sec-desc">一条用户请求从入口到交付的完整旅程：两级意图路由分发到五条业务路径，各路径产出结构化交付物；高风险文书、付费法规、企业资信三类场景由 <code>interrupt()</code>
+      真中断，等待律师/用户确认后 <code>Command(resume=)</code> 续跑。所有节点写入 AgentState，全链路可复盘追溯。</p>
+    <div class="hint-bar">💡 点击节点查看每环节的输入/输出与人工断点设计。</div>
+    <div class="svg-wrap"><svg id="svg-flow" viewBox="0 0 1240 720"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 04: 合规边界 ============ -->
+  <section id="sec-compliance">
+    <div class="sec-head"><span class="sec-num ph-orange">SECTION 04</span>
+      <h2 style="color:#fdba74">⚖️ 合规人机协同边界：AI 辅助 / 律师终审签章</h2>
+    </div>
+    <p class="sec-desc">依据《律师法》确立权责边界：低风险/中风险由 AI 自动处理并出具可溯源报告；<strong>高风险文书强制人工签章中断、付费法规库与企业资信核查须经人工确认</strong>，从机制上规避
+      AI 执业法律风险与资损。合规审查对合同审核拥有"一票否决权"。</p>
+    <div class="svg-wrap"><svg id="svg-compliance" viewBox="0 0 1240 460"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 05: 部署 ============ -->
+  <section id="sec-deploy">
+    <div class="sec-head"><span class="sec-num ph-teal">SECTION 05</span>
+      <h2 style="color:#5eead4">🚀 部署与交付模式</h2>
+    </div>
+    <p class="sec-desc">面向不同客群提供差异化部署：政府便民（公有云/政务云）、小微律所（SaaS/轻私有化）、集团法务（全私有化 + 定制规则）、个人用户（演示/轻量）。前端演示模式（HAS_BACKEND
+      探测）可在无后端时纯前端展示。</p>
+    <div class="svg-wrap"><svg id="svg-deploy" viewBox="0 0 1200 360"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 06: 指标 ============ -->
+  <section id="sec-metric">
+    <div class="sec-head"><span class="sec-num ph-yellow">SECTION 06</span>
+      <h2 style="color:#fde68a">📊 量化技术与业务指标</h2>
+    </div>
+    <p class="sec-desc">基于真实代码与运行数据沉淀的核心指标，可作为面试与汇报的硬证据。</p>
+    <div class="svg-wrap"><svg id="svg-metric" viewBox="0 0 1200 420"></svg></div>
+  </section>
+
+  <footer>
+    法智引擎 · 业务架构图（基于真实代码生成，可编辑重做）　|　全部节点点击可查看 what / why / how<br>
+    代码事实来源：langgraph_main.py · subgraphs/* · config/rules/* · __005__fastapi · __006__streamlit
+  </footer>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="m-icon" id="m-icon">🔧</span>
+        <h2 id="m-title">节点</h2>
+        <span class="m-type" id="m-type">TYPE</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="m-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const TYPE_COLOR = {'用户': '#34d399', '能力': '#93c5fd', '目标': '#fcd34d', '流程': '#67e8f9', '边界': '#fdba74', '断点': '#fca5a5', '部署': '#5eead4', '指标': '#fde68a'};
+    const NS = 'http://www.w3.org/2000/svg';
+    function el(ns, tag, attrs) {const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e;}
+    function render(svgId, nodes, edges) {
+      const svg = document.getElementById(svgId); const map = {};
+      nodes.forEach(n => {
+        map[n.id] = n;
+        const g = el(NS, 'g', {class: 'node-group ' + n.cls});
+        g.appendChild(el(NS, 'rect', {class: 'node-rect', x: n.x, y: n.y, width: n.w, height: n.h, rx: 8}));
+        if (n.cls.indexOf('node-subgraph') >= 0) g.appendChild(el(NS, 'rect', {class: 'node-rect-inner', x: n.x + 5, y: n.y + 5, width: n.w - 10, height: n.h - 10, rx: 6}));
+        const t = el(NS, 'text', {class: 'node-label', x: n.x + n.w / 2, y: n.y + n.h / 2 - (n.sub ? 6 : 0)}); t.textContent = n.label; g.appendChild(t);
+        if (n.sub) {const s = el(NS, 'text', {class: 'node-sub', x: n.x + n.w / 2, y: n.y + n.h / 2 + 13}); s.textContent = n.sub; g.appendChild(s);}
+        g.addEventListener('click', () => openModal(n)); svg.appendChild(g);
+      });
+      svg.insertAdjacentHTML('afterbegin', '<defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#6a8aaa"/></marker><marker id="ard" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#ef4444"/></marker></defs>');
+      edges.forEach(e => {
+        const a = map[e.from], b = map[e.to]; if (!a || !b) return;
+        let x1, y1, x2, y2;
+        if (e.dir === 'down') {x1 = a.x + a.w / 2; y1 = a.y + a.h; x2 = b.x + b.w / 2; y2 = b.y;}
+        else if (e.dir === 'up') {x1 = a.x + a.w / 2; y1 = a.y; x2 = b.x + b.w / 2; y2 = b.y + b.h;}
+        else if (e.dir === 'right') {x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = b.x; y2 = b.y + b.h / 2;}
+        else if (e.dir === 'left') {x1 = a.x; y1 = a.y + a.h / 2; x2 = b.x + b.w; y2 = b.y + b.h / 2;}
+        const st = e.style === 'danger' ? 'edge-danger' : e.style === 'branch' ? 'edge-branch' : 'edge-normal';
+        const mk = e.style === 'danger' ? 'ard' : 'ar';
+        const d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        svg.appendChild(el(NS, 'path', {d: d, class: 'edge ' + st, 'marker-end': 'url(#' + mk + ')'}));
+        if (e.label) {const tx = el(NS, 'text', {class: 'edge-label' + (e.style === 'danger' ? ' edge-label-danger' : ''), x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 6}); tx.textContent = e.label; svg.appendChild(tx);}
+      });
+    }
+    function openModal(n) {
+      const iconMap = {'用户': '👥', '能力': '🧩', '目标': '🎯', '流程': '🔄', '边界': '⚖️', '断点': '⚠️', '部署': '🚀', '指标': '📊'};
+      document.getElementById('m-icon').textContent = iconMap[n.type] || '🔧';
+      document.getElementById('m-title').textContent = n.label + (n.code ? '（' + n.code + '）' : '');
+      const c = TYPE_COLOR[n.type] || '#93c5fd'; const mt = document.getElementById('m-type'); mt.textContent = n.type || '节点'; mt.style.background = 'rgba(255,255,255,.06)'; mt.style.color = c;
+      let html = '';
+      if (n.what) html += `<div class="popup-section"><h3 class="s-what">What · 业务价值</h3><p>${n.what}</p></div>`;
+      if (n.why) html += `<div class="popup-section"><h3 class="s-why">Why · 设计动机</h3><p>${n.why}</p></div>`;
+      if (n.how) html += `<div class="popup-section"><h3 class="s-how">How · 落地方式</h3>${n.how}</div>`;
+      if (n.iv) html += `<div class="popup-section"><h3 class="s-iv">面试问答 · 可能被追问</h3>${n.iv}</div>`;
+      document.getElementById('m-body').innerHTML = html; document.getElementById('modal').classList.add('active');
+    }
+    function closeModal() {document.getElementById('modal').classList.remove('active');}
+    document.getElementById('modal').addEventListener('click', e => {if (e.target.id === 'modal') closeModal();});
+    document.addEventListener('keydown', e => {if (e.key === 'Escape') closeModal();});
+
+    /* ===================== 全景 ===================== */
+    render('svg-overview', [
+      {id: 'u_gov', x: 60, y: 60, w: 180, h: 50, label: '政府便民', sub: '政务咨询/普法', cls: 'node-start', type: '用户', what: '面向公众的便民法律咨询与普法。', why: '普惠化落地入口。', how: 'Web/小程序接入'},
+      {id: 'u_law', x: 60, y: 140, w: 180, h: 50, label: '小微律所', sub: 'SaaS/轻私有化', cls: 'node-start', type: '用户', what: '中小律所提效工具。', why: '缓解供需失衡。', how: 'SaaS 订阅'},
+      {id: 'u_corp', x: 60, y: 220, w: 180, h: 50, label: '集团法务', sub: '全私有化', cls: 'node-start', type: '用户', what: '企业合规与合同中枢。', why: '可控合规要求。', how: '私有化部署 + 定制规则'},
+      {id: 'u_per', x: 60, y: 300, w: 180, h: 50, label: '个人用户', sub: '演示/轻量', cls: 'node-start', type: '用户', what: '个人法律助手。', why: '降低使用门槛。', how: '演示模式'},
+      {id: 'u_ops', x: 60, y: 380, w: 180, h: 50, label: '运营/内容', sub: '小红书', cls: 'node-start', type: '用户', what: '律所内容运营。', why: '批量普法内容。', how: '小红书子图'},
+      {
+        id: 'plat', x: 460, y: 200, w: 280, h: 110, label: '法智引擎平台', sub: 'LangGraph 编排 · 七大子图智能体 · 共享底座', cls: 'node-subgraph', type: '能力',
+        what: '统一法律 AI 多智能体平台，承载全部业务能力。', why: '一处建设、多端复用。',
+        how: '主图 7 业务节点 + 7 子图模块（contract_compliance 内部含 preprocess/dual_review/检索实例）+ AgentState 总线。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么说"一处建设多端复用"？</div><div class="qa-a">A：检索子图实例化 3 次（cc_retrieval/r_retrieval/qa_retrieval）被合同合规/独立检索/问答/文书共享，输入归一化与预处理已封装进 contract_compliance 子图，规则全在 YAML，新业务只需挂子图。</div></div>'
+      },
+      {id: 'g_std', x: 900, y: 60, w: 220, h: 54, label: '标准化', sub: '流程可溯源', cls: 'node-state', type: '目标', what: '法律服务流程标准化、可审计。', why: '满足法律业务硬性约束。', how: '全节点留痕 + 审计日志'},
+      {id: 'g_pop', x: 900, y: 160, w: 220, h: 54, label: '普惠化', sub: '降低门槛', cls: 'node-state', type: '目标', what: '让更多用户用得起法律 AI。', why: '缓解供需失衡。', how: '多端接入 + 演示模式'},
+      {id: 'g_eff', x: 900, y: 260, w: 220, h: 54, label: '降本增效', sub: '3h→30min', cls: 'node-state', type: '目标', what: '人工审核大幅压缩。', why: '商业价值核心。', how: '并行双审 + 自动报告'},
+      {id: 'g_comp', x: 900, y: 360, w: 220, h: 54, label: '合规可控', sub: '律师终审', cls: 'node-state', type: '目标', what: 'AI 执业风险可控。', why: '贴合《律师法》。', how: 'interrupt() 人工断点'}
+    ], [
+      {from: 'u_gov', to: 'plat', dir: 'right'}, {from: 'u_law', to: 'plat', dir: 'right'}, {from: 'u_corp', to: 'plat', dir: 'right'}, {from: 'u_per', to: 'plat', dir: 'right'}, {from: 'u_ops', to: 'plat', dir: 'right'},
+      {from: 'plat', to: 'g_std', dir: 'right'}, {from: 'plat', to: 'g_pop', dir: 'right'}, {from: 'plat', to: 'g_eff', dir: 'right'}, {from: 'plat', to: 'g_comp', dir: 'right'}
+    ]);
+
+    /* ===================== 能力矩阵 ===================== */
+    const cap = [
+      {
+        id: 'c1', x: 40, y: 40, w: 340, h: 90, label: '① 通用检索智能体', sub: '共享底座 · 9节点三阶段', cls: 'node-process', type: '能力',
+        what: '全系统共享检索底座，独立承接关键词/条款/合同检索，并被所有 Agent 复用（实例化 3 次）。', why: '横向挂载多源、纵向降级，保障召回与鲁棒性。',
+        how: '三阶段：实体召回(Neo4j+Cypher+FAISS)→精准过滤→7项加权融合(图谱0.30/向量0.20/权威0.20/精准0.15/跳转·层级·案例各0.05)；质量门60/50阈值+3轮重试，达标跳过北大法宝付费门禁。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么检索要独立成共享智能体？</div><div class="qa-a">A：合同合规/独立检索/问答/文书都依赖检索，独立后可统一优化召回、统一控成本；检索子图被实例化 3 次复用。</div></div>'
+      },
+      {
+        id: 'c2', x: 40, y: 160, w: 340, h: 90, label: '② 预处理智能体', sub: '5节点 · 归一并结构化', cls: 'node-process', type: '能力',
+        what: '甲乙方识别→合同分类→全文本切分→数值抽取→查询抽取，产出统一 doc_text。', why: '主图各路径共享的归一化收口，避免各智能体重复抽取。',
+        how: 'preprocess_subgraph（现由 contract_compliance 编排外壳在入口调用），输出结构化字段供下游复用。'
+      },
+      {
+        id: 'c3', x: 40, y: 280, w: 340, h: 90, label: '③ 合同审核+合规审查智能体', sub: 'contract_compliance 编排型外壳', cls: 'node-purple', type: '能力',
+        what: '合同合规统一编排智能体：以 add_node 调用预处理 / 通用检索(cc_retrieval) / 风险审查(dual_review) 三个专业智能体协同，完成合同审核与合规审查。', why: '编排型外壳，自身不重写审查逻辑，只做多智能体调度，体现 subgraph composition 协作。',
+        how: '主图单一节点 contract_compliance 包住输入归一化管道 + preprocess + cc_retrieval + dual_review；内部按 task_type 在单审(合规)/双审(并发)间切换，critical 一票否决 can_sign=no。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：合同审核和合规审查是两套还是一套？</div><div class="qa-a">A：同一 contract_compliance 编排外壳 + 内部 dual_review 风险审查智能体；按 task_type 切单审/双审模式，自动切换，不重复计数。</div></div>'
+      },
+      {
+        id: 'c4', x: 440, y: 40, w: 340, h: 90, label: '④ 法律问答智能体', sub: '4节点+嵌套检索', cls: 'node-cyan', type: '能力',
+        what: '法律相关走嵌套检索，非法律直走 LLM。', why: '覆盖法条/判例/制度多场景。',
+        how: 'qa_intent_classify→(legal)嵌套 retrieval 子图→final_answer；(non_legal)llm_direct_out。'
+      },
+      {
+        id: 'c5', x: 440, y: 160, w: 340, h: 90, label: '⑤ 文书生成智能体', sub: '7节点 · 澄清守卫', cls: 'node-purple', type: '能力',
+        what: '按案由生成结构化法律文书，并发检索法条+类案。', why: '澄清守卫防残缺文书。',
+        how: 'doc_case_analyze→[need_clarify?END]→template→plan→并行检索→填充→风险→交付。'
+      },
+      {
+        id: 'c6', x: 440, y: 280, w: 340, h: 90, label: '⑥ 普法小红书智能体', sub: '5节点自动化', cls: 'node-pink', type: '能力',
+        what: '主题→文案→配图→质检→发布→Markdown。', why: '律所内容批量自动化。',
+        how: 'Playwright 自动化 + 图文合规质检，不通过优雅终止。'
+      },
+      {
+        id: 'c7', x: 840, y: 40, w: 300, h: 90, label: '⑦ 风险审查智能体', sub: 'dual_review · 5节点(独立)', cls: 'node-process', type: '能力',
+        what: '独立的风险审查智能体：并行双审→冲突消解→数值校验→风险聚合→终稿；按 task_type 在单审/双审两种协作模式间切换。', why: '商业风险可谈判，合规风险不可谈判；独立成体便于被合同合规编排智能体复用。',
+        how: 'parallel_dual_review(ThreadPoolExecutor 并发合规+合同两 LLM / 单审仅合规)→conflict_resolution(5规则合规优先一票否决)→numeric_validate(59条YAML)→risk_aggregate→final_delivery。'
+      },
+      {
+        id: 'base', x: 840, y: 160, w: 300, h: 120, label: '共享底座', sub: '检索+预处理', cls: 'node-infra', type: '能力',
+        what: '预处理子图(5节点)与检索子图(9节点)被多链路复用。', why: '消除重复算力与实现。', how: 'preprocess_subgraph / retrieval_subgraph（实例化3次）组合进主图'
+      },
+      {
+        id: 'rule', x: 840, y: 300, w: 300, h: 120, label: '规则中枢', sub: 'YAML 59条', cls: 'node-infra', type: '能力',
+        what: '数值校验与行业规范全在 YAML。', why: '法务无代码迭代。', how: 'config/rules/contract_review.yaml + compliance_review.yaml'
+      }
+    ];
+    render('svg-capability', cap, [
+      {from: 'c1', to: 'base', dir: 'right'}, {from: 'c2', to: 'base', dir: 'right'}, {from: 'c3', to: 'base', dir: 'right'}, {from: 'c4', to: 'base', dir: 'right'}, {from: 'c5', to: 'base', dir: 'right'}, {from: 'c6', to: 'base', dir: 'right'},
+      {from: 'c3', to: 'rule', dir: 'right'}, {from: 'c7', to: 'base', dir: 'down'}, {from: 'base', to: 'rule', dir: 'down'}
+    ]);
+
+    /* ===================== 八大任务 × 智能体协作 ===================== */
+    render('svg-task-agent', [
+      {id: 't1', x: 40, y: 40, w: 330, h: 54, label: '① 合同审核', sub: 'contract_review', cls: 'node-start', type: '流程', what: '合同风险审查任务。', why: '识别商业与法律风险，产出修订合同与风险报告。', how: '→ 合同合规编排智能体(③)，内部调度预处理+通用检索(双审)+风险审查'},
+      {id: 't2', x: 40, y: 120, w: 330, h: 54, label: '② 合规审查', sub: 'compliance_review', cls: 'node-start', type: '流程', what: '合规风险审查任务。', why: '合规底线优先，critical 一票否决。', how: '→ 合同合规编排智能体(③)，内部调度预处理+通用检索(单审)+风险审查'},
+      {id: 't3', x: 40, y: 200, w: 330, h: 54, label: '③ 法律检索', sub: 'legal_research', cls: 'node-start', type: '流程', what: '法条/法规检索任务。', why: '精准法条定位。', how: '→ 通用检索智能体(①)，单源直查'},
+      {id: 't4', x: 40, y: 280, w: 330, h: 54, label: '④ 案例检索', sub: 'case_search', cls: 'node-start', type: '流程', what: '相似案例检索任务。', why: '判例参考。', how: '→ 通用检索智能体(①)，单源直查'},
+      {id: 't5', x: 40, y: 360, w: 330, h: 54, label: '⑤ 法律问答', sub: 'legal_qa', cls: 'node-start', type: '流程', what: '法律咨询问答任务。', why: '咨询场景，三级路由。', how: '→ 法律问答智能体(⑤)，法律相关时嵌套调用通用检索(①)'},
+      {id: 't6', x: 40, y: 440, w: 330, h: 54, label: '⑥ 文书生成', sub: 'legal_document_gen', cls: 'node-start', type: '流程', what: '法律文书起草任务。', why: '成稿文书+澄清守卫。', how: '→ 文书生成智能体(⑥)，内部并发调用通用检索(①)做法条+类案检索'},
+      {id: 't7', x: 40, y: 520, w: 330, h: 54, label: '⑦ 小红书普法', sub: 'xiaohongshu', cls: 'node-start', type: '流程', what: '普法内容自动发布任务。', why: '批量普法自动化。', how: '→ 普法小红书智能体(⑦)，独立自动化链路'},
+      {id: 't8', x: 40, y: 600, w: 330, h: 54, label: '⑧ 通用法律助手兜底', sub: 'other', cls: 'node-start', type: '流程', what: '非前述类型的通用法律助手。', why: '兜底全覆盖，不漏请求。', how: '→ 法律问答智能体(⑤) 通用兜底路径'},
+      {id: 'a1', x: 860, y: 40, w: 340, h: 54, label: '通用检索智能体', sub: 'retrieval · 9节点', cls: 'node-process', type: '能力', what: '全系统共享检索底座。', why: '一次检索多链复用，降本。', how: '被合同合规(cc_retrieval)/独立检索(r_retrieval)/问答(qa_retrieval)实例化 3 次'},
+      {id: 'a2', x: 860, y: 140, w: 340, h: 54, label: '预处理智能体', sub: 'preprocess · 5节点', cls: 'node-process', type: '能力', what: '输入归一化收口。', why: '异构输入统一结构化。', how: '由合同合规编排智能体在入口调用'},
+      {id: 'a3', x: 860, y: 240, w: 340, h: 54, label: '合同合规编排智能体', sub: 'contract_compliance', cls: 'node-purple', type: '能力', what: '合同/合规统一编排外壳。', why: '多智能体调度枢纽。', how: '调用 a1/a2/a7 三智能体协同'},
+      {id: 'a4', x: 860, y: 340, w: 340, h: 54, label: '风险审查智能体', sub: 'dual_review · 5节点', cls: 'node-process', type: '能力', what: '单审/双审风险审查。', why: '合规优先一票否决。', how: '被 a3 调用'},
+      {id: 'a5', x: 860, y: 440, w: 340, h: 54, label: '法律问答智能体', sub: 'qa · 4节点', cls: 'node-cyan', type: '能力', what: '法律相关性判定+出答。', why: '三级路由。', how: '法律相关时嵌套调用 a1'},
+      {id: 'a6', x: 860, y: 540, w: 340, h: 54, label: '文书生成智能体', sub: 'docgen · 7节点', cls: 'node-purple', type: '能力', what: '文书起草+澄清守卫。', why: '防残缺文书。', how: '内部并发调用 a1'},
+      {id: 'a7', x: 860, y: 640, w: 340, h: 54, label: '普法小红书智能体', sub: 'xhs · 5节点', cls: 'node-pink', type: '能力', what: '图文生成+自动发布。', why: '独立链路。', how: '不依赖其他智能体'}
+    ], [
+      {from: 't1', to: 'a3', dir: 'right', style: 'branch', label: '主导'}, {from: 't2', to: 'a3', dir: 'right', style: 'branch', label: '主导'},
+      {from: 't3', to: 'a1', dir: 'right', style: 'branch', label: '主导'}, {from: 't4', to: 'a1', dir: 'right', style: 'branch', label: '主导'},
+      {from: 't5', to: 'a5', dir: 'right', style: 'branch', label: '主导'}, {from: 't6', to: 'a6', dir: 'right', style: 'branch', label: '主导'},
+      {from: 't7', to: 'a7', dir: 'right', style: 'branch', label: '主导'}, {from: 't8', to: 'a5', dir: 'right', style: 'branch', label: '主导'},
+      {from: 'a3', to: 'a1', dir: 'up', style: 'branch', label: '调检索'}, {from: 'a3', to: 'a2', dir: 'up', style: 'branch', label: '调预处理'},
+      {from: 'a3', to: 'a4', dir: 'down', style: 'branch', label: '调风险审查'}, {from: 'a5', to: 'a1', dir: 'up', style: 'branch', label: '嵌套检索'},
+      {from: 'a6', to: 'a1', dir: 'up', style: 'branch', label: '并发检索'}
+    ]);
+
+    /* ===================== 数据流 ===================== */
+    render('svg-flow', [
+      {id: 'req', x: 60, y: 40, w: 180, h: 50, label: '用户请求', sub: '文本/文档', cls: 'node-start', type: '流程', what: '用户输入文本或上传合同/文书。', why: '任务起点。', how: 'Streamlit 前端 → FastAPI /stream'},
+      {id: 'l1', x: 60, y: 130, w: 180, h: 50, label: 'L1 小红书意图', sub: 'xiaohongshu_publish_intent', cls: 'node-decision', type: '流程', what: '一级意图：是否小红书发布。', why: '剥离非法律场景。', how: 'add_conditional_edges → xhs / intent_router'},
+      {id: 'l2', x: 60, y: 220, w: 180, h: 50, label: 'L2 二级意图', sub: 'intent_router', cls: 'node-decision', type: '流程', what: '法律域 7 类任务分发。', why: '统一入口分发。', how: 'LEVEL2_PATH_MAP → 4 元路径'},
+      {id: 'cc', x: 340, y: 220, w: 170, h: 50, label: '合同/合规', sub: 'contract_compliance(归一化+检索+双审)', cls: 'node-process', type: '流程', what: '合同审核+合规审查全链（contract_compliance 编排外壳）。', why: '风险审查中枢。', how: 'contract_compliance 子图：入口归一化→preprocess→cc_retrieval→dual_review'},
+      {id: 'ret', x: 560, y: 220, w: 170, h: 50, label: '法规/案例检索', sub: 'r_retrieval', cls: 'node-process', type: '流程', what: '独立检索交付。', why: '法条/判例查询。', how: 'retrieval 子图'},
+      {id: 'qa', x: 780, y: 220, w: 170, h: 50, label: '法律问答', sub: 'qa', cls: 'node-process', type: '流程', what: '法律问答链路。', why: '咨询场景。', how: '嵌套 retrieval'},
+      {id: 'doc', x: 1000, y: 220, w: 170, h: 50, label: '文书生成', sub: 'docgen', cls: 'node-process', type: '流程', what: '文书生成链路。', why: '文书场景。', how: 'docgen 子图'},
+      {id: 'xhs', x: 60, y: 310, w: 180, h: 50, label: '小红书发布', sub: 'xhs', cls: 'node-process', type: '流程', what: '内容自动化。', why: '运营场景。', how: 'xhs 子图'},
+      {
+        id: 'deliver', x: 340, y: 330, w: 830, h: 54, label: '结构化交付物：风险高亮 PDF / 修订合同 / 法律答案 / 成稿文书 / 发布文档 + 审计日志', sub: '', cls: 'node-end', type: '流程',
+        what: '各路径产出可溯源交付物。', why: '闭环交付。', how: 'final_delivery / legal_qa_final_answer / doc_final_delivery / generate_markdown'
+      },
+      {
+        id: 'sign', x: 340, y: 430, w: 400, h: 54, label: '高风险人工签章中断', sub: 'interrupt() · 律师终审', cls: 'node-danger', type: '断点',
+        what: '高风险文书强制人工签章，付费法规/资信经人工确认。', why: '规避 AI 执业风险与资损。', how: 'interrupt() → Command(resume=) 续跑；Checkpointer 恢复状态',
+        iv: '<div class="qa-block"><div class="qa-q">Q：中断后状态会丢吗？</div><div class="qa-a">A：不会。SqliteSaver 已落盘，前端带 thread_id resume，人工确认后从断点继续，检索/审查中间结果都在。</div></div>'
+      },
+      {
+        id: 'user', x: 340, y: 530, w: 830, h: 54, label: '用户 / 律师：采纳建议 · 签章确认 · 反馈迭代', sub: '', cls: 'node-start', type: '用户',
+        what: '人接收交付并决策。', why: '人机协同闭环。', how: '前端展示风险高亮 + 签章按钮'
+      },
+      {
+        id: 'trace', x: 60, y: 430, w: 260, h: 54, label: '全链路状态总线', sub: 'AgentState 100+字段', cls: 'node-state', type: '流程',
+        what: '所有节点读写同一状态，可追溯。', why: '复盘与审计。', how: 'partial update 自动合并'
+      }
+    ], [
+      {from: 'req', to: 'l1', dir: 'down'}, {from: 'l1', to: 'l2', dir: 'down', style: 'branch', label: '法律'},
+      {from: 'l2', to: 'cc', dir: 'right', style: 'branch', label: '合同/合规'}, {from: 'l2', to: 'ret', dir: 'right', style: 'branch', label: '检索'}, {from: 'l2', to: 'qa', dir: 'right', style: 'branch', label: '问答'}, {from: 'l2', to: 'doc', dir: 'right', style: 'branch', label: '文书'},
+      {from: 'l1', to: 'xhs', dir: 'down', style: 'branch', label: '小红书'},
+      {from: 'cc', to: 'deliver', dir: 'down'}, {from: 'ret', to: 'deliver', dir: 'down'}, {from: 'qa', to: 'deliver', dir: 'down'}, {from: 'doc', to: 'deliver', dir: 'down'}, {from: 'xhs', to: 'deliver', dir: 'down'},
+      {from: 'deliver', to: 'sign', dir: 'down', style: 'danger', label: '高风险'},
+      {from: 'deliver', to: 'user', dir: 'down'}, {from: 'sign', to: 'user', dir: 'down'},
+      {from: 'trace', to: 'deliver', dir: 'right', style: 'branch'}
+    ]);
+
+    /* ===================== 合规边界 ===================== */
+    render('svg-compliance', [
+      {
+        id: 'ai_zone', x: 60, y: 60, w: 520, h: 60, label: 'AI 自动处理区（低风险 / 中风险）', sub: '', cls: 'node-process', type: '边界',
+        what: '检索、双审、问答、文书全自动，输出可溯源报告与建议。', why: '提效降本，低风险可自动。', how: 'LangGraph 全链路自动执行'
+      },
+      {id: 'ai_low', x: 60, y: 160, w: 240, h: 54, label: '低风险', sub: '自动输出报告', cls: 'node-start', type: '流程', what: '低风险自动出报告。', why: '无需人工。', how: 'can_sign=pass'},
+      {id: 'ai_mid', x: 340, y: 160, w: 240, h: 54, label: '中风险', sub: '触发复核断点', cls: 'node-process', type: '流程', what: '中风险触发人工复核。', why: '可控介入。', how: 'conditional 路径'},
+      {
+        id: 'human_zone', x: 660, y: 60, w: 520, h: 60, label: '律师终审 / 人工断点区（高风险）', sub: '', cls: 'node-danger', type: '边界',
+        what: '高风险文书、付费法规、企业资信三类强制人工确认。', why: '贴合《律师法》，规避 AI 执业风险。', how: 'interrupt() 真中断'
+      },
+      {id: 'h_sign', x: 660, y: 160, w: 240, h: 54, label: '高风险文书签章', sub: 'interrupt()', cls: 'node-danger', type: '断点', what: '高风险文书强制人工签章。', why: 'AI 不得代行签章。', how: '高风险 → END 等待律师'},
+      {id: 'h_fabao', x: 920, y: 160, w: 240, h: 54, label: '付费法规确认', sub: '北大法宝门禁', cls: 'node-danger', type: '断点', what: '质量门 3 次失败才放行付费库，人工确认。', why: '控资损。', how: 'beida_fabao_gate interrupt'},
+      {id: 'h_credit', x: 660, y: 250, w: 240, h: 54, label: '企业资信确认', sub: '企查查 MCP', cls: 'node-danger', type: '断点', what: '相对方资信核查人工确认。', why: '风险可视。', how: 'credit_check interrupt'},
+      {id: 'veto', x: 920, y: 250, w: 240, h: 54, label: '合规一票否决', sub: 'can_sign=no', cls: 'node-danger', type: '边界', what: '合规 critical 否决签约。', why: '法律底线不可谈判。', how: '冲突消解规则1'},
+      {
+        id: 'law', x: 60, y: 330, w: 1120, h: 60, label: '《律师法》权责边界：AI 辅助、律师终审签章 —— 商业风险可谈判，合规风险不可谈判', sub: '', cls: 'node-state', type: '边界',
+        what: '确立平台权责边界。', why: '合规与法律风险可控。', how: '架构内嵌三类人工断点 + 合规否决权'
+      }
+    ], [
+      {from: 'ai_zone', to: 'ai_low', dir: 'down'}, {from: 'ai_zone', to: 'ai_mid', dir: 'down'},
+      {from: 'human_zone', to: 'h_sign', dir: 'down'}, {from: 'human_zone', to: 'h_fabao', dir: 'down'}, {from: 'human_zone', to: 'h_credit', dir: 'down'}, {from: 'human_zone', to: 'veto', dir: 'down'}
+    ]);
+
+    /* ===================== 部署 ===================== */
+    render('svg-deploy', [
+      {id: 'd_gov', x: 60, y: 60, w: 260, h: 80, label: '政府便民', sub: '公有云 / 政务云', cls: 'node-infra', type: '部署', what: '便民法律咨询与普法。', why: '普惠化。', how: '政务云隔离部署'},
+      {id: 'd_law', x: 360, y: 60, w: 260, h: 80, label: '小微律所', sub: 'SaaS / 轻私有化', cls: 'node-infra', type: '部署', what: '中小律所提效。', why: '低成本。', how: 'SaaS 订阅'},
+      {id: 'd_corp', x: 660, y: 60, w: 260, h: 80, label: '集团法务', sub: '全私有化 + 定制', cls: 'node-infra', type: '部署', what: '企业合规中枢。', why: '可控合规。', how: '私有化 + YAML 定制规则'},
+      {id: 'd_per', x: 960, y: 60, w: 200, h: 80, label: '个人用户', sub: '演示/轻量', cls: 'node-infra', type: '部署', what: '个人法律助手。', why: '低门槛。', how: 'HAS_BACKEND 演示模式'},
+      {
+        id: 'd_core', x: 60, y: 220, w: 1100, h: 80, label: '统一内核：LangGraph 编排 · 7 子图模块 · 检索复用3次 · FAISS+Neo4j 图谱 · SqliteSaver · FastAPI/Streamlit · 北大法宝/企查查 MCP', sub: '', cls: 'node-subgraph', type: '能力',
+        what: '同一套代码内核适配不同交付。', why: '一次建设多端复用。', how: 'config 驱动差异（规则/模型/部署）',
+        iv: '<div class="qa-block"><div class="qa-q">Q：演示模式怎么做到无后端也能跑？</div><div class="qa-a">A：Streamlit 探测 HAS_BACKEND，未连后端时走前端演示数据，保证离线展示；连上后端则走真实 /stream 流式。</div></div>'
+      }
+    ], [
+      {from: 'd_gov', to: 'd_core', dir: 'down', style: 'branch'}, {from: 'd_law', to: 'd_core', dir: 'down', style: 'branch'}, {from: 'd_corp', to: 'd_core', dir: 'down', style: 'branch'}, {from: 'd_per', to: 'd_core', dir: 'down', style: 'branch'}
+    ]);
+
+    /* ===================== 指标 ===================== */
+    render('svg-metric', [
+      {id: 'm1', x: 60, y: 60, w: 340, h: 80, label: '合同审核 3h → 30min', sub: '人力成本 ↓80%', cls: 'node-state', type: '指标', what: '人工审核时长压缩。', why: '核心降本证据。', how: '并行双审 + 自动报告'},
+      {id: 'm2', x: 60, y: 170, w: 340, h: 80, label: '风险识别准确率 95%+', sub: '确定性校验', cls: 'node-state', type: '指标', what: '数值类风险零幻觉。', why: '质量硬指标。', how: '59 条 YAML 确定性校验'},
+      {id: 'm3', x: 60, y: 280, w: 340, h: 80, label: '立场识别 94% / 采纳率 78%', sub: '甲乙差异化', cls: 'node-state', type: '指标', what: '甲乙双方立场准确识别与采纳。', why: '业务可用性。', how: 'Dual review user_side 隔离'},
+      {id: 'm4', x: 460, y: 60, w: 340, h: 80, label: '复杂合同人工介入仅 4%', sub: '自动闭环', cls: 'node-state', type: '指标', what: '大部分合同无需人工。', why: '提效证据。', how: '风险分级 + 自动交付'},
+      {id: 'm5', x: 460, y: 170, w: 340, h: 80, label: '检索达标率 82% → 96%', sub: '质量门 3 轮', cls: 'node-state', type: '指标', what: '单次达标与重试后整体达标。', why: '召回保障。', how: '质量门 60/50 阈值 + 3 轮重试'},
+      {id: 'm6', x: 460, y: 280, w: 340, h: 80, label: '知识库 12w+ 实体 / 16w+ 关系', sub: 'Neo4j', cls: 'node-state', type: '指标', what: '图谱规模。', why: '底座厚度。', how: 'create_neo4j_database 构建'},
+      {id: 'm7', x: 840, y: 60, w: 300, h: 80, label: '双审并行省 ~40% 耗时', sub: 'ThreadPoolExecutor', cls: 'node-state', type: '指标', what: '20s → 12s。', why: '延迟优化。', how: '并发合规+合同审查'},
+      {id: 'm8', x: 840, y: 170, w: 300, h: 80, label: 'API 成本显著降低', sub: '动态开关付费', cls: 'node-state', type: '指标', what: '质量门动态开关北大法宝。', why: '成本工程。', how: '达标跳过付费门禁'},
+      {id: 'm_arch', x: 840, y: 280, w: 300, h: 80, label: '主图7 + 7子图模块(检索×3)', sub: '可演进', cls: 'node-state', type: '指标', what: '架构原子粒度（主图 7 业务节点 + 7 子图模块）。', why: '可维护可扩展。', how: 'subgraph composition · 检索子图实例化 3 次'}
+    ], [
+    ]);
+  </script>
+</body>
+
+</html>

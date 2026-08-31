@@ -63,7 +63,7 @@ _INTENT_PREFERRED_REL = {
     "parties":    {"INVOLVES"},
 }
 # 偏好关系召回分偏置系数 (P3: recall × 1.3)
-_INTENT_REL_BOOST = 1.3
+_INTENT_REL_BOOST = 1
 
 
 def _dedup_with_intent_bias(recalls: List[Dict], intents) -> List[Dict]:

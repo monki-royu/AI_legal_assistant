@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>法智引擎 · 技术架构图（基于真实代码）</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0d141e;
+      color: #e0e8f0;
+      min-height: 100vh;
+      overflow-x: auto
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit
+    }
+
+    .topnav {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(13, 20, 30, 0.97);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      padding: 0 24px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap
+    }
+
+    .topnav .brand {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60c5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-right: 16px
+    }
+
+    .topnav a {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      transition: all .2s;
+      cursor: pointer;
+      white-space: nowrap
+    }
+
+    .topnav a:hover {
+      background: rgba(255, 255, 255, 0.06)
+    }
+
+    .topnav .spacer {
+      flex: 1
+    }
+
+    .topnav .stat {
+      font-size: 11px;
+      color: #5a6a7a
+    }
+
+    section {
+      padding: 44px 32px;
+      min-width: 1100px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04)
+    }
+
+    .sec-head {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 6px;
+      flex-wrap: wrap
+    }
+
+    .sec-head h2 {
+      font-size: 24px;
+      font-weight: 800
+    }
+
+    .sec-num {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 3px 10px;
+      border-radius: 4px
+    }
+
+    .sec-desc {
+      font-size: 13px;
+      color: #7a8a9a;
+      margin-bottom: 18px;
+      line-height: 1.75
+    }
+
+    .sec-desc b {
+      color: #c0d8ef
+    }
+
+    .ph-blue {
+      background: rgba(96, 197, 250, .15);
+      color: #60c5fa
+    }
+
+    .ph-orange {
+      background: rgba(251, 146, 60, .15);
+      color: #fb923c
+    }
+
+    .ph-yellow {
+      background: rgba(251, 191, 36, .15);
+      color: #fcd34d
+    }
+
+    .ph-green {
+      background: rgba(52, 211, 153, .15);
+      color: #34d399
+    }
+
+    .ph-purple {
+      background: rgba(167, 139, 250, .15);
+      color: #a78bfa
+    }
+
+    .ph-red {
+      background: rgba(239, 68, 68, .15);
+      color: #ef4444
+    }
+
+    .ph-cyan {
+      background: rgba(34, 211, 238, .15);
+      color: #22d3ee
+    }
+
+    .ph-teal {
+      background: rgba(45, 212, 191, .15);
+      color: #2dd4bf
+    }
+
+    .ph-pink {
+      background: rgba(236, 72, 153, .15);
+      color: #f472b6
+    }
+
+    .svg-wrap {
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.01);
+      padding: 20px
+    }
+
+    .svg-wrap svg {
+      display: block;
+      margin: 0 auto;
+      min-width: 100%
+    }
+
+    .node-group {
+      cursor: pointer;
+      transition: filter .2s
+    }
+
+    .node-group:hover {
+      filter: brightness(1.3)
+    }
+
+    .node-rect {
+      stroke-width: 1.5;
+      transition: stroke-width .2s
+    }
+
+    .node-group:hover .node-rect {
+      stroke-width: 2.5
+    }
+
+    .node-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+      user-select: none
+    }
+
+    .node-sub {
+      font-size: 10px;
+      font-weight: 400;
+      fill: #8a9aab;
+      pointer-events: none
+    }
+
+    .node-subgraph .node-rect {
+      stroke-width: 2.5
+    }
+
+    .node-subgraph .node-rect-inner {
+      fill: none;
+      stroke-width: 1;
+      stroke-dasharray: 3, 2;
+      opacity: 0.5
+    }
+
+    .edge {
+      fill: none;
+      stroke-width: 1.5
+    }
+
+    .edge-normal {
+      stroke: #4a6a8a
+    }
+
+    .edge-branch {
+      stroke: #7a8a9a;
+      stroke-dasharray: 5, 3
+    }
+
+    .edge-loop {
+      stroke: #fb923c;
+      stroke-width: 2;
+      stroke-dasharray: 6, 3
+    }
+
+    .edge-success {
+      stroke: #34d399
+    }
+
+    .edge-danger {
+      stroke: #ef4444;
+      stroke-dasharray: 5, 3
+    }
+
+    .edge-parallel {
+      stroke: #a78bfa;
+      stroke-width: 2;
+      stroke-dasharray: 4, 2
+    }
+
+    .edge-label {
+      font-size: 10px;
+      fill: #8a9aab;
+      text-anchor: middle;
+      pointer-events: none
+    }
+
+    .edge-label-loop {
+      fill: #fdba74;
+      font-weight: 600
+    }
+
+    .edge-label-danger {
+      fill: #fca5a5;
+      font-weight: 600
+    }
+
+    .edge-label-parallel {
+      fill: #c4b5fd;
+      font-weight: 600
+    }
+
+    .node-start .node-rect {
+      fill: rgba(52, 211, 153, .14);
+      stroke: #34d399
+    }
+
+    .node-start .node-label {
+      fill: #6ee7b7
+    }
+
+    .node-process .node-rect {
+      fill: rgba(96, 197, 250, .08);
+      stroke: rgba(96, 197, 250, .5)
+    }
+
+    .node-process .node-label {
+      fill: #c0d8ef
+    }
+
+    .node-decision .node-rect {
+      fill: rgba(251, 146, 60, .10);
+      stroke: rgba(251, 146, 60, .5)
+    }
+
+    .node-decision .node-label {
+      fill: #fdba74
+    }
+
+    .node-end .node-rect {
+      fill: rgba(148, 163, 184, .10);
+      stroke: #94a3b8
+    }
+
+    .node-end .node-label {
+      fill: #cbd5e1
+    }
+
+    .node-danger .node-rect {
+      fill: rgba(239, 68, 68, .08);
+      stroke: rgba(239, 68, 68, .5)
+    }
+
+    .node-danger .node-label {
+      fill: #fca5a5
+    }
+
+    .node-purple .node-rect {
+      fill: rgba(167, 139, 250, .08);
+      stroke: rgba(167, 139, 250, .5)
+    }
+
+    .node-purple .node-label {
+      fill: #c4b5fd
+    }
+
+    .node-cyan .node-rect {
+      fill: rgba(34, 211, 238, .08);
+      stroke: rgba(34, 211, 238, .5)
+    }
+
+    .node-cyan .node-label {
+      fill: #67e8f9
+    }
+
+    .node-pink .node-rect {
+      fill: rgba(236, 72, 153, .08);
+      stroke: rgba(236, 72, 153, .5)
+    }
+
+    .node-pink .node-label {
+      fill: #f9a8d4
+    }
+
+    .node-state .node-rect {
+      fill: rgba(251, 191, 36, .12);
+      stroke: #fcd34d
+    }
+
+    .node-state .node-label {
+      fill: #fde68a
+    }
+
+    .node-infra .node-rect {
+      fill: rgba(45, 212, 191, .08);
+      stroke: rgba(45, 212, 191, .5)
+    }
+
+    .node-infra .node-label {
+      fill: #5eead4
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .72);
+      z-index: 9999;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+      overflow-y: auto
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn .2s
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    .modal-content {
+      background: #1a2330;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 16px;
+      max-width: 900px;
+      width: 100%;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+      animation: slideUp .3s
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+      position: sticky;
+      top: 0;
+      background: #1a2330;
+      border-radius: 16px 16px 0 0;
+      z-index: 10
+    }
+
+    .modal-header .m-icon {
+      font-size: 24px
+    }
+
+    .modal-header h2 {
+      font-size: 17px;
+      font-weight: 700;
+      flex: 1
+    }
+
+    .modal-header .m-type {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border-radius: 4px
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .06);
+      border: none;
+      color: #8a9aab;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .modal-close:hover {
+      background: rgba(239, 68, 68, .2);
+      color: #fca5a5
+    }
+
+    .modal-body {
+      padding: 20px 24px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto
+    }
+
+    .modal-body::-webkit-scrollbar {
+      width: 6px
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, .12);
+      border-radius: 3px
+    }
+
+    .popup-section {
+      margin-bottom: 20px
+    }
+
+    .popup-section h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      padding-left: 10px;
+      border-left: 3px solid #60c5fa
+    }
+
+    .popup-section h3.s-what {
+      border-color: #60c5fa;
+      color: #93c5fd
+    }
+
+    .popup-section h3.s-why {
+      border-color: #fbbf24;
+      color: #fcd34d
+    }
+
+    .popup-section h3.s-how {
+      border-color: #34d399;
+      color: #6ee7b7
+    }
+
+    .popup-section h3.s-iv {
+      border-color: #ec4899;
+      color: #f9a8d4
+    }
+
+    .popup-section p {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #b0c0d0
+    }
+
+    .popup-section ul {
+      padding-left: 20px
+    }
+
+    .popup-section ul li {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #b0c0d0;
+      margin-bottom: 4px
+    }
+
+    .code-block {
+      background: #0d141e;
+      border: 1px solid rgba(96, 197, 250, .18);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin-top: 4px
+    }
+
+    .code-block code {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #a5d8ff;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      white-space: pre
+    }
+
+    .qa-block {
+      background: rgba(255, 255, 255, .03);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      border-left: 3px solid #ec4899
+    }
+
+    .qa-block .qa-q {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f9a8d4;
+      margin-bottom: 6px
+    }
+
+    .qa-block .qa-a {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #b0c0d0
+    }
+
+    .cover {
+      text-align: center;
+      padding: 70px 40px;
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center
+    }
+
+    .cover h1 {
+      font-size: 42px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #60c5fa, #a78bfa, #2dd4bf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    .cover .subtitle {
+      font-size: 16px;
+      color: #7a8a9a;
+      margin-bottom: 30px
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      text-align: left;
+      max-width: 1100px;
+      width: 100%
+    }
+
+    .cover-card {
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 12px;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .cover-card:hover {
+      background: rgba(255, 255, 255, .06);
+      transform: translateY(-2px)
+    }
+
+    .cover-card .cc-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 4px
+    }
+
+    .cover-card .cc-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px
+    }
+
+    .cover-card .cc-desc {
+      font-size: 12px;
+      color: #8a9aab;
+      line-height: 1.7
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 14px 0;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, .02);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, .06)
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #8a9aab
+    }
+
+    .legend-swatch {
+      width: 16px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1.5px solid
+    }
+
+    .hint-bar {
+      background: rgba(251, 191, 36, .08);
+      border: 1px solid rgba(251, 191, 36, .2);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #fcd34d;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    footer {
+      padding: 28px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #4a5a6a;
+      line-height: 1.8
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="topnav">
+    <div class="brand">⚙️ 法智引擎 · 技术架构</div>
+    <a href="#sec-overview" style="color:#93c5fd">🏛️ 主图</a>
+    <a href="#sec-preprocess" style="color:#6ee7b7">📄 预处理</a>
+    <a href="#sec-retrieval" style="color:#c4b5fd">🔍 检索</a>
+    <a href="#sec-review" style="color:#fdba74">⚔️ 双审</a>
+    <a href="#sec-contract" style="color:#67e8f9">🛡️ 合同合规</a>
+    <a href="#sec-qa" style="color:#22d3ee">💬 问答</a>
+    <a href="#sec-docgen" style="color:#a5b4fc">📝 文书</a>
+    <a href="#sec-xhs" style="color:#f472b6">📕 小红书</a>
+    <a href="#sec-state" style="color:#fde68a">📦 AgentState</a>
+    <a href="#sec-infra" style="color:#5eead4">🗄️ 基础设施</a>
+    <span class="spacer"></span>
+    <span class="stat">LangGraph StateGraph · 主图7节点 · 7子图模块 · 检索实例化3次 · SqliteSaver</span>
+  </nav>
+
+  <section id="sec-index" class="cover">
+    <div>
+      <h1>⚙️ 法智引擎 · 技术架构图</h1>
+      <p class="subtitle">基于真实代码的 LangGraph 编排实现：两级路由 · 7 大可复用子图模块 · 检索子图实例化 3 次 · AgentState 总线 · Checkpointer 持久化</p>
+      <div class="cover-grid">
+        <a href="#sec-overview" class="cover-card">
+          <div class="cc-tag" style="color:#60c5fa">SECTION 01</div>
+          <div class="cc-title" style="color:#93c5fd">🏛️ 主图编排</div>
+          <div class="cc-desc">langgraph_main.py：StateGraph(AgentState) 编译主图，7 个业务节点 = 2 个路由节点 + 5 个子图节点；L1 小红书意图 → L2
+            intent_router → 4 条元路径（contract_compliance / r_retrieval / qa / docgen）；xhs 在 L1 直接命中。</div>
+        </a>
+        <a href="#sec-preprocess" class="cover-card">
+          <div class="cc-tag" style="color:#34d399">SECTION 02</div>
+          <div class="cc-title" style="color:#6ee7b7">📄 预处理子图</div>
+          <div class="cc-desc">5 节点纯链：party_identify → contract_classify → full_text_segment → numeric_extract →
+            llm_query_extract。仅由 contract_compliance 编排外壳调用，把文档/文本输入统一结构化。</div>
+        </a>
+        <a href="#sec-retrieval" class="cover-card">
+          <div class="cc-tag" style="color:#a78bfa">SECTION 03</div>
+          <div class="cc-title" style="color:#c4b5fd">🔍 检索子图（9节点）</div>
+          <div class="cc-desc">实体召回 → 精准过滤 → 7 项加权融合；质量门 60(多源)/50(单源) 触发 ≤3 轮重试；三轮仍不达标放行北大法宝付费门禁 interrupt()；企查查资信 L3
+            收尾。被 contract_compliance / r_retrieval / qa 共享，实例化 3 次。</div>
+        </a>
+        <a href="#sec-review" class="cover-card">
+          <div class="cc-tag" style="color:#fb923c">SECTION 04</div>
+          <div class="cc-title" style="color:#fdba74">⚔️ 双审子图（5节点）</div>
+          <div class="cc-desc">parallel_dual_review 用 ThreadPoolExecutor(max_workers=2) 并发执行合规审查 + 合同 AI 审查；冲突消解 5
+            规则（合规优先一票否决）→ 59 条 YAML 数值校验 → 三路聚合 → 交付。</div>
+        </a>
+        <a href="#sec-contract" class="cover-card">
+          <div class="cc-tag" style="color:#22d3ee">SECTION 05</div>
+          <div class="cc-title" style="color:#67e8f9">🛡️ 合同合规编排子图</div>
+          <div class="cc-desc">编排外壳：输入归一化管道（input_source_router / doc_extract / doc_empty_guard / text_recognize）→
+            preprocess → cc_retrieval → dual_review。主图只保留一个节点，内部封装整条链路。</div>
+        </a>
+        <a href="#sec-qa" class="cover-card">
+          <div class="cc-tag" style="color:#818cf8">SECTION 06</div>
+          <div class="cc-title" style="color:#a5b4fc">💬 法律问答子图</div>
+          <div class="cc-desc">4 节点：qa_intent_classify 法律相关性三级分类；法律相关嵌套复用 retrieval 子图（qa_retrieval）；非法律直走
+            llm_direct_out。subgraph composition 多层嵌套。</div>
+        </a>
+        <a href="#sec-docgen" class="cover-card">
+          <div class="cc-tag" style="color:#2dd4bf">SECTION 07</div>
+          <div class="cc-title" style="color:#5eead4">📝 文书生成子图（7节点）</div>
+          <div class="cc-desc">案情分析 → [need_clarify?END] → 模板匹配 → 查询规划 → doc_parallel_retrieve（ThreadPoolExecutor
+            单节点内并发法条+类案）→ 条款填充 → 风险分析 → 终稿交付。注意：文书生成不调用共享 retrieval 子图，内部检索独立实现。</div>
+        </a>
+        <a href="#sec-xhs" class="cover-card">
+          <div class="cc-tag" style="color:#f472b6">SECTION 08</div>
+          <div class="cc-title" style="color:#f9a8d4">📕 小红书发布子图</div>
+          <div class="cc-desc">5 节点：文案生成 → 配图生成 → 图文合规检查 → 自动发布 → Markdown；质检不通过优雅终止 END，不污染主图状态。完全独立于法律推理栈。</div>
+        </a>
+        <a href="#sec-state" class="cover-card">
+          <div class="cc-tag" style="color:#fcd34d">SECTION 09</div>
+          <div class="cc-title" style="color:#fde68a">📦 AgentState 状态总线</div>
+          <div class="cc-desc">TypedDict(total=False)，100+ 字段分 9 类。节点仅返回修改字段（partial
+            update），框架自动合并。检索/审查/问答/文书共享同一状态总线，端到端可追溯。</div>
+        </a>
+        <a href="#sec-infra" class="cover-card">
+          <div class="cc-tag" style="color:#5eead4">SECTION 10</div>
+          <div class="cc-title" style="color:#5eead4">🗄️ 基础设施层</div>
+          <div class="cc-desc">FAISS(bge-m3) 五域向量 + Neo4j 图谱 + 7 项加权融合；SqliteSaver 磁盘 Checkpointer；北大法宝/企查查 MCP；MinerU
+            解析；FastAPI/Streamlit。</div>
+        </a>
+      </div>
+      <div style="margin-top:30px;font-size:13px;color:#5a6a6a;line-height:2">
+        <div>💡 <strong style="color:#fcd34d">交互说明：</strong>点击任意节点 → 弹出 what / why / how 三段深度解析（部分含面试问答）。</div>
+        <div>🔄 <strong style="color:#fb923c">循环标识：</strong>橙色虚线 = 重试回边 / 紫色虚线 = 并行分支 / 红色虚线 = 风险/终止路径 / 绿色 = 成功路径。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTION 01: 主图 ============ -->
+  <section id="sec-overview">
+    <div class="sec-head"><span class="sec-num ph-blue">SECTION 01</span>
+      <h2 style="color:#93c5fd">🏛️ 主图编排：StateGraph 编译产物</h2>
+    </div>
+    <p class="sec-desc">展示 <code>langgraph_main.py</code> 中 <code>main_graph = StateGraph(AgentState)</code> 编译后的图。主图共
+      <b>7 个业务节点</b>：2 个路由节点（<code>xiaohongshu_publish_intent</code> / <code>intent_router</code>）+ 5
+      个子图节点（<code>xhs</code> / <code>contract_compliance</code> / <code>r_retrieval</code> / <code>qa</code> /
+      <code>docgen</code>）。所有子图模块先在 <code>subgraphs/*.py</code> 独立 <code>.compile()</code>，再经主图 <code>add_node</code>
+      组合。其中<b>检索子图实例化 3
+        次</b>：<code>cc_retrieval</code>（合同合规内部）、<code>r_retrieval</code>（独立检索路径）、<code>qa_retrieval</code>（问答内部嵌套）；<b>文书生成子图不使用共享
+        retrieval 子图</b>，而是内部独立实现 <code>doc_parallel_retrieve</code>。主图通过 <code>add_conditional_edges</code> 配合
+      <code>LEVEL2_PATH_MAP</code> 实现两级意图路由，并通过 <code>compile(checkpointer=SqliteSaver(...))</code> 启用磁盘持久化。</p>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch" style="border-color:#34d399;background:rgba(52,211,153,.14)"></div>入口 START
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="border-color:#fb923c;background:rgba(251,146,60,.10)"></div>路由决策
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch"
+          style="border-color:#60c5fa;background:rgba(96,197,250,.08);border-style:double;border-width:3px"></div>子图节点
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="border-color:#2dd4bf;background:rgba(45,212,191,.08)"></div>基础设施
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="border-color:#94a3b8;background:rgba(148,163,184,.10)"></div>END
+      </div>
+    </div>
+    <div class="hint-bar">💡 点击任意节点查看 LangGraph 技术实现细节（编译方式 / 条件边 / 子图组合 / 面试 Q&A）</div>
+    <div class="svg-wrap"><svg id="svg-main" viewBox="0 0 1240 760"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 02: 预处理子图 ============ -->
+  <section id="sec-preprocess">
+    <div class="sec-head"><span class="sec-num ph-green">SECTION 02</span>
+      <h2 style="color:#6ee7b7">📄 预处理子图（5 节点 · 纯链）</h2>
+    </div>
+    <p class="sec-desc"><code>preprocess_subgraph.py</code>：拿到归一化后的 <code>doc_text</code> 后，按 <b>party_identify →
+        contract_classify → full_text_segment → numeric_extract → llm_query_extract</b> 五节点串联做结构化预处理。输出
+      <code>party_a / party_b / user_side / contract_type / doc_segments / extracted_numerics / retrieval_query / retrieval_keywords</code>
+      等字段，供下游检索与审查复用。本子图不直接挂载在主图，而是作为嵌套子图由 <code>contract_compliance</code> 编排外壳在入口调用。</p>
+    <div class="hint-bar">💡 点击节点查看每个预处理步骤写入的状态字段与下游消费方。</div>
+    <div class="svg-wrap"><svg id="svg-preprocess" viewBox="0 0 760 460"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 03: 检索子图 ============ -->
+  <section id="sec-retrieval">
+    <div class="sec-head"><span class="sec-num ph-purple">SECTION 03</span>
+      <h2 style="color:#c4b5fd">🔍 检索智能体子图（9 节点 · 三阶段 + 质量门重试环）</h2>
+    </div>
+    <p class="sec-desc"><code>retrieval_subgraph.py</code>：实体召回层（Neo4j Cypher 4 类 UNION ALL + 5 域 FAISS + 关键词扩展，按 7
+      类检索意图做数据源/关系偏置）→ 精准过滤层 → 融合排序层（7 项加权融合：图谱 0.30 / 向量 0.20 / 权威 0.20 / 精准 0.15 / 跳转·法律层级·案例层级各 0.05）。质量门
+      <code>quality_score</code> 阈值 60（多源）/50（单源）触发回退重试（≤3 轮）；三轮仍不达标才放行 <b>北大法宝付费门禁</b>（<code>interrupt()</code>
+      真中断），<b>企查查资信</b>在 L3 收尾调用，最后 <code>context_pack</code> 打包检索上下文供下游复用。<b>注意：共享检索子图仅被 contract_compliance /
+        独立检索（r_retrieval）/ 法律问答（qa_retrieval）三条链路复用，实例化 3 次；文书生成子图内部使用独立的 <code>doc_parallel_retrieve</code>，不调用本子图。</b>
+    </p>
+    <div class="hint-bar">💡 点击节点查看每阶段技术选型与融合策略；橙色虚线为质量门重试回边。</div>
+    <div class="svg-wrap"><svg id="svg-retrieval" viewBox="0 0 760 560"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 04: 双审子图 ============ -->
+  <section id="sec-review">
+    <div class="sec-head"><span class="sec-num ph-orange">SECTION 04</span>
+      <h2 style="color:#fdba74">⚔️ 双审子图（5 节点 · 并行双审 + 冲突消解）</h2>
+    </div>
+    <p class="sec-desc"><code>dual_review_subgraph.py</code>：风险审查核心，被 <code>contract_compliance</code> 编排外壳以
+      <code>add_node</code> 调用。<code>parallel_dual_review</code> 用 <code>ThreadPoolExecutor(max_workers=2)</code>
+      并发执行合规审查与合同 AI 审查（串行约 20s → 取较慢者约 12s，省约 40%）。两路写入不同 state 字段无竞态。合同双审走 <code>conflict_resolution</code>（5
+      规则合规优先一票否决）→ <code>numeric_validate</code>（59 条 YAML 确定性校验）→ <code>risk_aggregate</code>（三路聚合 + 对立方加权）→
+      <code>final_delivery</code>；合规单审跳过冲突消解直走数值校验。</p>
+    <div class="hint-bar">💡 点击节点查看并行安全设计、5 条冲突消解规则与 can_sign 三态；紫色虚线为并发分支。</div>
+    <div class="svg-wrap"><svg id="svg-review" viewBox="0 0 860 520"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 05: 合同合规编排子图 ============ -->
+  <section id="sec-contract">
+    <div class="sec-head"><span class="sec-num ph-cyan">SECTION 05</span>
+      <h2 style="color:#67e8f9">🛡️ 合同合规编排子图：编排外壳（4 节点输入管道 + 3 个嵌套子图）</h2>
+    </div>
+    <p class="sec-desc"><code>contract_compliance_subgraph.py</code>：合同/合规任务的自包含编排外壳，把"输入归一化管道 + 共享预处理 + 检索复用 +
+      双审内核"封装为一个独立编译的子图，主图只通过 <code>add_node("contract_compliance", ...)</code> 调度。内部结构：<b>输入归一化管道 4
+        节点</b>（<code>input_source_router</code> → <code>doc_extract</code> → <code>doc_empty_guard</code> /
+      <code>text_recognize</code>，空/损坏/非合同拦截直接 END）→ <b>preprocess 子图</b>（5 节点结构化预处理）→ <b>cc_retrieval 子图</b>（复用 9
+      节点检索底座）→ <b>dual_review 子图</b>（5 节点风险审查核心）→ END。该设计让主图从 13 节点精简到 7 节点，体现"薄编排、厚子图"的 subgraph composition 思想。</p>
+    <div class="hint-bar">💡 点击节点查看输入归一化、空/损坏守卫、子图嵌套调度与面试问答。</div>
+    <div class="svg-wrap"><svg id="svg-contract" viewBox="0 0 980 620"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 06: QA 子图 ============ -->
+  <section id="sec-qa">
+    <div class="sec-head"><span class="sec-num ph-purple">SECTION 06</span>
+      <h2 style="color:#a5b4fc">💬 法律问答子图（4 节点 + 嵌套检索子图）</h2>
+    </div>
+    <p class="sec-desc"><code>qa_subgraph.py</code>：<code>qa_intent_classify</code> 做法律相关性三级分类；法律相关
+      <code>qa_retrieval</code> 直接嵌套复用 retrieval 子图（subgraph composition 多层嵌套），非法律直走
+      <code>llm_direct_out</code>。图谱查询失败自动降级 RAG 兜底，覆盖法条/判例/制度多类咨询。</p>
+    <div class="hint-bar">💡 点击节点查看嵌套子图复用方式与降级策略。</div>
+    <div class="svg-wrap"><svg id="svg-qa" viewBox="0 0 980 460"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 07: 文书子图 ============ -->
+  <section id="sec-docgen">
+    <div class="sec-head"><span class="sec-num ph-teal">SECTION 07</span>
+      <h2 style="color:#5eead4">📝 文书生成子图（7 节点 · 并发检索 + 澄清守卫）</h2>
+    </div>
+    <p class="sec-desc"><code>docgen_subgraph.py</code>（V6）：案情分析 → 模板匹配 → 查询规划 →
+      <code>doc_parallel_retrieve</code>（ThreadPoolExecutor 单节点内并发跑法条 + 类案检索，字段互不冲突合并回写）→ 条款填充 → 风险分析 →
+      终稿交付。澄清守卫：<code>need_clarify</code> 时直接终止生成并返回追问文案，杜绝残缺文书。<b>注意：文书生成链路不调用共享的 retrieval_subgraph，其法条/类案检索由本子图内部独立的
+        <code>doc_law_retrieve_node</code> / <code>doc_case_retrieve_node</code> 在
+        <code>doc_parallel_retrieve_node</code> 中并发调用，避免与通用检索底座耦合。</b></p>
+    <div class="hint-bar">💡 点击节点查看并发检索设计、澄清守卫的 bug-fix 背景与交付物。</div>
+    <div class="svg-wrap"><svg id="svg-docgen" viewBox="0 0 1180 520"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 08: 小红书子图 ============ -->
+  <section id="sec-xhs">
+    <div class="sec-head"><span class="sec-num ph-pink">SECTION 08</span>
+      <h2 style="color:#f9a8d4">📕 小红书发布子图（5 节点 · 独立自动化链路）</h2>
+    </div>
+    <p class="sec-desc"><code>xhs_subgraph.py</code>：完全独立于法律推理栈，封装图文生成与自动发布。链路：<code>xhs_text_generate</code> →
+      <code>xhs_image_generate</code> → <code>xhs_check_text_image</code> → [pass] → <code>xhs_auto_publish</code> →
+      <code>xhs_generate_markdown</code> → END；质检不通过直接优雅终止（<code>fail → END</code>），不污染主图状态。</p>
+    <div class="hint-bar">💡 点击节点查看小红书链路如何与法律推理栈解耦。</div>
+    <div class="svg-wrap"><svg id="svg-xhs" viewBox="0 0 760 560"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 09: AgentState ============ -->
+  <section id="sec-state">
+    <div class="sec-head"><span class="sec-num ph-yellow">SECTION 09</span>
+      <h2 style="color:#fde68a">📦 AgentState 状态总线（TypedDict · 100+ 字段 · 9 类）</h2>
+    </div>
+    <p class="sec-desc"><code>agent_state.py</code>：所有节点共享的 <code>TypedDict(total=False)</code> 状态容器，100+ 字段分 9
+      大类别。节点仅返回其修改的字段（partial state update），框架自动合并到全局 state；可用 <code>Annotated[type, reducer]</code> 自定义合并（列表追加 /
+      集合并集）。检索、审查、问答、文书通过同一总线实现端到端可追溯。</p>
+    <div class="hint-bar">💡 点击中心节点或任意类别查看字段清单与读写职责。</div>
+    <div class="svg-wrap"><svg id="svg-state" viewBox="0 0 1200 600"></svg></div>
+  </section>
+
+  <!-- ============ SECTION 10: 基础设施 ============ -->
+  <section id="sec-infra">
+    <div class="sec-head"><span class="sec-num ph-teal">SECTION 10</span>
+      <h2 style="color:#5eead4">🗄️ 基础设施层（共享底座）</h2>
+    </div>
+    <p class="sec-desc">被所有子图共享的底层能力：向量检索（FAISS + bge-m3，五域
+      laws/regulations/cases/industry_sources/interpretations）、知识图谱（Neo4j Cypher 实体查询）、7 项加权融合（图谱/向量/权威/精准/层级）、确定性 YAML
+      规则引擎、SqliteSaver 磁盘 Checkpointer、北大法宝/企查查 MCP 工具、MinerU 多模态解析、FastAPI(SSE) 与 Streamlit 前后端。</p>
+    <div class="svg-wrap"><svg id="svg-infra" viewBox="0 0 1200 440"></svg></div>
+  </section>
+
+  <footer>
+    法智引擎 · 技术架构图（基于真实代码生成，可编辑重做）　|　全部节点点击可查看 what / why / how<br>
+    代码事实来源：langgraph_main.py · subgraphs/* · nodes/* · agent_state.py · config/rules/*
+  </footer>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="m-icon" id="m-icon">🔧</span>
+        <h2 id="m-title">节点</h2>
+        <span class="m-type" id="m-type">TYPE</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="m-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const TYPE_COLOR = {'入口': '#34d399', '路由': '#fdba74', '子图': '#60c5fa', '处理': '#93c5fd', '决策': '#fdba74', '状态': '#fcd34d', '基建': '#5eead4', '交付': '#cbd5e1', '风险': '#fca5a5'};
+
+    function el(ns, tag, attrs) {const e = document.createElementNS(ns, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e;}
+    const NS = 'http://www.w3.org/2000/svg';
+
+    function render(svgId, nodes, edges) {
+      const svg = document.getElementById(svgId);
+      const map = {};
+      nodes.forEach(n => {
+        map[n.id] = n;
+        const g = el(NS, 'g', {class: 'node-group ' + n.cls});
+        g.appendChild(el(NS, 'rect', {class: 'node-rect', x: n.x, y: n.y, width: n.w, height: n.h, rx: 8}));
+        if (n.cls.indexOf('node-subgraph') >= 0) g.appendChild(el(NS, 'rect', {class: 'node-rect-inner', x: n.x + 5, y: n.y + 5, width: n.w - 10, height: n.h - 10, rx: 6}));
+        const t = el(NS, 'text', {class: 'node-label', x: n.x + n.w / 2, y: n.y + n.h / 2 - (n.sub ? 6 : 0)}); t.textContent = n.label; g.appendChild(t);
+        if (n.sub) {const s = el(NS, 'text', {class: 'node-sub', x: n.x + n.w / 2, y: n.y + n.h / 2 + 13}); s.textContent = n.sub; g.appendChild(s);}
+        if (n.children) {
+          n.children.forEach(c => {
+            g.appendChild(el(NS, 'rect', {x: c.x, y: c.y, width: c.w, height: c.h, rx: 6, fill: 'rgba(167,139,250,.06)', stroke: 'rgba(167,139,250,.4)', 'stroke-width': 1}));
+            const ct = el(NS, 'text', {x: c.x + c.w / 2, y: c.y + c.h / 2, class: 'node-sub', style: 'font-size:10px'}); ct.textContent = c.label; g.appendChild(ct);
+          });
+        }
+        g.addEventListener('click', () => openModal(n));
+        svg.appendChild(g);
+      });
+      const arrow = '<defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#6a8aaa"/></marker><marker id="arl" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#fb923c"/></marker><marker id="arp" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#a78bfa"/></marker><marker id="ard" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#ef4444"/></marker></defs>';
+      svg.insertAdjacentHTML('afterbegin', arrow);
+      edges.forEach(e => {
+        const a = map[e.from], b = map[e.to]; if (!a || !b) return;
+        let x1, y1, x2, y2;
+        if (e.dir === 'down') {x1 = a.x + a.w / 2; y1 = a.y + a.h; x2 = b.x + b.w / 2; y2 = b.y;}
+        else if (e.dir === 'up') {x1 = a.x + a.w / 2; y1 = a.y; x2 = b.x + b.w / 2; y2 = b.y + b.h;}
+        else if (e.dir === 'right') {x1 = a.x + a.w; y1 = a.y + a.h / 2; x2 = b.x; y2 = b.y + b.h / 2;}
+        else if (e.dir === 'left') {x1 = a.x; y1 = a.y + a.h / 2; x2 = b.x + b.w; y2 = b.y + b.h / 2;}
+        const st = e.style === 'loop' ? 'edge-loop' : e.style === 'parallel' ? 'edge-parallel' : e.style === 'danger' ? 'edge-danger' : e.style === 'success' ? 'edge-success' : e.style === 'branch' ? 'edge-branch' : 'edge-normal';
+        const mk = e.style === 'loop' ? 'arl' : e.style === 'parallel' ? 'arp' : e.style === 'danger' ? 'ard' : 'ar';
+        let d, lblY, lblX;
+        if (e.style === 'loop') {
+          d = `M ${x1} ${y1} C ${x1 + 90} ${y1 + 50}, ${x2 + 90} ${y2 - 50}, ${x2} ${y2}`;
+          lblX = x1 + 95; lblY = (y1 + y2) / 2;
+        } else {
+          d = `M ${x1} ${y1} L ${x2} ${y2}`;
+          lblX = (x1 + x2) / 2; lblY = (e.dir === 'down' || e.dir === 'up') ? (y1 + y2) / 2 : (y1 + y2) / 2 - 6;
+        }
+        svg.appendChild(el(NS, 'path', {d: d, class: 'edge ' + st, 'marker-end': 'url(#' + mk + ')'}));
+        if (e.label) {const tx = el(NS, 'text', {class: 'edge-label' + (e.style === 'loop' ? ' edge-label-loop' : e.style === 'danger' ? ' edge-label-danger' : e.style === 'parallel' ? ' edge-label-parallel' : ''), x: lblX, y: lblY}); tx.textContent = e.label; svg.appendChild(tx);}
+      });
+    }
+
+    function openModal(n) {
+      const iconMap = {'入口': '🚀', '路由': '🧭', '子图': '🧩', '处理': '⚙️', '决策': '🔀', '状态': '📦', '基建': '🗄️', '交付': '📤', '风险': '⚠️'};
+      document.getElementById('m-icon').textContent = iconMap[n.type] || '🔧';
+      document.getElementById('m-title').textContent = n.label + (n.code ? '（' + n.code + '）' : '');
+      const c = TYPE_COLOR[n.type] || '#93c5fd';
+      const mt = document.getElementById('m-type'); mt.textContent = n.type || '节点'; mt.style.background = 'rgba(255,255,255,.06)'; mt.style.color = c;
+      let html = '';
+      if (n.what) html += `<div class="popup-section"><h3 class="s-what">What · 它是什么 / 做什么</h3><p>${n.what}</p></div>`;
+      if (n.why) html += `<div class="popup-section"><h3 class="s-why">Why · 为什么这样设计</h3><p>${n.why}</p></div>`;
+      if (n.how) html += `<div class="popup-section"><h3 class="s-how">How · 代码如何实现</h3>${n.how}</div>`;
+      if (n.iv) html += `<div class="popup-section"><h3 class="s-iv">面试问答 · 可能被追问</h3>${n.iv}</div>`;
+      document.getElementById('m-body').innerHTML = html;
+      document.getElementById('modal').classList.add('active');
+    }
+    function closeModal() {document.getElementById('modal').classList.remove('active');}
+    document.getElementById('modal').addEventListener('click', e => {if (e.target.id === 'modal') closeModal();});
+    document.addEventListener('keydown', e => {if (e.key === 'Escape') closeModal();});
+
+    /* ===================== 主图 ===================== */
+    render('svg-main', [
+      {
+        id: 'xhs_intent', x: 60, y: 40, w: 170, h: 54, label: '小红书意图判断', sub: 'L1 入口 START', cls: 'node-start', type: '入口',
+        what: '主图入口节点 xiaohongshu_publish_intent，先做一级意图判断：是否为普法小红书发布需求。',
+        why: '把"小红书"作为独立一级意图，使其与法律业务链路彻底解耦，避免污染主法律推理栈。',
+        how: '<div class="code-block"><code>builder.set_entry_point("xiaohongshu_publish_intent")\nbuilder.add_conditional_edges("xiaohongshu_publish_intent", router,\n  {"xhs":"xhs", "intent_router":"intent_router"})</code></div>',
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么分两级路由而不是一级？</div><div class="qa-a">A：L1 先剥离"非法律"的小红书场景，L2 再在法律域内细分任务；分层让每级 prompt 更聚焦、误路由率更低。</div></div>'
+      },
+      {
+        id: 'intent_router', x: 360, y: 40, w: 200, h: 54, label: '二级意图路由', sub: 'intent_router', cls: 'node-decision', type: '路由',
+        what: 'intent_router_node：对法律域输入做二级分类，依据 LEVEL2_PATH_MAP 分发到 4 条元路径。',
+        why: '统一所有法律任务的入口分发，主图只持有编排节点，业务逻辑全部下沉到子图。三层容错：LLM 主判 + 子串匹配兜底 + 降级 legal_qa。',
+        how: '<div class="code-block"><code>LEVEL2_PATH_MAP = {\n  "contract_review"/"compliance_review": "contract_compliance",\n  "legal_research"/"case_search": "retrieval",\n  "legal_qa": "legal_qa",\n  "legal_document_gen": "legal_document_gen"\n}</code></div>',
+        iv: '<div class="qa-block"><div class="qa-q">Q：路由错误怎么办？</div><div class="qa-a">A：状态里有 intent_confidence 与 route_error 字段；子串匹配兜底 + 最终降级到 legal_qa，保证不丢请求。</div></div>'
+      },
+      {
+        id: 'xhs', x: 60, y: 150, w: 170, h: 54, label: '小红书子图', sub: 'xhs (5节点)', cls: 'node-subgraph', type: '子图',
+        what: 'xhs_subgraph 节点，封装图文生成与自动发布。', why: '独立自动化链路，失败优雅终止不污染主图。',
+        how: 'add_node("xhs", xhs_subgraph) → build_xhs_subgraph()'
+      },
+      {
+        id: 'contract_compliance', x: 360, y: 150, w: 380, h: 64, label: '合同合规编排子图', sub: 'contract_compliance (编排外壳)', cls: 'node-subgraph', type: '子图',
+        what: '自包含编排外壳：输入归一化管道 + preprocess + cc_retrieval + dual_review 整体封装，主图仅以单一节点统一调度。',
+        why: '原 4 个输入管道节点与主图解耦，主图从 13 节点精简为 7 节点；内部子图可独立编译、独立测试。',
+        how: 'add_node("contract_compliance", build_contract_compliance_subgraph(_checkpointer))；内部 set_entry_point("input_source_router") → preprocess → cc_retrieval → dual_review → END。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：输入归一化为什么收进子图而不是主图？</div><div class="qa-a">A：归一化是合同合规专属前置，上移到 contract_compliance 入口后主图只做组合，节点数减半、职责更清晰，且不影响其他路径。</div></div>'
+      },
+      {
+        id: 'r_retrieval', x: 800, y: 150, w: 170, h: 54, label: '检索子图', sub: 'r_retrieval', cls: 'node-subgraph', type: '子图',
+        what: '法规/案例检索路径的检索实例。', why: 'legal_research / case_search 共用检索子图。',
+        how: 'add_node("r_retrieval", build_retrieval_subgraph(_checkpointer))'
+      },
+      {
+        id: 'qa', x: 800, y: 230, w: 170, h: 54, label: '问答子图', sub: 'qa (4节点+检索)', cls: 'node-subgraph', type: '子图',
+        what: 'legal_qa 路径，含嵌套检索子图。', why: '法律问答独立处理单元。', how: 'add_node("qa", build_qa_subgraph(_checkpointer))'
+      },
+      {
+        id: 'docgen', x: 800, y: 310, w: 170, h: 54, label: '文书子图', sub: 'docgen (7节点)', cls: 'node-subgraph', type: '子图',
+        what: 'legal_document_gen 路径，内部独立实现 doc_parallel_retrieve，不调用共享 retrieval 子图。', why: '文书生成独立处理单元，避免与通用检索底座耦合。', how: 'add_node("docgen", docgen_subgraph)'
+      },
+      {id: 'end_cc', x: 360, y: 290, w: 380, h: 48, label: '审查交付（风险报告/修订合同/审计日志）', sub: 'END', cls: 'node-end', type: '交付', what: '合同合规链路终态。', why: '闭环合同/合规审查。', how: 'dual_review 内部 final_delivery → END'},
+      {id: 'end_retrieval', x: 800, y: 390, w: 170, h: 48, label: '检索交付', sub: 'END', cls: 'node-end', type: '交付', what: '检索链路终态。', why: '输出可溯源证据。', how: 'context_pack → END'},
+      {id: 'end_qa', x: 800, y: 470, w: 170, h: 48, label: '问答交付', sub: 'END', cls: 'node-end', type: '交付', what: '问答链路终态。', why: '输出法律答案。', how: 'legal_qa_final_answer → END'},
+      {id: 'end_docgen', x: 800, y: 550, w: 170, h: 48, label: '文书交付', sub: 'END', cls: 'node-end', type: '交付', what: '文书链路终态。', why: '输出成稿文书。', how: 'doc_final_delivery → END'},
+      {id: 'end_xhs', x: 60, y: 560, w: 170, h: 48, label: '发布完成', sub: 'END', cls: 'node-end', type: '交付', what: '小红书链路终态。', why: '输出 Markdown 发布文档。', how: 'generate_markdown → END'},
+      {
+        id: 'ckpt', x: 60, y: 650, w: 910, h: 44, label: 'Checkpointer：SqliteSaver（磁盘持久化）· MemorySaver 降级 · interrupt() 断点续跑', sub: '', cls: 'node-infra', type: '基建',
+        what: '全局状态持久化底座，主图 compile 时注入。', why: '支持人工签章中断、跨进程恢复、SSE 流式续跑。',
+        how: '<div class="code-block"><code>_checkpointer = SqliteSaver(_conn)  # 降级 MemorySaver\nmain_graph.compile(checkpointer=_checkpointer)</code></div>',
+        iv: '<div class="qa-block"><div class="qa-q">Q：SqliteSaver 与 MemorySaver 区别？</div><div class="qa-a">A：SqliteSaver 落盘，子进程退出后可恢复、支持 resume；MemorySaver 进程内内存。降级链：SqliteSaver → MemorySaver → 无状态。</div></div>'
+      }
+    ], [
+      {from: 'xhs_intent', to: 'intent_router', dir: 'right'},
+      {from: 'xhs_intent', to: 'xhs', dir: 'down', style: 'branch', label: '小红书'},
+      {from: 'intent_router', to: 'contract_compliance', dir: 'down', style: 'branch', label: '合同/合规'},
+      {from: 'intent_router', to: 'r_retrieval', dir: 'right', style: 'branch', label: '法规/案例'},
+      {from: 'intent_router', to: 'qa', dir: 'right', style: 'branch', label: '法律问答'},
+      {from: 'intent_router', to: 'docgen', dir: 'right', style: 'branch', label: '文书生成'},
+      {from: 'contract_compliance', to: 'end_cc', dir: 'down'},
+      {from: 'r_retrieval', to: 'end_retrieval', dir: 'down'},
+      {from: 'qa', to: 'end_qa', dir: 'down'},
+      {from: 'docgen', to: 'end_docgen', dir: 'down'},
+      {from: 'xhs', to: 'end_xhs', dir: 'down'}
+    ]);
+
+    /* ===================== 预处理子图 ===================== */
+    render('svg-preprocess', [
+      {id: 'p1', x: 280, y: 30, w: 200, h: 54, label: '甲乙方识别', sub: 'party_identify', cls: 'node-process', type: '处理', what: '识别合同甲方、乙方及用户立场。', why: ' downstream 审查需要知道 user_side 以对立方加权。', how: 'party_identify_node → party_a / party_b / user_side'},
+      {id: 'p2', x: 280, y: 100, w: 200, h: 54, label: '合同分类', sub: 'contract_classify', cls: 'node-process', type: '处理', what: 'LLM 判断合同类型。', why: '为后续模板与规则选择提供类型标签。', how: 'contract_classify_node → contract_type'},
+      {id: 'p3', x: 280, y: 170, w: 200, h: 54, label: '全文本切分', sub: 'full_text_segment', cls: 'node-process', type: '处理', what: 'doc_text → doc_segments。', why: '条款级审查需要结构化段落。', how: 'full_text_segment_node'},
+      {id: 'p4', x: 280, y: 240, w: 200, h: 54, label: '数值抽取', sub: 'numeric_extract', cls: 'node-process', type: '处理', what: '抽取单价/数量/违约金比例等。', why: '为 YAML 数值校验准备原材料。', how: 'numeric_extract_node → extracted_numerics'},
+      {id: 'p5', x: 280, y: 310, w: 200, h: 54, label: '查询抽取', sub: 'llm_query_extract', cls: 'node-process', type: '处理', what: '按 task_type 构造检索查询。', why: '把合同问题转化为检索语言。', how: 'llm_query_extract_node → retrieval_query / retrieval_keywords'},
+      {id: 'p_end', x: 280, y: 380, w: 200, h: 48, label: '→ 下游检索/审查', sub: 'END', cls: 'node-end', type: '交付', what: '预处理完成，进入 contract_compliance 下游。', why: '统一结构化输出。', how: '输出字段写入 AgentState'}
+    ], [
+      {from: 'p1', to: 'p2', dir: 'down'}, {from: 'p2', to: 'p3', dir: 'down'}, {from: 'p3', to: 'p4', dir: 'down'}, {from: 'p4', to: 'p5', dir: 'down'}, {from: 'p5', to: 'p_end', dir: 'down'}
+    ]);
+
+    /* ===================== 检索子图 ===================== */
+    render('svg-retrieval', [
+      {
+        id: 'r_intent', x: 60, y: 30, w: 200, h: 54, label: '检索意图分解', sub: 'retrieval_intent_decompose', cls: 'node-process', type: '处理',
+        what: '将用户查询分解为检索意图，动态挂载数据源（TASK_SOURCE_DEFAULTS + KEYWORD_RULES），alias_normalizer 归一化。',
+        why: '按 7 类检索意图做数据源/关系偏置，实现"横向按需挂载多源知识库"。',
+        how: 'retrieval_intent_decompose_node：基于 _INTENT_MARKERS 确定性标记词归类意图，写 mounted_sources。'
+      },
+      {
+        id: 'r_precheck', x: 60, y: 115, w: 200, h: 54, label: '资信预检', sub: 'credit_precheck', cls: 'node-process', type: '处理',
+        what: '判断是否需要企查查资信核查（credit_check_needed 预检）。', why: '提前决定是否触发付费/外部调用，控制成本。',
+        how: 'credit_precheck_node 写入 credit_check_needed 标志。'
+      },
+      {
+        id: 'r_entity', x: 60, y: 200, w: 200, h: 54, label: '实体召回层', sub: 'retrieval_entity_recall', cls: 'node-process', type: '处理',
+        what: 'Neo4j Cypher 4 类 UNION ALL 匹配 + 5 域 FAISS 向量召回 + 关键词扩展；按意图偏置关系。',
+        why: '图谱查实体关系、向量查语义、Neo4j 全文兜底查精确，多路互补提升召回。',
+        how: '_SOURCE_INDEX_MAP 映射 5 域 faiss.index；_INTENT_PREFERRED_REL 意图偏置关系。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么同时用图谱和向量？</div><div class="qa-a">A：图谱擅长确定性的实体关系跳转（如"甲方→关联方→处罚记录"），向量擅长语义泛化；二者互补，缺失任一路都有兜底。</div></div>'
+      },
+      {
+        id: 'r_filter', x: 60, y: 285, w: 200, h: 54, label: '精准过滤层', sub: 'retrieval_precision_filter', cls: 'node-process', type: '处理',
+        what: '按任务类型与法律关系做字段级过滤去噪。', why: '去掉低相关噪声，提升融合质量。', how: 'retrieval_precision_filter_node'
+      },
+      {
+        id: 'r_fusion', x: 60, y: 370, w: 200, h: 54, label: '融合排序层', sub: 'retrieval_fusion_ranking', cls: 'node-process', type: '处理',
+        what: '7 项加权融合图谱(0.30)/向量(0.20)/权威(0.20)/精准(0.15)/跳转·法律层级·案例层级(各0.05)多路结果，叠加权威来源加权。', why: '不同召回器分数已统一到 0-1 质量尺度，加权融合可控且可解释。',
+        how: 'retrieval_fusion_ranking_node：graph×0.30+faiss×0.20+authority×0.20+precision×0.15+jump/law_level/case_level×0.05=1.0，输出 citations。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么用加权融合而不是 RRF 排名融合？</div><div class="qa-a">A：各路分数已统一到 0-1 质量尺度（图谱召回分/向量相似度/权威分/精准分），直接加权求和可控可解释，权重和=1.0；单源时跳过融合按检索分直接排序。</div></div>'
+      },
+      {
+        id: 'r_quality', x: 60, y: 455, w: 200, h: 54, label: '质量门控', sub: 'quality_gate_retry · 60/50', cls: 'node-decision', type: '决策',
+        what: '评估 quality_score，<阈值(60 多源/50 单源) 触发回退重试（≤3 轮）。', why: '达标才放行后续付费门禁，省 API 成本。',
+        how: 'quality_gate_retry_node；_quality_gate_router：passed→beida_fabao，否则→retry 回退。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：重试上限为什么是 3？</div><div class="qa-a">A：FABAO_MAX_RETRIES=3；3 轮仍不达标视为"确需付费权威库"，再放行北大法宝，平衡成本与召回。</div></div>'
+      },
+      {
+        id: 'r_fabao', x: 320, y: 455, w: 200, h: 54, label: '北大法宝门禁', sub: 'beida_fabao_gate', cls: 'node-purple', type: '风险',
+        what: '付费法规库门禁，唯一触发 fabao_retry_eligible；interrupt() 真中断等待人工确认。', why: '仅在质量门 3 次失败后才调用付费接口，控制资损。',
+        how: 'beida_fabao_gate_node：幂等 mcp_invoked；FABAO_SANE_SKIP_SCORE=85 时跳过。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：interrupt() 和简单 try/except 有什么区别？</div><div class="qa-a">A：interrupt() 会真正暂停图执行并把控制权交还前端，人工确认后才 Command(resume=) 续跑，状态由 Checkpointer 恢复；这是 LangGraph 的人机协同标准机制。</div></div>'
+      },
+      {
+        id: 'r_credit', x: 320, y: 370, w: 200, h: 54, label: '企查查资信', sub: 'credit_check', cls: 'node-process', type: '处理',
+        what: '调用企查查 MCP 核查相对方资信，三级降级；对立方加权。', why: '把企业资信风险并入审查，提升闭环。',
+        how: 'credit_check_node：interrupt() 确认后调用，写 credit_risk_items。'
+      },
+      {
+        id: 'r_pack', x: 320, y: 285, w: 200, h: 54, label: '上下文打包', sub: 'context_pack', cls: 'node-process', type: '处理',
+        what: '将检索上下文打包为 review_context_bundle 供下游审查复用。', why: '检索与审查解耦，一次检索多链复用。',
+        how: 'retrieval_output_pack_node → 写 review_context_bundle。'
+      },
+      {
+        id: 'r_end', x: 320, y: 200, w: 200, h: 48, label: '检索交付', sub: 'END', cls: 'node-end', type: '交付',
+        what: '检索链路终态。', why: '输出可溯源证据。', how: 'context_pack → END'
+      }
+    ], [
+      {from: 'r_intent', to: 'r_precheck', dir: 'down'},
+      {from: 'r_precheck', to: 'r_entity', dir: 'down'},
+      {from: 'r_entity', to: 'r_filter', dir: 'down'},
+      {from: 'r_filter', to: 'r_fusion', dir: 'down'},
+      {from: 'r_fusion', to: 'r_quality', dir: 'down'},
+      {from: 'r_quality', to: 'r_intent', dir: 'up', style: 'loop', label: '重试≤3'},
+      {from: 'r_quality', to: 'r_fabao', dir: 'right', label: 'pass'},
+      {from: 'r_fabao', to: 'r_credit', dir: 'up'},
+      {from: 'r_credit', to: 'r_pack', dir: 'up'},
+      {from: 'r_pack', to: 'r_end', dir: 'up'}
+    ]);
+
+    /* ===================== 双审子图 ===================== */
+    render('svg-review', [
+      {
+        id: 'pdr', x: 60, y: 40, w: 220, h: 64, label: '并行双审', sub: 'parallel_dual_review', cls: 'node-purple', type: '处理',
+        what: 'ThreadPoolExecutor(max_workers=2) 并发执行合规审查 + 合同 AI 审查。',
+        why: '串行约 20s→取较慢者约 12s，省约 40%；两路写不同 state 字段无竞态。',
+        how: 'parallel_dual_review_node：compliance_review 与 contract_ai_review 并发；单审模式仅执行合规。',
+        children: [{x: 300, y: 30, w: 140, h: 42, label: '合规审查'}, {x: 300, y: 80, w: 140, h: 42, label: '合同AI审查'}],
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么用 ThreadPoolExecutor 而不是 LangGraph 的 Send/真 fan-out？</div><div class="qa-a">A：兼容层按条件边首匹配、串行执行，不保证真并行；在单节点内用线程池并发两个 LLM 调用最稳，且两路写不同字段、下游统一收敛，并发安全。</div></div>'
+      },
+      {
+        id: 'conflict', x: 60, y: 170, w: 220, h: 54, label: '冲突消解', sub: 'conflict_resolution · 5规则', cls: 'node-process', type: '处理',
+        what: '5 条规则合并合同/合规风险项，合规优先一票否决；输出 can_sign 三态。',
+        why: '当商业判断与法律底线冲突时，以合规为准（民法典第153条）。',
+        how: 'resolve_conflicts：规则1 critical 否决 / 规则2 high 强制整改 / 规则3 双重发现以合规为准 / 规则4 保留商业风险 / 规则5 结论冲突合规优先。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：can_sign 三态怎么用？</div><div class="qa-a">A：pass=可签；conditional=须整改后签；no=不得签（合规 critical 一票否决）。报告始终合规风险排在商业风险前。</div></div>'
+      },
+      {
+        id: 'numeric', x: 60, y: 280, w: 220, h: 54, label: '数值校验', sub: 'numeric_validate · 59条YAML', cls: 'node-process', type: '处理',
+        what: '基于 YAML 规则做 threshold/range/sum_equals 三类确定性校验，不调 LLM。',
+        why: '金额/比例/期限"算得清"的强约束用代码根治幻觉，可解释可审计。',
+        how: '_load_rules 合并 contract_review.yaml(29) + compliance_review.yaml(30)=59 条；_to_number 支持"千分之5""50万""百分之12.5"等含中文量级的混合数值表达转换。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：59 条规则写在哪、谁能改？</div><div class="qa-a">A：config/rules/*.yaml，法务无需改代码即可迭代；_check_rule 支持阈值/区间/求和一致三类，未来可扩展正则、枚举等。</div></div>'
+      },
+      {
+        id: 'risk', x: 60, y: 390, w: 220, h: 54, label: '风险聚合', sub: 'risk_aggregate · 三路', cls: 'node-process', type: '处理',
+        what: '合并合同/合规/资信(credit_risk_items)三路风险，对立方加权。', why: '统一风险视图，支撑差异化建议。',
+        how: 'risk_aggregate_node 自动区分双审/单审来源。'
+      },
+      {
+        id: 'final', x: 380, y: 280, w: 220, h: 54, label: '交付', sub: 'final_delivery', cls: 'node-end', type: '交付',
+        what: '产出风险高亮 PDF、修订合同、全流程审计日志。', why: '闭环交付，含完整可追溯记录。',
+        how: 'final_delivery_node → END'
+      }
+    ], [
+      {from: 'pdr', to: 'conflict', dir: 'down', style: 'parallel', label: '双审'},
+      {from: 'pdr', to: 'numeric', dir: 'right', style: 'parallel', label: '单审'},
+      {from: 'conflict', to: 'numeric', dir: 'down'},
+      {from: 'numeric', to: 'risk', dir: 'down'},
+      {from: 'risk', to: 'final', dir: 'right'}
+    ]);
+
+    /* ===================== 合同合规编排子图 ===================== */
+    render('svg-contract', [
+      {
+        id: 'cc_input', x: 390, y: 30, w: 200, h: 54, label: '输入源路由', sub: 'input_source_router', cls: 'node-decision', type: '路由',
+        what: '根据 uploaded_doc_path 区分是上传文档还是纯文本输入。', why: '不同输入形态需要不同的归一化路径。',
+        how: 'lambda s: "doc" if s.get("uploaded_doc_path") else "text"'
+      },
+      {
+        id: 'cc_doc_extract', x: 60, y: 130, w: 180, h: 54, label: '文档解析', sub: 'doc_extract', cls: 'node-process', type: '处理',
+        what: '调用 MinerU 等解析上传文档。', why: 'PDF/扫描件/Word 需要提取为 doc_text。', how: 'doc_extract_node'
+      },
+      {
+        id: 'cc_doc_guard', x: 60, y: 220, w: 180, h: 54, label: '空/损坏守卫', sub: 'doc_empty_guard', cls: 'node-decision', type: '决策',
+        what: '判断文档是否为空或解析失败。', why: '避免残缺输入进入审查链路。',
+        how: 'doc_empty_guard_node：flag=="block" 时直接 END。'
+      },
+      {
+        id: 'cc_text', x: 740, y: 130, w: 180, h: 54, label: '文本识别', sub: 'text_recognize', cls: 'node-decision', type: '决策',
+        what: '识别文本是否合同相关，并归一化为 doc_text。', why: '合同审核任务收到非合同文本时直接拦截。',
+        how: 'text_recognize_node：flag=="block" 时直接 END。'
+      },
+      {
+        id: 'cc_preprocess', x: 390, y: 220, w: 200, h: 54, label: '预处理子图', sub: 'preprocess (5节点)', cls: 'node-subgraph', type: '子图',
+        what: '嵌套 preprocess_subgraph，结构化合同文本。', why: '复用共享预处理底座。',
+        how: 'builder.add_node("preprocess", build_preprocess_subgraph())'
+      },
+      {
+        id: 'cc_retrieval', x: 390, y: 310, w: 200, h: 54, label: '检索子图', sub: 'cc_retrieval (9节点)', cls: 'node-subgraph', type: '子图',
+        what: '嵌套 retrieval_subgraph 实例 cc_retrieval，检索合同相关法律法规与案例。', why: '复用共享检索底座，与独立检索/问答互不串扰。',
+        how: 'builder.add_node("cc_retrieval", build_retrieval_subgraph(checkpointer))'
+      },
+      {
+        id: 'cc_dual', x: 390, y: 400, w: 200, h: 54, label: '双审子图', sub: 'dual_review (5节点)', cls: 'node-subgraph', type: '子图',
+        what: '嵌套 dual_review_subgraph，完成风险审查。', why: '复用共享风险审查核心。',
+        how: 'builder.add_node("dual_review", build_dual_review_subgraph())'
+      },
+      {
+        id: 'cc_end', x: 390, y: 490, w: 200, h: 48, label: '审查交付', sub: 'END', cls: 'node-end', type: '交付',
+        what: '合同合规链路终态。', why: '输出风险报告/修订合同/审计日志。', how: 'dual_review → END'
+      }
+    ], [
+      {from: 'cc_input', to: 'cc_doc_extract', dir: 'left', style: 'branch', label: 'doc'},
+      {from: 'cc_input', to: 'cc_text', dir: 'right', style: 'branch', label: 'text'},
+      {from: 'cc_doc_extract', to: 'cc_doc_guard', dir: 'down'},
+      {from: 'cc_doc_guard', to: 'cc_preprocess', dir: 'right', style: 'branch', label: 'pass'},
+      {from: 'cc_doc_guard', to: 'cc_end', dir: 'down', style: 'danger', label: 'block'},
+      {from: 'cc_text', to: 'cc_preprocess', dir: 'left', style: 'branch', label: 'pass'},
+      {from: 'cc_text', to: 'cc_end', dir: 'right', style: 'danger', label: 'block'},
+      {from: 'cc_preprocess', to: 'cc_retrieval', dir: 'down'},
+      {from: 'cc_retrieval', to: 'cc_dual', dir: 'down'},
+      {from: 'cc_dual', to: 'cc_end', dir: 'down'}
+    ]);
+
+    /* ===================== QA 子图 ===================== */
+    render('svg-qa', [
+      {
+        id: 'qa_cls', x: 60, y: 40, w: 220, h: 54, label: '问答意图分类', sub: 'qa_intent_classify', cls: 'node-decision', type: '决策',
+        what: '法律相关性三级分类。', why: '分流法律检索与非法律直答，避免无关检索浪费。',
+        how: 'qa_intent_classify → is_legal_related'
+      },
+      {
+        id: 'qa_retrieval', x: 60, y: 160, w: 220, h: 54, label: '嵌套检索', sub: 'qa_retrieval(子图)', cls: 'node-subgraph', type: '子图',
+        what: '嵌套复用 retrieval 子图完成法律检索。', why: 'subgraph composition 多层嵌套，检索能力零重复实现。',
+        how: 'add_node("qa_retrieval", build_retrieval_subgraph(checkpointer))',
+        iv: '<div class="qa-block"><div class="qa-q">Q：嵌套子图如何共享 Checkpointer？</div><div class="qa-a">A：主图把同一 _checkpointer 透传给 qa_subgraph 与内部 retrieval 子图，interrupt() 断点可跨层恢复。</div></div>'
+      },
+      {
+        id: 'qa_final', x: 60, y: 290, w: 220, h: 54, label: '法律答案', sub: 'legal_qa_final_answer', cls: 'node-process', type: '处理',
+        what: '基于检索证据组织最终法律答案。', why: '答案附原始出处，可溯源。', how: 'legal_qa_final_answer_node'
+      },
+      {
+        id: 'qa_direct', x: 420, y: 160, w: 220, h: 54, label: 'LLM 直答', sub: 'llm_direct_out', cls: 'node-process', type: '处理',
+        what: '非法律问题直接 LLM 回答。', why: '通用咨询不走检索，响应更快。', how: 'llm_direct_out_node'
+      },
+      {id: 'qa_end', x: 420, y: 290, w: 220, h: 48, label: '问答交付', sub: 'END', cls: 'node-end', type: '交付', what: '问答链路终态。', why: '输出答案。', how: '→ END'}
+    ], [
+      {from: 'qa_cls', to: 'qa_retrieval', dir: 'down', style: 'branch', label: 'legal'},
+      {from: 'qa_cls', to: 'qa_direct', dir: 'right', style: 'branch', label: 'non_legal'},
+      {from: 'qa_retrieval', to: 'qa_final', dir: 'down'},
+      {from: 'qa_final', to: 'qa_end', dir: 'right'},
+      {from: 'qa_direct', to: 'qa_end', dir: 'down'}
+    ]);
+
+    /* ===================== 文书子图 ===================== */
+    render('svg-docgen', [
+      {
+        id: 'dc_analyze', x: 60, y: 40, w: 210, h: 54, label: '案情分析', sub: 'doc_case_analyze', cls: 'node-process', type: '处理',
+        what: '分析案情要素，判定是否信息不足（need_clarify）。', why: '澄清守卫前置，缺失要素直接追问不硬生成。',
+        how: 'doc_case_analyze_node 写 need_clarify / clarify_question。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：澄清守卫解决了什么真实 bug？</div><div class="qa-a">A：原实现 need_clarify 字段零消费方，纯线性链仍会继续生成，产出"原告/被告"残缺文书；加条件边后信息不足直接 END 返回追问。</div></div>'
+      },
+      {id: 'dc_template', x: 60, y: 150, w: 210, h: 54, label: '模板匹配', sub: 'doc_template_match', cls: 'node-process', type: '处理', what: '按案由匹配文书模板。', why: '模板化保证结构合规。', how: 'doc_template_match_node'},
+      {id: 'dc_plan', x: 60, y: 240, w: 210, h: 54, label: '查询规划', sub: 'doc_query_plan', cls: 'node-process', type: '处理', what: '规划需检索的法条与类案。', why: '为并发检索拆分任务。', how: 'doc_query_plan_node'},
+      {
+        id: 'dc_parallel', x: 60, y: 350, w: 210, h: 56, label: '并发检索', sub: 'doc_parallel_retrieve', cls: 'node-purple', type: '处理',
+        what: 'ThreadPoolExecutor 单节点内并发跑法条 + 类案检索（本子图内部独立实现）。', why: '规避图运行时 fan-out 并行依赖，且不耦合共享 retrieval 子图。',
+        how: 'parallel_docgen_retrieve_node 内部并发 doc_law_retrieve + doc_case_retrieve，字段互不冲突合并回写。',
+        children: [{x: 300, y: 345, w: 120, h: 40, label: '法条检索'}, {x: 300, y: 392, w: 120, h: 40, label: '类案检索'}]
+      },
+      {id: 'dc_fill', x: 380, y: 350, w: 200, h: 54, label: '条款填充', sub: 'doc_clause_fill', cls: 'node-process', type: '处理', what: '将检索到的法条/类案填入模板。', why: '引用有据。', how: 'doc_clause_fill_node'},
+      {id: 'dc_risk', x: 380, y: 240, w: 200, h: 54, label: '风险分析', sub: 'doc_risk_analysis', cls: 'node-process', type: '处理', what: '分析文书风险点。', why: '交付前风险可视。', how: 'doc_risk_analysis_node'},
+      {id: 'dc_final', x: 380, y: 130, w: 200, h: 54, label: '终稿交付', sub: 'doc_final_delivery', cls: 'node-end', type: '交付', what: '产出成稿文书。', why: '闭环文书生成。', how: 'doc_final_delivery_node → END'},
+      {id: 'dc_clarify', x: 60, y: 470, w: 210, h: 48, label: '追问用户', sub: 'END(澄清)', cls: 'node-end', type: '交付', what: '信息不足时终止并返回追问文案。', why: '不产出残缺文书。', how: '_clarify_router → END'}
+    ], [
+      {from: 'dc_analyze', to: 'dc_template', dir: 'down', style: 'branch', label: 'continue'},
+      {from: 'dc_analyze', to: 'dc_clarify', dir: 'down', style: 'danger', label: 'need_clarify'},
+      {from: 'dc_template', to: 'dc_plan', dir: 'down'},
+      {from: 'dc_plan', to: 'dc_parallel', dir: 'down'},
+      {from: 'dc_parallel', to: 'dc_fill', dir: 'right'},
+      {from: 'dc_fill', to: 'dc_risk', dir: 'up'},
+      {from: 'dc_risk', to: 'dc_final', dir: 'up'}
+    ]);
+
+    /* ===================== 小红书子图 ===================== */
+    render('svg-xhs', [
+      {id: 'x1', x: 280, y: 30, w: 200, h: 54, label: '文案生成', sub: 'xhs_text_generate', cls: 'node-process', type: '处理', what: '生成小红书普法文案。', why: '内容生产自动化起点。', how: 'text_generate_node'},
+      {id: 'x2', x: 280, y: 100, w: 200, h: 54, label: '配图生成', sub: 'xhs_image_generate', cls: 'node-process', type: '处理', what: '生成配图。', why: '图文内容需要配图。', how: 'image_generator_node'},
+      {id: 'x3', x: 280, y: 170, w: 200, h: 54, label: '图文合规质检', sub: 'xhs_check_text_image', cls: 'node-decision', type: '决策', what: '判定图文是否可发布。', why: '不通过直接优雅终止。', how: '_check_text_image_router：is_can_publish_xiaohongshu'},
+      {id: 'x4', x: 560, y: 240, w: 180, h: 54, label: '自动发布', sub: 'xhs_auto_publish', cls: 'node-process', type: '处理', what: 'Playwright 自动发布。', why: '运营链路闭环。', how: 'xiaohongshu_auto_publish_node'},
+      {id: 'x5', x: 560, y: 310, w: 180, h: 54, label: 'Markdown 输出', sub: 'xhs_generate_markdown', cls: 'node-end', type: '交付', what: '输出发布文档。', why: '批量普法内容产出。', how: 'generate_markdown_node → END'},
+      {id: 'x_end', x: 280, y: 420, w: 200, h: 48, label: '发布完成 / 终止', sub: 'END', cls: 'node-end', type: '交付', what: '小红书链路终态。', why: 'pass 或 fail 均收敛到 END，不污染主图。', how: 'xhs_generate_markdown 或 check fail → END'}
+    ], [
+      {from: 'x1', to: 'x2', dir: 'down'}, {from: 'x2', to: 'x3', dir: 'down'},
+      {from: 'x3', to: 'x4', dir: 'right', style: 'branch', label: 'pass'},
+      {from: 'x3', to: 'x_end', dir: 'down', style: 'danger', label: 'fail'},
+      {from: 'x4', to: 'x5', dir: 'down'},
+      {from: 'x5', to: 'x_end', dir: 'left'}
+    ]);
+
+    /* ===================== AgentState ===================== */
+    render('svg-state', [
+      {
+        id: 'st_center', x: 500, y: 250, w: 220, h: 80, label: 'AgentState', sub: 'TypedDict(total=False) · 100+字段', cls: 'node-state', type: '状态',
+        what: '所有节点共享的状态总线，partial state update 自动合并。',
+        why: '检索/审查/问答/文书通过同一总线端到端可追溯。',
+        how: 'class AgentState(TypedDict, total=False): ... 可用 Annotated[type, reducer] 自定义合并。',
+        iv: '<div class="qa-block"><div class="qa-q">Q：为什么用 total=False？</div><div class="qa-a">A：节点只需返回它修改的字段，未声明字段非必填，避免每个节点都构造全量 state，降低出错面。</div></div>'
+      },
+      {id: 'c_in', x: 80, y: 60, w: 200, h: 46, label: 'Input 输入', sub: 'input / uploaded_file', cls: 'node-state', type: '状态', what: '用户原始输入与上传文件。', why: '任务起点。', how: 'input:str / uploaded_file:Optional[bytes]'},
+      {id: 'c_route', x: 80, y: 140, w: 200, h: 46, label: 'Routing 路由', sub: 'task_type / intent_confidence', cls: 'node-state', type: '状态', what: '任务类型与意图置信度。', why: '驱动条件边分发。', how: 'task_type / intent_confidence / route_error'},
+      {id: 'c_doc', x: 80, y: 220, w: 200, h: 46, label: 'Document 文档', sub: 'doc_text / party_a / user_side', cls: 'node-state', type: '状态', what: '解析文本、甲乙方、立场。', why: '审查上下文载体。', how: 'doc_text / party_a / party_b / user_side / contract_type / doc_segments / extracted_numerics'},
+      {id: 'c_ret', x: 80, y: 300, w: 200, h: 46, label: 'Retrieval 检索', sub: 'mounted_sources / citations', cls: 'node-state', type: '状态', what: '挂载源与融合引用。', why: '检索结果载体。', how: 'mounted_sources / citations / quality_score / quality_retry_count / review_context_bundle'},
+      {id: 'c_rev', x: 900, y: 60, w: 220, h: 46, label: 'Review 审查', sub: 'contract/compliance_risk_items', cls: 'node-state', type: '状态', what: '合同与合规风险项。', why: '风险审查载体。', how: 'contract_risk_items / compliance_risk_items / post_conflict_risk_items / can_sign'},
+      {id: 'c_qa', x: 900, y: 140, w: 220, h: 46, label: 'QA 问答', sub: 'is_legal_related / qa_answer', cls: 'node-state', type: '状态', what: '问答相关标志与答案。', why: '问答载体。', how: 'is_legal_related / qa_answer'},
+      {id: 'c_docgen', x: 900, y: 220, w: 220, h: 46, label: 'DocGen 文书', sub: 'doc_structured_json', cls: 'node-state', type: '状态', what: '文书结构化结果（MinerU）。', why: '文书载体。', how: 'doc_structured_json / need_clarify / clarify_question'},
+      {id: 'c_xhs', x: 900, y: 300, w: 220, h: 46, label: 'XHS 小红书', sub: 'xhs_*', cls: 'node-state', type: '状态', what: '小红书链路状态。', why: '发布载体。', how: 'is_can_publish_xiaohongshu / xhs_markdown'},
+      {id: 'c_infra', x: 480, y: 470, w: 240, h: 46, label: 'Infra 基础设施', sub: 'checkpoint / trace', cls: 'node-state', type: '状态', what: 'Checkpoint 与追踪字段。', why: '持久化与可观测。', how: 'thread_id / run_id / trace_log'}
+    ], [
+      {from: 'st_center', to: 'c_in', dir: 'left', style: 'branch'}, {from: 'st_center', to: 'c_route', dir: 'left', style: 'branch'}, {from: 'st_center', to: 'c_doc', dir: 'left', style: 'branch'}, {from: 'st_center', to: 'c_ret', dir: 'left', style: 'branch'},
+      {from: 'st_center', to: 'c_rev', dir: 'right', style: 'branch'}, {from: 'st_center', to: 'c_qa', dir: 'right', style: 'branch'}, {from: 'st_center', to: 'c_docgen', dir: 'right', style: 'branch'}, {from: 'st_center', to: 'c_xhs', dir: 'right', style: 'branch'},
+      {from: 'st_center', to: 'c_infra', dir: 'down', style: 'branch'}
+    ]);
+
+    /* ===================== 基础设施 ===================== */
+    render('svg-infra', [
+      {id: 'i_faiss', x: 60, y: 40, w: 240, h: 54, label: 'FAISS 向量库', sub: 'bge-m3 · 5 域', cls: 'node-infra', type: '基建', what: 'laws/regulations/cases/industry_sources/interpretations 五域向量索引。', why: '语义召回底座。', how: 'faiss-cpu + sentence-transformers bge-m3'},
+      {id: 'i_neo4j', x: 60, y: 130, w: 240, h: 54, label: 'Neo4j 知识图谱', sub: 'Cypher 实体查询', cls: 'node-infra', type: '基建', what: 'laws/regulations/cases/interpretations 实体与关系。', why: '确定性实体关系跳转。', how: 'neo4j + 4 类 UNION ALL Cypher'},
+      {id: 'i_fusion', x: 60, y: 220, w: 240, h: 54, label: '7 项加权融合层', sub: '图谱/向量/权威/精准/层级', cls: 'node-infra', type: '基建', what: '图谱(0.30)/向量(0.20)/权威(0.20)/精准(0.15)/跳转·法律层级·案例层级(各0.05)多路分数加权融合。', why: '不同召回器分数统一到 0-1 质量尺度，加权融合可控可解释。', how: 'graph×0.30+faiss×0.20+authority×0.20+precision×0.15+层级×0.05=1.0'},
+      {id: 'i_rule', x: 420, y: 40, w: 240, h: 54, label: 'YAML 规则引擎', sub: 'PyYAML · 59条', cls: 'node-infra', type: '基建', what: '数值校验确定性规则。', why: '无代码可迭代、可审计。', how: 'config/rules/*.yaml + numeric_validate_node'},
+      {id: 'i_ckpt', x: 420, y: 130, w: 240, h: 54, label: 'SqliteSaver', sub: '磁盘 Checkpointer', cls: 'node-infra', type: '基建', what: '状态持久化与断点续跑。', why: '人机协同 + 跨进程恢复。', how: 'SqliteSaver → MemorySaver 降级'},
+      {id: 'i_mcp', x: 420, y: 220, w: 240, h: 54, label: '北大法宝 / 企查查 MCP', sub: '付费法规 / 资信', cls: 'node-infra', type: '基建', what: '外部权威数据源。', why: '兜底权威依据与企业资信。', how: 'interrupt() 人工确认后调用'},
+      {id: 'i_mineru', x: 780, y: 40, w: 240, h: 54, label: 'MinerU 解析', sub: '多模态', cls: 'node-infra', type: '基建', what: 'PDF/扫描件/Word 解析为标准 JSON。', why: '一次解析多智能体复用。', how: '表格/印章/bbox 坐标提取'},
+      {id: 'i_api', x: 780, y: 130, w: 240, h: 54, label: 'FastAPI + Streamlit', sub: 'SSE / 前端', cls: 'node-infra', type: '基建', what: '后端 SSE 流式 + resume，前端子进程隔离。', why: '实时可观测、演示双模式。', how: '/stream + Command(resume)'},
+      {id: 'i_llm', x: 780, y: 220, w: 240, h: 54, label: '硅基流动 LLM', sub: '兼容 OpenAI 协议', cls: 'node-infra', type: '基建', what: '意图/抽取/审查/生成调用。', why: '按需调用，成本可控。', how: 'ChatOpenAI(api.siliconflow.cn)'}
+    ], [
+    ]);
+  </script>
+</body>
+
+</html>
