@@ -10,7 +10,7 @@
 - 编程/技术问题: "Python 如何读取文件"
 
 设计思想:
-避免非法律问题触发完整的 RAG 检索流程, 节省 API 调用开销, 提升响应速度。
+避免非法律问题触发完整的检索流程, 节省 API 调用开销, 提升响应速度。
 """
 
 from langchain_core.messages import HumanMessage

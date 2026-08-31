@@ -56,7 +56,7 @@ def _clarify_router(state: AgentState) -> str:
 
     读取:
         - need_clarify (bool): doc_case_analyze_node 写入。
-          LLM 判定缺少当事人/诉求等关键要素, 或兜底路径下原告/被告任一为空时置 True。
+          LLM 判定缺少当事人/诉求等关键要素,                                 或兜底路径下原告/被告任一为空时置 True。
 
     返回:
         "clarify":  直接退出子图 (END)。此时 output 已被
