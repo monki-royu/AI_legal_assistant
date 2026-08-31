@@ -1,0 +1,1663 @@
+{
+  "generated_at": "2026-08-31 20:41:09",
+  "project_root": "E:\\to_github_project\\AI_legal_assistant",
+  "neo4j": {
+    "available": true,
+    "uri": "bolt://localhost:7687",
+    "error": "",
+    "labels": [
+      {
+        "label": "LegalConcept",
+        "count": 653
+      },
+      {
+        "label": "Action",
+        "count": 439
+      },
+      {
+        "label": "Condition",
+        "count": 378
+      },
+      {
+        "label": "Article",
+        "count": 224
+      },
+      {
+        "label": "PartyRole",
+        "count": 124
+      },
+      {
+        "label": "Penalty",
+        "count": 15
+      },
+      {
+        "label": "KnowledgeSource",
+        "count": 5
+      },
+      {
+        "label": "Law",
+        "count": 2
+      },
+      {
+        "label": "Regulation",
+        "count": 2
+      },
+      {
+        "label": "Interpretation",
+        "count": 2
+      },
+      {
+        "label": "IndustryStandard",
+        "count": 2
+      },
+      {
+        "label": "Case",
+        "count": 2
+      }
+    ],
+    "rels": [
+      {
+        "type": "DEFINES",
+        "count": 1003
+      },
+      {
+        "type": "RELATED_TO",
+        "count": 806
+      },
+      {
+        "type": "REGULATES",
+        "count": 660
+      },
+      {
+        "type": "PERFORMED_BY",
+        "count": 537
+      },
+      {
+        "type": "HAS_CONDITION",
+        "count": 448
+      },
+      {
+        "type": "INVOLVES",
+        "count": 372
+      },
+      {
+        "type": "BELONGS_TO",
+        "count": 224
+      },
+      {
+        "type": "CAUSES",
+        "count": 94
+      },
+      {
+        "type": "HAS_PENALTY",
+        "count": 63
+      },
+      {
+        "type": "ESTABLISHES",
+        "count": 42
+      },
+      {
+        "type": "HAS_LIABILITY",
+        "count": 27
+      },
+      {
+        "type": "LEADS_TO",
+        "count": 26
+      },
+      {
+        "type": "BELONGS_TO_SOURCE",
+        "count": 10
+      },
+      {
+        "type": "INCLUDES",
+        "count": 7
+      },
+      {
+        "type": "CITES",
+        "count": 3
+      }
+    ],
+    "documents": [
+      "Law"
+    ],
+    "article_total": 224
+  },
+  "faiss": {
+    "base": "E:\\to_github_project\\AI_legal_assistant\\data\\knowledge_base\\index",
+    "sources": {
+      "laws": {
+        "index_exists": true,
+        "id2text_exists": true,
+        "index_bytes": 3301421,
+        "entity_count": 806,
+        "avg_len": 7.5,
+        "max_len": 34,
+        "long_entity_ratio": 0.174,
+        "samples": [
+          "第三十七条",
+          "继续履行个人信息处理者的义务",
+          "生产经营场所使用证明",
+          "营业",
+          "外国司法或者执法机构",
+          "不予登记",
+          "土地使用权",
+          "住所"
+        ],
+        "error": ""
+      },
+      "regulations": {
+        "index_exists": true,
+        "id2text_exists": true,
+        "index_bytes": 2162733,
+        "entity_count": 528,
+        "avg_len": 7.5,
+        "max_len": 49,
+        "long_entity_ratio": 0.152,
+        "samples": [
+          "不予登记",
+          "住所",
+          "第十五条",
+          "经向主管税务机关备案",
+          "伪造不动产登记簿",
+          "书面告知申请人",
+          "按照国家统一规定发给的补贴、津贴",
+          "赔偿责任"
+        ],
+        "error": ""
+      },
+      "interpretations": {
+        "index_exists": true,
+        "id2text_exists": true,
+        "index_bytes": 1261613,
+        "entity_count": 308,
+        "avg_len": 9.3,
+        "max_len": 61,
+        "long_entity_ratio": 0.282,
+        "samples": [
+          "伪造的信用卡内存款余额、透支额度单独或者合计数额在一百万元以上的",
+          "免予刑事处罚",
+          "经发卡银行两次有效催收后超过三个月仍不归还",
+          "制作虚假的财产状况、收入、职务等资信证明材料",
+          "伪造、变造、买卖国家机关公文、证件、印章",
+          "数额在五十万元以上不满五百万元",
+          "刑法第一百七十七条第一款第四项",
+          "违规以信用卡透支形式变相发放贷款"
+        ],
+        "error": ""
+      },
+      "industry_sources": {
+        "index_exists": true,
+        "id2text_exists": true,
+        "index_bytes": 520237,
+        "entity_count": 127,
+        "avg_len": 5.8,
+        "max_len": 28,
+        "long_entity_ratio": 0.055,
+        "samples": [
+          "建筑材料",
+          "设计文件",
+          "建设工程竣工验收",
+          "经出租人同意",
+          "中华人民共和国建筑法",
+          "质量标准",
+          "未按约定支付租金",
+          "对施工质量负责"
+        ],
+        "error": ""
+      },
+      "cases": {
+        "index_exists": true,
+        "id2text_exists": true,
+        "index_bytes": 135213,
+        "entity_count": 33,
+        "avg_len": 7.6,
+        "max_len": 24,
+        "long_entity_ratio": 0.242,
+        "samples": [
+          "张某与上海某贸易公司违法解除劳动合同赔偿金纠纷案",
+          "单方解除劳动合同",
+          "违法解除劳动合同",
+          "判决支付违法解除劳动合同赔偿金",
+          "违法解除劳动合同赔偿金200000元",
+          "严重违反规章制度",
+          "劳动合同",
+          "证据"
+        ],
+        "error": ""
+      }
+    },
+    "ok": true
+  },
+  "data_consistency": {
+    "declared": [
+      "industry_sources/住建部标准.txt",
+      "industry_sources/城市房屋租赁管理办法.txt",
+      "interpretations/劳动法司法解释.txt",
+      "interpretations/最高人民法院、最高人民检察院关于办理妨害信用卡管理刑事案件具体应用法律若干问题的解释.txt",
+      "laws/个人独资企业法.txt",
+      "laws/中华人民共和国个人信息保护法.txt",
+      "regulations/不动产登记暂行条例.txt",
+      "regulations/个人所得税法实施条例.txt",
+      "cases/case_698be5cb1791f068.txt"
+    ],
+    "actual": [
+      "laws/个人独资企业法.txt",
+      "laws/中华人民共和国个人信息保护法.txt",
+      "regulations/不动产登记暂行条例.txt",
+      "regulations/个人所得税法实施条例.txt",
+      "interpretations/劳动法司法解释.txt",
+      "interpretations/最高人民法院、最高人民检察院关于办理妨害信用卡管理刑事案件具体应用法律若干问题的解释.txt",
+      "industry_sources/住建部标准.txt",
+      "industry_sources/城市房屋租赁管理办法.txt",
+      "cases/case_2508534f19bc95b2.txt"
+    ],
+    "missing": [
+      "cases/case_698be5cb1791f068.txt"
+    ],
+    "extra": [
+      "cases/case_2508534f19bc95b2.txt"
+    ],
+    "mtime": {
+      "extract_law_data.json": "2026-08-28 06:55:56",
+      "extract_regulation_data.json": "2026-08-28 08:34:40",
+      "extract_interpretation_data.json": "2026-08-28 10:31:43",
+      "extract_industry_data.json": "2026-08-28 11:19:03",
+      "extract_case_data.json": "2026-08-28 11:58:07"
+    }
+  },
+  "source_mounts": {
+    "imported": true,
+    "per_case": [
+      {
+        "id": "BC-01",
+        "task": "legal_qa",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-02",
+        "task": "legal_research",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-03",
+        "task": "legal_research",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-04",
+        "task": "case_search",
+        "mounted_user_only": [
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-05",
+        "task": "case_search",
+        "mounted_user_only": [
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-06",
+        "task": "contract_review",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-07",
+        "task": "compliance_review",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-08",
+        "task": "contract_review",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-09",
+        "task": "legal_document_gen",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ],
+        "industry_mounted": false
+      },
+      {
+        "id": "BC-10",
+        "task": "legal_qa",
+        "mounted_user_only": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases",
+          "industry_sources"
+        ],
+        "mounted_with_doc": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases",
+          "industry_sources"
+        ],
+        "industry_mounted": true
+      }
+    ],
+    "error": "",
+    "keyword_rules_groups": 5,
+    "keyword_rules": [
+      {
+        "keywords": [
+          "建设工程",
+          "工程款",
+          "承包人",
+          "施工",
+          "竣工验收",
+          "质量保修",
+          "质保期",
+          "分包"
+        ],
+        "sources": [
+          "industry_sources"
+        ]
+      },
+      {
+        "keywords": [
+          "贷款通则",
+          "金融借款",
+          "银行贷款",
+          "放款",
+          "催收",
+          "融资租赁",
+          "信托",
+          "保理"
+        ],
+        "sources": [
+          "industry_sources"
+        ]
+      },
+      {
+        "keywords": [
+          "商品房买卖",
+          "预售",
+          "房地产开发",
+          "容积率",
+          "住建部",
+          "物业管理",
+          "预售许可证",
+          "交付标准"
+        ],
+        "sources": [
+          "industry_sources"
+        ]
+      },
+      {
+        "keywords": [
+          "刑事",
+          "犯罪",
+          "刑罚",
+          "量刑",
+          "公诉",
+          "羁押"
+        ],
+        "sources": [
+          "interpretations"
+        ]
+      },
+      {
+        "keywords": [
+          "行政",
+          "处罚",
+          "许可",
+          "规定",
+          "办法",
+          "条例",
+          "监管",
+          "合规"
+        ],
+        "sources": [
+          "interpretations",
+          "regulations"
+        ]
+      }
+    ],
+    "task_defaults": {
+      "contract_review": {
+        "domain": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ]
+      },
+      "compliance_review": {
+        "domain": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ]
+      },
+      "legal_research": {
+        "domain": [
+          "laws",
+          "regulations",
+          "interpretations"
+        ]
+      },
+      "case_search": {
+        "domain": [
+          "cases"
+        ]
+      },
+      "legal_qa": {
+        "domain": [
+          "laws",
+          "regulations",
+          "interpretations",
+          "cases"
+        ]
+      }
+    }
+  },
+  "keyword_reachability": {
+    "rows": [
+      {
+        "keyword": "个人信息",
+        "note": "BC-01/BC-07 核心概念",
+        "total_hit": 122,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 122,
+            "total": 806,
+            "samples": [
+              "继续履行个人信息处理者的义务",
+              "个人信息合理利用",
+              "非法收集他人个人信息"
+            ]
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "同意",
+        "note": "BC-01/BC-07 核心概念",
+        "total_hit": 22,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 18,
+            "total": 806,
+            "samples": [
+              "个人同意",
+              "基于个人同意",
+              "法律、行政法规规定处理敏感个人信息应当取得书面同意"
+            ]
+          },
+          "regulations": {
+            "hit": 1,
+            "total": 528,
+            "samples": [
+              "未经权利人同意"
+            ]
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 3,
+            "total": 127,
+            "samples": [
+              "经出租人同意",
+              "未经出租人同意",
+              "出租人同意"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "单独同意",
+        "note": "BC-07 个保法第29条关键词",
+        "total_hit": 5,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 5,
+            "total": 806,
+            "samples": [
+              "个人单独同意",
+              "取得个人的单独同意",
+              "单独同意"
+            ]
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "人脸识别",
+        "note": "BC-07 业务词(法条中无此字面)",
+        "total_hit": 0,
+        "entity_match_reachable": false,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "设立",
+        "note": "BC-02 个独法第8条",
+        "total_hit": 16,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 16,
+            "total": 806,
+            "samples": [
+              "委托代理人申请设立登记",
+              "设立申请文件",
+              "设立申请书"
+            ]
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "条件",
+        "note": "BC-02 意图词",
+        "total_hit": 14,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 8,
+            "total": 806,
+            "samples": [
+              "强令登记机关对符合本法规定条件的企业不予登记",
+              "不符合本法规定条件",
+              "符合本法规定条件"
+            ]
+          },
+          "regulations": {
+            "hit": 1,
+            "total": 528,
+            "samples": [
+              "暂不具备条件"
+            ]
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 5,
+            "total": 127,
+            "samples": [
+              "以同等条件优先购买",
+              "不具备相应资质条件",
+              "使用条件"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "恶意透支",
+        "note": "BC-03 信用卡解释第8条核心概念",
+        "total_hit": 3,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 3,
+            "total": 308,
+            "samples": [
+              "恶意透支数额较大",
+              "采用上述方式恶意透支",
+              "恶意透支"
+            ]
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "数额较大",
+        "note": "BC-03 数值标准词",
+        "total_hit": 2,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 2,
+            "total": 308,
+            "samples": [
+              "恶意透支数额较大",
+              "数额较大"
+            ]
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "信用卡",
+        "note": "BC-03 主题词",
+        "total_hit": 72,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 72,
+            "total": 308,
+            "samples": [
+              "伪造的信用卡内存款余额、透支额度单独或者合计数额在一百万元以上的",
+              "违规以信用卡透支形式变相发放贷款",
+              "伪造信用卡五张以上不满二十五张的"
+            ]
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "违法解除",
+        "note": "BC-04 案由词",
+        "total_hit": 7,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 7,
+            "total": 33,
+            "samples": [
+              "张某与上海某贸易公司违法解除劳动合同赔偿金纠纷案",
+              "违法解除劳动合同",
+              "判决支付违法解除劳动合同赔偿金"
+            ]
+          }
+        }
+      },
+      {
+        "keyword": "赔偿金",
+        "note": "BC-04 诉求词",
+        "total_hit": 9,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 2,
+            "total": 308,
+            "samples": [
+              "赔偿金",
+              "支付赔偿金"
+            ]
+          },
+          "industry_sources": {
+            "hit": 0,
+            "total": 127,
+            "samples": []
+          },
+          "cases": {
+            "hit": 7,
+            "total": 33,
+            "samples": [
+              "张某与上海某贸易公司违法解除劳动合同赔偿金纠纷案",
+              "判决支付违法解除劳动合同赔偿金",
+              "违法解除劳动合同赔偿金200000元"
+            ]
+          }
+        }
+      },
+      {
+        "keyword": "房屋租赁",
+        "note": "BC-05/BC-06 核心场景",
+        "total_hit": 8,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 8,
+            "total": 127,
+            "samples": [
+              "房屋租赁当事人",
+              "房屋租赁市场秩序",
+              "房屋租赁期限"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "租赁期限",
+        "note": "BC-06/BC-10 城市房屋租赁办法第4条",
+        "total_hit": 1,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 1,
+            "total": 127,
+            "samples": [
+              "房屋租赁期限"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "违约金",
+        "note": "BC-06 住建部标准第5条",
+        "total_hit": 1,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 1,
+            "total": 127,
+            "samples": [
+              "违约金"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "建设工程",
+        "note": "BC-10 行业源触发词",
+        "total_hit": 10,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 10,
+            "total": 127,
+            "samples": [
+              "建设工程竣工验收",
+              "建设工程",
+              "建设工程竣工验收报告"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      },
+      {
+        "keyword": "质量保修",
+        "note": "BC-10 住建部标准第3条",
+        "total_hit": 2,
+        "entity_match_reachable": true,
+        "per_source": {
+          "laws": {
+            "hit": 0,
+            "total": 806,
+            "samples": []
+          },
+          "regulations": {
+            "hit": 0,
+            "total": 528,
+            "samples": []
+          },
+          "interpretations": {
+            "hit": 0,
+            "total": 308,
+            "samples": []
+          },
+          "industry_sources": {
+            "hit": 2,
+            "total": 127,
+            "samples": [
+              "质量保修制度",
+              "实行质量保修制度"
+            ]
+          },
+          "cases": {
+            "hit": 0,
+            "total": 33,
+            "samples": []
+          }
+        }
+      }
+    ],
+    "unreachable_keywords": [
+      "人脸识别"
+    ],
+    "unreachable_ratio": 0.062,
+    "conclusion": "1/16 个代表性关键词在全部 5 个源的实体名上命中数为 0 → ENTITY_MATCH(e.name CONTAINS kw) 对这些关键词完全失效, 只能靠 FULLTEXT(a.content CONTAINS kw, 固定 40 分)兜底。"
+  },
+  "mount_aware_reachability": [
+    {
+      "id": "BC-01",
+      "task": "legal_qa",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations",
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "个人信息",
+          "hit_all": 122,
+          "hit_mounted": 122,
+          "per_source": {
+            "laws": 122
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "同意",
+          "hit_all": 22,
+          "hit_mounted": 19,
+          "per_source": {
+            "laws": 18,
+            "regulations": 1,
+            "industry_sources": 3
+          },
+          "orphan_hits": 3
+        },
+        {
+          "kw": "个人信息处理者",
+          "hit_all": 7,
+          "hit_mounted": 7,
+          "per_source": {
+            "laws": 7
+          },
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 148,
+      "orphan_hits": 3
+    },
+    {
+      "id": "BC-02",
+      "task": "legal_research",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations"
+      ],
+      "keywords": [
+        {
+          "kw": "设立",
+          "hit_all": 16,
+          "hit_mounted": 16,
+          "per_source": {
+            "laws": 16
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "条件",
+          "hit_all": 14,
+          "hit_mounted": 9,
+          "per_source": {
+            "laws": 8,
+            "regulations": 1,
+            "industry_sources": 5
+          },
+          "orphan_hits": 5
+        },
+        {
+          "kw": "营业执照",
+          "hit_all": 8,
+          "hit_mounted": 8,
+          "per_source": {
+            "laws": 8
+          },
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 33,
+      "orphan_hits": 5
+    },
+    {
+      "id": "BC-03",
+      "task": "legal_research",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations"
+      ],
+      "keywords": [
+        {
+          "kw": "恶意透支",
+          "hit_all": 3,
+          "hit_mounted": 3,
+          "per_source": {
+            "interpretations": 3
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "数额较大",
+          "hit_all": 2,
+          "hit_mounted": 2,
+          "per_source": {
+            "interpretations": 2
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "信用卡",
+          "hit_all": 72,
+          "hit_mounted": 72,
+          "per_source": {
+            "interpretations": 72
+          },
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 77,
+      "orphan_hits": 0
+    },
+    {
+      "id": "BC-04",
+      "task": "case_search",
+      "mounted_sources": [
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "违法解除",
+          "hit_all": 7,
+          "hit_mounted": 7,
+          "per_source": {
+            "cases": 7
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "赔偿金",
+          "hit_all": 9,
+          "hit_mounted": 7,
+          "per_source": {
+            "interpretations": 2,
+            "cases": 7
+          },
+          "orphan_hits": 2
+        },
+        {
+          "kw": "劳动合同",
+          "hit_all": 27,
+          "hit_mounted": 13,
+          "per_source": {
+            "laws": 2,
+            "interpretations": 12,
+            "cases": 13
+          },
+          "orphan_hits": 14
+        }
+      ],
+      "effective_hits": 27,
+      "orphan_hits": 16
+    },
+    {
+      "id": "BC-05",
+      "task": "case_search",
+      "mounted_sources": [
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "房屋租赁",
+          "hit_all": 8,
+          "hit_mounted": 0,
+          "per_source": {
+            "industry_sources": 8
+          },
+          "orphan_hits": 8
+        },
+        {
+          "kw": "违约金",
+          "hit_all": 1,
+          "hit_mounted": 0,
+          "per_source": {
+            "industry_sources": 1
+          },
+          "orphan_hits": 1
+        },
+        {
+          "kw": "提前退租",
+          "hit_all": 0,
+          "hit_mounted": 0,
+          "per_source": {},
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 0,
+      "orphan_hits": 9
+    },
+    {
+      "id": "BC-06",
+      "task": "contract_review",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations",
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "房屋租赁",
+          "hit_all": 8,
+          "hit_mounted": 0,
+          "per_source": {
+            "industry_sources": 8
+          },
+          "orphan_hits": 8
+        },
+        {
+          "kw": "租赁期限",
+          "hit_all": 1,
+          "hit_mounted": 0,
+          "per_source": {
+            "industry_sources": 1
+          },
+          "orphan_hits": 1
+        },
+        {
+          "kw": "违约金",
+          "hit_all": 1,
+          "hit_mounted": 0,
+          "per_source": {
+            "industry_sources": 1
+          },
+          "orphan_hits": 1
+        },
+        {
+          "kw": "押金",
+          "hit_all": 0,
+          "hit_mounted": 0,
+          "per_source": {},
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 0,
+      "orphan_hits": 10
+    },
+    {
+      "id": "BC-07",
+      "task": "compliance_review",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations",
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "个人信息",
+          "hit_all": 122,
+          "hit_mounted": 122,
+          "per_source": {
+            "laws": 122
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "单独同意",
+          "hit_all": 5,
+          "hit_mounted": 5,
+          "per_source": {
+            "laws": 5
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "人脸识别",
+          "hit_all": 0,
+          "hit_mounted": 0,
+          "per_source": {},
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 127,
+      "orphan_hits": 0
+    },
+    {
+      "id": "BC-08",
+      "task": "contract_review",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations",
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "合同",
+          "hit_all": 40,
+          "hit_mounted": 29,
+          "per_source": {
+            "laws": 4,
+            "interpretations": 12,
+            "industry_sources": 11,
+            "cases": 13
+          },
+          "orphan_hits": 11
+        }
+      ],
+      "effective_hits": 29,
+      "orphan_hits": 11
+    },
+    {
+      "id": "BC-09",
+      "task": "legal_document_gen",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations",
+        "cases"
+      ],
+      "keywords": [
+        {
+          "kw": "违法解除",
+          "hit_all": 7,
+          "hit_mounted": 7,
+          "per_source": {
+            "cases": 7
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "赔偿金",
+          "hit_all": 9,
+          "hit_mounted": 9,
+          "per_source": {
+            "interpretations": 2,
+            "cases": 7
+          },
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 16,
+      "orphan_hits": 0
+    },
+    {
+      "id": "BC-10",
+      "task": "legal_qa",
+      "mounted_sources": [
+        "laws",
+        "regulations",
+        "interpretations",
+        "cases",
+        "industry_sources"
+      ],
+      "keywords": [
+        {
+          "kw": "建设工程",
+          "hit_all": 10,
+          "hit_mounted": 10,
+          "per_source": {
+            "industry_sources": 10
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "质量保修",
+          "hit_all": 2,
+          "hit_mounted": 2,
+          "per_source": {
+            "industry_sources": 2
+          },
+          "orphan_hits": 0
+        },
+        {
+          "kw": "租赁期限",
+          "hit_all": 1,
+          "hit_mounted": 1,
+          "per_source": {
+            "industry_sources": 1
+          },
+          "orphan_hits": 0
+        }
+      ],
+      "effective_hits": 13,
+      "orphan_hits": 0
+    }
+  ],
+  "text_score": {
+    "imported": true,
+    "per_case": [
+      {
+        "id": "BC-06",
+        "task": "contract_review",
+        "score": 9,
+        "verdict": "pass(直接放行)"
+      },
+      {
+        "id": "BC-07",
+        "task": "compliance_review",
+        "score": -2,
+        "verdict": "pass(合规分支短路, 不评分)",
+        "if_contract_review": "block(直接拦截)",
+        "note": "合规审查输入的形态是'问题描述'而非'合同正文', 若意图路由误判为 contract_review, 该输入会被守卫拦截 → 意图路由与守卫的耦合风险点"
+      },
+      {
+        "id": "BC-08",
+        "task": "contract_review",
+        "score": -5,
+        "verdict": "block(直接拦截)"
+      }
+    ],
+    "error": "",
+    "pass_threshold": 3,
+    "block_threshold": 0
+  },
+  "constants": {
+    "constants": {
+      "expansion_map_tasks": [
+        "compliance_review",
+        "contract_review",
+        "legal_qa"
+      ],
+      "fusion_single_source_threshold": 50,
+      "fusion_multi_threshold": 60,
+      "quality_gate_threshold": 60,
+      "max_quality_retries": 3
+    },
+    "conflicts": [
+      {
+        "id": "C1",
+        "title": "单源阈值与质量门阈值不一致",
+        "detail": "retrieval_fusion_ranking_node.SINGLE_SOURCE_THRESHOLD=50 用于判定 quality_gate_passed; quality_gate_retry_node.QUALITY_GATE_THRESHOLD=60 用于决定是否回边重试。单源(case_search)质量分落在 [50, 60) 时, fusion 判通过、quality_gate 判不通过 → 必然回边重试。",
+        "impact": "case_search 每次命中该分数区间都会空转重试 3 次",
+        "severity": "P0"
+      },
+      {
+        "id": "C2",
+        "title": "关键词扩展词表未覆盖全部 task_type",
+        "detail": "_KEYWORD_EXPANSION_MAP 仅覆盖 ['compliance_review', 'contract_review', 'legal_qa'], 缺 ['case_search', 'legal_research', 'legal_document_gen']。这些任务重试时 _expand_keywords 返回与原关键词等长的列表, quality_gate_retry_node 判定 len(expanded) > len(current) 为 False → expanded_kw=None → 连关键词都不更新。",
+        "impact": "重试完全等价, 3 轮 LLM+FAISS+Neo4j 开销换 0 增益",
+        "severity": "P0"
+      }
+    ]
+  },
+  "citation_fields": {
+    "file": "E:\\to_github_project\\AI_legal_assistant\\__004__langgraph_more_nodes\\nodes\\retrieval_nodes\\retrieval_entity_recall_node.py",
+    "has_law_name_in_return": false,
+    "return_fields": [
+      "article_no",
+      "content",
+      "entity_name",
+      "entity_type",
+      "graph_path",
+      "recall_score",
+      "recall_source",
+      "relation_type",
+      "source",
+      "source_id",
+      "title"
+    ],
+    "cypher_selects_law_name": true,
+    "note": "Cypher 已 SELECT law.name AS law_name, 但组装 recall_results 时未写入 → citation 丢失法律名, 用户看到的引用形如【违约金 第七条】无法溯源到具体法律; 同时 retrieval_output_pack_node 按 title 猜分类(含'法规/法律/法典'), 而 title 实际是实体名/概念名 → 分类几乎 100% 落'其他'。"
+  },
+  "findings": [
+    {
+      "id": "F3",
+      "severity": "P0",
+      "node": "数据层 (图谱构建)",
+      "title": "声明入库文件与实际抽取结果不一致",
+      "evidence": "声明但未入库: ['cases/case_698be5cb1791f068.txt']; 已入库但未声明: ['cases/case_2508534f19bc95b2.txt']",
+      "detail": "用该文件的条款构造 golden set 会得到 100% 假阴性 —— 测试集的失败不来自代码, 而来自数据未入库。必须以探针结论为准修正 golden。"
+    },
+    {
+      "id": "F4-C1",
+      "severity": "P0",
+      "node": "quality_gate_retry / retrieval_fusion_ranking",
+      "title": "单源阈值与质量门阈值不一致",
+      "evidence": "retrieval_fusion_ranking_node.SINGLE_SOURCE_THRESHOLD=50 用于判定 quality_gate_passed; quality_gate_retry_node.QUALITY_GATE_THRESHOLD=60 用于决定是否回边重试。单源(case_search)质量分落在 [50, 60) 时, fusion 判通过、quality_gate 判不通过 → 必然回边重试。",
+      "detail": "case_search 每次命中该分数区间都会空转重试 3 次"
+    },
+    {
+      "id": "F4-C2",
+      "severity": "P0",
+      "node": "quality_gate_retry / retrieval_fusion_ranking",
+      "title": "关键词扩展词表未覆盖全部 task_type",
+      "evidence": "_KEYWORD_EXPANSION_MAP 仅覆盖 ['compliance_review', 'contract_review', 'legal_qa'], 缺 ['case_search', 'legal_research', 'legal_document_gen']。这些任务重试时 _expand_keywords 返回与原关键词等长的列表, quality_gate_retry_node 判定 len(expanded) > len(current) 为 False → expanded_kw=None → 连关键词都不更新。",
+      "detail": "重试完全等价, 3 轮 LLM+FAISS+Neo4j 开销换 0 增益"
+    },
+    {
+      "id": "F5",
+      "severity": "P0",
+      "node": "retrieval_entity_recall / retrieval_output_pack",
+      "title": "citation 缺失 law_name + title 语义错位 → 引用不可溯源、分类失效",
+      "evidence": "Cypher 已 SELECT law_name=True, 返回字段=['article_no', 'content', 'entity_name', 'entity_type', 'graph_path', 'recall_score', 'recall_source', 'relation_type', 'source', 'source_id', 'title']",
+      "detail": "Cypher 已 SELECT law.name AS law_name, 但组装 recall_results 时未写入 → citation 丢失法律名, 用户看到的引用形如【违约金 第七条】无法溯源到具体法律; 同时 retrieval_output_pack_node 按 title 猜分类(含'法规/法律/法典'), 而 title 实际是实体名/概念名 → 分类几乎 100% 落'其他'。"
+    }
+  ],
+  "summary": {
+    "neo4j_ok": true,
+    "faiss_ok": true,
+    "data_consistent": false,
+    "findings_by_severity": {
+      "P0": 4,
+      "P1": 0,
+      "P2": 0
+    }
+  }
+}

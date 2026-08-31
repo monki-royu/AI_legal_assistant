@@ -1,0 +1,1332 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>法智引擎 · Badcase 状态流转与指标看板</title><style>
+*{box-sizing:border-box}
+body{margin:0;background:#f5f7fa;color:#1f2328;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",
+ "Microsoft YaHei",sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:1440px;margin:0 auto;padding:24px 28px 60px}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:18px;margin:32px 0 12px;padding-left:10px;border-left:4px solid #2563eb}
+h3{font-size:15px;margin:18px 0 8px;color:#374151}
+.sub{color:#6b7280;font-size:13px;margin-bottom:18px}
+.card{background:#fff;border:1px solid #e3e6eb;border-radius:10px;padding:16px 18px;
+ margin-bottom:16px}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+ font-size:12px;font-weight:600;border:1px solid}
+.b-ok{background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7}
+.b-bad{background:#ffebee;color:#b71c1c;border-color:#ef9a9a}
+.b-warn{background:#fff8e1;color:#e65100;border-color:#ffcc80}
+.b-info{background:#e3f2fd;color:#0d47a1;border-color:#90caf9}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid #e3e6eb;border-radius:9px;padding:10px 12px}
+.kpi .k{font-size:11px;color:#6b7280;letter-spacing:.3px}
+.kpi .v{font-size:21px;font-weight:700;margin-top:2px;line-height:1.2}
+.kpi .u{font-size:11px;color:#9aa4b2;margin-left:2px}
+.v-good{color:#1b5e20}.v-warn{color:#e65100}.v-bad{color:#b71c1c}.v-na{color:#9aa4b2}
+.gsvg{width:100%;height:auto;display:block;overflow:visible}
+.gnode rect{fill:#fafafa;stroke:#d0d5dd;stroke-width:1.2}
+.gnode text{font-size:11px;fill:#6b7280;pointer-events:none}
+.gnode.ok rect{fill:#e8f5e9;stroke:#43a047}
+.gnode.ok text{fill:#1b5e20}
+.gnode.slow rect{fill:#fff8e1;stroke:#f9a825;stroke-width:1.8}
+.gnode.slow text{fill:#e65100}
+.gnode.bottleneck rect{fill:#ffe0e0;stroke:#e53935;stroke-width:2}
+.gnode.bottleneck text{fill:#b71c1c}
+.gnode.err rect{fill:#ffcdd2;stroke:#b71c1c;stroke-width:2.4}
+.gnode.err text{fill:#b71c1c}
+.gnode.guard rect{stroke-dasharray:4 3}
+.gnode .nlab{font-size:11px;font-weight:600}
+.gnode .nsub{font-size:9.5px;fill:#9aa4b2}
+.elab{font-size:10px;fill:#6b7280;text-anchor:middle}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 14px;font-size:12px;
+ color:#4b5563}
+.legend i{display:inline-block;width:13px;height:13px;border-radius:3px;
+ border:1.4px solid;vertical-align:-2px;margin-right:5px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{border:1px solid #e8eaed;padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#f1f3f5;font-weight:600;white-space:nowrap}
+td.c,th.c{text-align:center}
+tr:hover td{background:#fafbfc}
+.sev{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700}
+.s-P0{background:#ffebee;color:#b71c1c}.s-P1{background:#fff8e1;color:#e65100}
+.s-P2{background:#e3f2fd;color:#0d47a1}
+.st{display:inline-block;padding:1px 8px;border-radius:11px;font-size:11px;font-weight:700}
+.st-pass{background:#e8f5e9;color:#1b5e20}.st-fail{background:#ffebee;color:#b71c1c}
+.st-warn{background:#fff8e1;color:#e65100}
+details{margin:6px 0}
+details>summary{cursor:pointer;padding:6px 10px;background:#f8f9fb;border:1px solid #e3e6eb;
+ border-radius:6px;font-weight:600;font-size:13px;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary:before{content:"▸ ";color:#2563eb}
+details[open]>summary:before{content:"▾ "}
+details .body{padding:10px 12px;border:1px solid #e3e6eb;border-top:none;
+ border-radius:0 0 6px 6px;background:#fff}
+.track{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:6px 0}
+.tn{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+ min-width:88px;max-width:150px;padding:4px 8px;border-radius:6px;border:1.4px solid #d0d5dd;
+ background:#fafafa;font-size:11px;line-height:1.3}
+.tn b{font-size:10.5px;font-weight:700;word-break:break-all}
+.tn span{font-size:10px;color:#6b7280}
+.tn.ok{background:#e8f5e9;border-color:#43a047;color:#1b5e20}
+.tn.slow{background:#fff8e1;border-color:#f9a825;color:#e65100}
+.tn.bottleneck,.tn.err{background:#ffcdd2;border-color:#b71c1c;color:#b71c1c}
+.arrow{color:#9aa4b2;font-size:13px}
+.mut{color:#6b7280}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px}
+pre{background:#f6f8fa;border:1px solid #e3e6eb;border-radius:6px;padding:8px 10px;
+ overflow:auto;max-height:280px;font-size:11.5px;white-space:pre-wrap;word-break:break-all}
+.bar{height:9px;background:#eef0f3;border-radius:5px;overflow:hidden;min-width:70px}
+.bar>i{display:block;height:100%;background:#2563eb}
+.bar>i.warn{background:#f9a825}.bar>i.bad{background:#e53935}
+.hit0{background:#ffebee;color:#b71c1c;font-weight:700;padding:1px 6px;border-radius:4px}
+.hit1{background:#e8f5e9;color:#1b5e20;padding:1px 6px;border-radius:4px}
+.orphan{background:#fff8e1;color:#e65100;padding:1px 6px;border-radius:4px}
+.note{background:#f8f9fb;border-left:3px solid #2563eb;padding:8px 12px;margin:8px 0;
+ font-size:12.5px;color:#374151}
+.warnbox{background:#fff8e1;border-left:3px solid #f9a825;padding:8px 12px;margin:8px 0;
+ font-size:12.5px;color:#6d4c00}
+.flex{display:flex;gap:16px;flex-wrap:wrap}
+.flex>div{flex:1;min-width:280px}
+</style></head><body><div class="wrap">
+<h1>法智引擎 · Badcase 状态流转与指标看板</h1>
+<div class="sub">生成时间 2026-08-31 19:55:34 ｜ 用例 10 条 ｜  golden set 严格锚定已入库的 8 部法规 + 1 份案例（详见数据一致性探针）</div>
+<h2>① 环境体检（探针 · 不跑图也准）</h2>
+<div class="card">
+<div class="badges">
+<span class="badge b-bad">Neo4j 不可用 · bolt://localhost:7687</span>
+<span class="badge b-ok">FAISS 索引 完整</span>
+<span class="badge b-bad">数据一致性 不一致</span>
+<span class="badge b-bad">探针结论 P0 5 条</span>
+</div>
+<div class="warnbox"><b>⚠️ Neo4j 未启动 —— 本轮所有检索指标不可用。</b><br>检索子图两个通道都依赖 Neo4j：通道 1a 直接跑 Cypher，通道 1b 用 FAISS 找到相似实体名后<b>反向查 Neo4j 取真实条文</b>。两处都在 <span class="mono">try/except</span> 里 catch 后 <span class="mono">print WARNING; return []</span>，<b>state 中不留任何"通道故障"标记</b>。因此下游拿到的是"空结果"而不是"错误"，质量门会把它当成"检索质量不足"回边重试 3 次，最后强制放行输出"未检索到相关依据"。<br><b>结论：本轮 P/R/MRR 全部为 0 属于环境故障，不代表检索算法能力。请在启动 Neo4j 后重跑。</b></div>
+<h3>FAISS 索引实体规模</h3><table><tr><th>知识源</th><th class="c">实体数</th><th class="c">平均长度</th><th class="c">最长</th><th>实体名样例</th></tr>
+<tr><td class="mono">laws</td><td class="c">806</td><td class="c">7.5 字</td><td class="c">34 字</td><td class="mut mono">第三十七条 / 继续履行个人信息处理者的义务 / 生产经营场所使用证明 / 营业 / 外国司法或者执法机构 / 不予登记 / 土地使用权 / 住所</td></tr>
+<tr><td class="mono">regulations</td><td class="c">528</td><td class="c">7.5 字</td><td class="c">49 字</td><td class="mut mono">不予登记 / 住所 / 第十五条 / 经向主管税务机关备案 / 伪造不动产登记簿 / 书面告知申请人 / 按照国家统一规定发给的补贴、津贴 / 赔偿责任</td></tr>
+<tr><td class="mono">interpretations</td><td class="c">308</td><td class="c">9.3 字</td><td class="c">61 字</td><td class="mut mono">伪造的信用卡内存款余额、透支额度单独或者合计数额在一百万元以上的 / 免予刑事处罚 / 经发卡银行两次有效催收后超过三个月仍不归还 / 制作虚假的财产状况、收入、职务等资信证明材料 / 伪造、变造、买卖国家机关公文、证件、印章 / 数额在五十万元以上不满五百万元 / 刑法第一百七十七条第一款第四项 </td></tr>
+<tr><td class="mono">industry_sources</td><td class="c">127</td><td class="c">5.8 字</td><td class="c">28 字</td><td class="mut mono">建筑材料 / 设计文件 / 建设工程竣工验收 / 经出租人同意 / 中华人民共和国建筑法 / 质量标准 / 未按约定支付租金 / 对施工质量负责</td></tr>
+<tr><td class="mono">cases</td><td class="c">33</td><td class="c">7.6 字</td><td class="c">24 字</td><td class="mut mono">张某与上海某贸易公司违法解除劳动合同赔偿金纠纷案 / 单方解除劳动合同 / 违法解除劳动合同 / 判决支付违法解除劳动合同赔偿金 / 违法解除劳动合同赔偿金200000元 / 严重违反规章制度 / 劳动合同 / 证据</td></tr>
+</table>
+<h3>数据一致性（声明入库 vs 实际抽取）</h3>
+<div class="warnbox"><b>声明文件与实际入库文件不一致：</b><br>
+· 声明了但<b>未入库</b>：<span class="mono">cases/case_698be5cb1791f068.txt</span><br>
+· <b>实际入库</b>但未声明：<span class="mono">cases/case_2508534f19bc95b2.txt</span><br>
+→ 以<b>未入库</b>文件构造 golden set 会得到 100% 假阴性；BC-05 已按此结论调整为<b>负样本</b>用例（检索就该为空）。</div>
+<table><tr><th>声明文件</th><th class="c">在库</th><th>声明文件</th><th class="c">在库</th></tr>
+<tr>
+<td class="mono">industry_sources/住建部标准.txt</td><td class="c">✅</td>
+<td class="mono">industry_sources/城市房屋租赁管理办法.txt</td><td class="c">✅</td>
+</tr>
+<tr>
+<td class="mono">interpretations/劳动法司法解释.txt</td><td class="c">✅</td>
+<td class="mono">interpretations/最高人民法院、最高人民检察院关于办理妨害信用卡管理刑事案件具体应用法律若干问题的解释.txt</td><td class="c">✅</td>
+</tr>
+<tr>
+<td class="mono">laws/个人独资企业法.txt</td><td class="c">✅</td>
+<td class="mono">laws/中华人民共和国个人信息保护法.txt</td><td class="c">✅</td>
+</tr>
+<tr>
+<td class="mono">regulations/不动产登记暂行条例.txt</td><td class="c">✅</td>
+<td class="mono">regulations/个人所得税法实施条例.txt</td><td class="c">✅</td>
+</tr>
+<tr>
+<td class="mono">cases/case_698be5cb1791f068.txt</td><td class="c">❌</td>
+<td></td><td></td>
+</tr>
+</table>
+</div>
+<h2>② 指标总览</h2>
+<div class="card"><h3>业务指标</h3><div class="grid">
+<div class="kpi"><div class="k">任务成功率(执行)</div><div class="v v-good">90.0<span class=u>%</span></div><div class=k style=margin-top:2px>9/10</div></div>
+<div class="kpi"><div class="k">业务成功率</div><div class="v v-bad">30.0<span class=u>%</span></div><div class=k style=margin-top:2px>3/10</div></div>
+<div class="kpi"><div class="k">状态流转正确率</div><div class="v v-good">90.0<span class=u>%</span></div></div>
+<div class="kpi"><div class="k">人工修改率(严格)</div><div class="v v-bad">70.0<span class=u>%</span></div></div>
+<div class="kpi"><div class="k">人工修改率(代理)</div><div class="v v-warn">70.0<span class=u>%</span></div></div>
+<div class="kpi"><div class="k">零引用用例</div><div class="v v-bad">10<span class=u>条</span></div></div>
+<div class="kpi"><div class="k">触发重试用例</div><div class="v v-bad">7<span class=u>条</span></div><div class=k style=margin-top:2px>平均 2.10 次</div></div>
+<div class="kpi"><div class="k">平均质量分</div><div class="v v-bad">20.0</div></div>
+</div></div>
+<div class="card"><h3>技术指标</h3><div class="grid">
+<div class="kpi"><div class="k">检索精确率 P@5</div><div class="v v-bad">0.000</div><div class=k style=margin-top:2px>8 条适用</div></div>
+<div class="kpi"><div class="k">检索召回率 R@10</div><div class="v v-bad">0.000</div></div>
+<div class="kpi"><div class="k">MRR@10</div><div class="v v-bad">0.000</div></div>
+<div class="kpi"><div class="k">Hit@1</div><div class="v ">0.000</div></div>
+<div class="kpi"><div class="k">Hit@5</div><div class="v ">0.000</div></div>
+<div class="kpi"><div class="k">响应 P50</div><div class="v v-warn">155.11<span class=u>s</span></div></div>
+<div class="kpi"><div class="k">响应 P95</div><div class="v v-bad">439.987<span class=u>s</span></div></div>
+<div class="kpi"><div class="k">响应 Max</div><div class="v ">600.02<span class=u>s</span></div></div>
+<div class="kpi"><div class="k">LLM 调用</div><div class="v ">35<span class=u>次</span></div></div>
+<div class="kpi"><div class="k">Token 总量</div><div class="v ">11,928</div><div class=k style=margin-top:2px>in 7,137 / out 4,791</div></div>
+<div class="kpi"><div class="k">估算成本</div><div class="v ">¥0.04302</div><div class=k style=margin-top:2px>按 ¥2/M in · ¥6/M out</div></div>
+</div></div>
+<h2>③ 状态流转图（节点着色 = 执行健康度）</h2>
+<div class="legend"><span><i style="background:#e8f5e9;border-color:#43a047"></i>正常执行</span><span><i style="background:#fff8e1;border-color:#f9a825"></i>慢节点 ≥20s</span><span><i style="background:#ffe0e0;border-color:#e53935"></i>瓶颈 ≥60s</span><span><i style="background:#ffcdd2;border-color:#b71c1c"></i>出错</span><span><i style="background:#fafafa;border-color:#d0d5dd"></i>本次未执行</span><span><i style="background:#fff;border-color:#7c4dff;border-style:dashed"></i>守卫/条件分支节点</span><span class="mut">节点左下角=执行次数，右下角=平均耗时</span></div>
+<div class="card"><h3>① 主图 · 两级路由</h3><svg viewBox="0 0 830 300" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,150.0 L176,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M314,150.0 L334,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="327" y="144" class="elab">非小红书</text><path d="M314,150.0 C406.0,150.0 406.0,254.0 492,254.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="406" y="196" class="elab">小红书</text><path d="M472,150.0 C485.0,150.0 485.0,46.0 492,46.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="485" y="92" class="elab">legal_qa</text><path d="M472,150.0 C485.0,150.0 485.0,98.0 492,98.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="485" y="118" class="elab">检索类</text><path d="M472,150.0 L492,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="485" y="144" class="elab">合同/合规</text><path d="M472,150.0 C485.0,150.0 485.0,202.0 492,202.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="485" y="170" class="elab">文书生成</text><path d="M630,46.0 C643.0,46.0 643.0,150.0 650,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,98.0 C643.0,98.0 643.0,150.0 650,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,150.0 L650,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,202.0 C643.0,202.0 643.0,150.0 650,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,254.0 C643.0,254.0 643.0,150.0 650,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode idle"><title>__start__ | 未执行</title><rect x="24" y="130.0" width="132" height="40" rx="7"/><text x="90.0" y="150.0" class="nlab" text-anchor="middle">START</text><text x="30" y="165.0" class="nsub">0×</text></g><g class="gnode ok guard"><title>xiaohongshu_publish_intent | 执行 10 次 / avg 0.01s</title><rect x="182" y="130.0" width="132" height="40" rx="7"/><text x="248.0" y="150.0" class="nlab" text-anchor="middle">L1 小红书意图</text><text x="188" y="165.0" class="nsub">10×</text><text x="308" y="165.0" class="nsub" text-anchor="end">0.01s</text></g><g class="gnode ok"><title>intent_router | 执行 10 次 / avg 0.003s</title><rect x="340" y="130.0" width="132" height="40" rx="7"/><text x="406.0" y="150.0" class="nlab" text-anchor="middle">L2 意图路由</text><text x="346" y="165.0" class="nsub">10×</text><text x="466" y="165.0" class="nsub" text-anchor="end">0.003s</text></g><g class="gnode ok"><title>qa | 执行 2 次 / avg 0.005s</title><rect x="498" y="26.0" width="132" height="40" rx="7"/><text x="564.0" y="46.0" class="nlab" text-anchor="middle">qa 子图</text><text x="504" y="61.0" class="nsub">2×</text><text x="624" y="61.0" class="nsub" text-anchor="end">0.005s</text></g><g class="gnode ok"><title>r_retrieval | 执行 4 次 / avg 0.015s</title><rect x="498" y="78.0" width="132" height="40" rx="7"/><text x="564.0" y="98.0" class="nlab" text-anchor="middle">r_retrieval 子图</text><text x="504" y="113.0" class="nsub">4×</text><text x="624" y="113.0" class="nsub" text-anchor="end">0.015s</text></g><g class="gnode ok"><title>contract_compliance | 执行 2 次 / avg 0.007s</title><rect x="498" y="130.0" width="132" height="40" rx="7"/><text x="564.0" y="150.0" class="nlab" text-anchor="middle">合同合规子图</text><text x="504" y="165.0" class="nsub">2×</text><text x="624" y="165.0" class="nsub" text-anchor="end">0.007s</text></g><g class="gnode ok"><title>docgen | 执行 1 次 / avg 0.004s</title><rect x="498" y="182.0" width="132" height="40" rx="7"/><text x="564.0" y="202.0" class="nlab" text-anchor="middle">文书生成子图</text><text x="504" y="217.0" class="nsub">1×</text><text x="624" y="217.0" class="nsub" text-anchor="end">0.004s</text></g><g class="gnode idle"><title>xhs | 未执行</title><rect x="498" y="234.0" width="132" height="40" rx="7"/><text x="564.0" y="254.0" class="nlab" text-anchor="middle">小红书子图</text><text x="504" y="269.0" class="nsub">0×</text></g><g class="gnode idle"><title>__end__ | 未执行</title><rect x="656" y="130.0" width="132" height="40" rx="7"/><text x="722.0" y="150.0" class="nlab" text-anchor="middle">END</text><text x="662" y="165.0" class="nsub">0×</text></g></svg></div>
+<div class="card"><h3>② QA 子图 (legal_qa)</h3><svg viewBox="0 0 672 196" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,98.0 C169.0,98.0 169.0,46.0 176,46.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="169" y="66" class="elab">是</text><path d="M156,98.0 C169.0,98.0 169.0,150.0 176,150.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="169" y="118" class="elab">否</text><path d="M314,46.0 L334,46.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,46.0 C485.0,46.0 485.0,98.0 492,98.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M314,150.0 C406.0,150.0 406.0,98.0 492,98.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode ok guard"><title>qa_intent_classify | 执行 2 次 / avg 6.043s</title><rect x="24" y="78.0" width="132" height="40" rx="7"/><text x="90.0" y="92.0" class="nlab" text-anchor="middle">qa_intent_classify</text><text x="90.0" y="105.0" class="nlab" text-anchor="middle">(法律相关性)</text><text x="30" y="113.0" class="nsub">2×</text><text x="150" y="113.0" class="nsub" text-anchor="end">6.043s</text></g><g class="gnode ok"><title>qa_retrieval | 执行 2 次 / avg 0.022s</title><rect x="182" y="26.0" width="132" height="40" rx="7"/><text x="248.0" y="46.0" class="nlab" text-anchor="middle">检索子图(嵌套)</text><text x="188" y="61.0" class="nsub">2×</text><text x="308" y="61.0" class="nsub" text-anchor="end">0.022s</text></g><g class="gnode idle"><title>llm_direct_out | 未执行</title><rect x="182" y="130.0" width="132" height="40" rx="7"/><text x="248.0" y="144.0" class="nlab" text-anchor="middle">llm_direct_out</text><text x="248.0" y="157.0" class="nlab" text-anchor="middle">(LLM 直答)</text><text x="188" y="165.0" class="nsub">0×</text></g><g class="gnode ok"><title>legal_qa_final_answer | 执行 2 次 / avg 0.0s</title><rect x="340" y="26.0" width="132" height="40" rx="7"/><text x="406.0" y="46.0" class="nlab" text-anchor="middle">legal_qa_final_answer</text><text x="346" y="61.0" class="nsub">2×</text><text x="466" y="61.0" class="nsub" text-anchor="end">0.0s</text></g><g class="gnode idle"><title>__end_qa__ | 未执行</title><rect x="498" y="78.0" width="132" height="40" rx="7"/><text x="564.0" y="98.0" class="nlab" text-anchor="middle">END</text><text x="504" y="113.0" class="nsub">0×</text></g></svg></div>
+<div class="card"><h3>③ 检索子图 (被复用 3 次: r_retrieval / cc_retrieval / qa_retrieval)</h3><svg viewBox="0 0 1620 240" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,120.0 L176,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M314,120.0 L334,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,120.0 L492,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,120.0 L650,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M788,120.0 L808,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M946,120.0 C959.0,120.0 959.0,68.0 966,68.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="959" y="88" class="elab">pass</text><path d="M946,120.0 C986,154.0 -16,154.0 18,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="485" y="166" class="elab">retry ×≤3</text><path d="M1104,68.0 L1124,68.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M1262,68.0 L1282,68.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M1420,68.0 C1433.0,68.0 1433.0,120.0 1440,120.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode bottleneck"><title>retrieval_intent_decompose | 瓶颈 max=198.473s</title><rect x="24" y="100.0" width="132" height="40" rx="7"/><text x="90.0" y="114.0" class="nlab" text-anchor="middle">intent_decompose</text><text x="90.0" y="127.0" class="nlab" text-anchor="middle">挂载源+LLM提词</text><text x="30" y="135.0" class="nsub">30×</text><text x="150" y="135.0" class="nsub" text-anchor="end">16.566s</text></g><g class="gnode err"><title>credit_precheck | 出错 1 次</title><rect x="182" y="100.0" width="132" height="40" rx="7"/><text x="248.0" y="120.0" class="nlab" text-anchor="middle">credit_precheck</text><text x="188" y="135.0" class="nsub">30×</text><text x="308" y="135.0" class="nsub" text-anchor="end">0.0s</text></g><g class="gnode bottleneck"><title>retrieval_entity_recall | 瓶颈 max=237.527s</title><rect x="340" y="100.0" width="132" height="40" rx="7"/><text x="406.0" y="114.0" class="nlab" text-anchor="middle">entity_recall</text><text x="406.0" y="127.0" class="nlab" text-anchor="middle">图谱+FAISS</text><text x="346" y="135.0" class="nsub">29×</text><text x="466" y="135.0" class="nsub" text-anchor="end">33.49s</text></g><g class="gnode ok"><title>retrieval_precision_filter | 执行 29 次 / avg 0.001s</title><rect x="498" y="100.0" width="132" height="40" rx="7"/><text x="564.0" y="114.0" class="nlab" text-anchor="middle">precision_filter</text><text x="564.0" y="127.0" class="nlab" text-anchor="middle">语义重排+闸门</text><text x="504" y="135.0" class="nsub">29×</text><text x="624" y="135.0" class="nsub" text-anchor="end">0.001s</text></g><g class="gnode ok"><title>retrieval_fusion_ranking | 执行 29 次 / avg 0.0s</title><rect x="656" y="100.0" width="132" height="40" rx="7"/><text x="722.0" y="114.0" class="nlab" text-anchor="middle">fusion_ranking</text><text x="722.0" y="127.0" class="nlab" text-anchor="middle">7项融合+质量分</text><text x="662" y="135.0" class="nsub">29×</text><text x="782" y="135.0" class="nsub" text-anchor="end">0.0s</text></g><g class="gnode ok guard"><title>quality_gate_retry | 执行 29 次 / avg 0.003s</title><rect x="814" y="100.0" width="132" height="40" rx="7"/><text x="880.0" y="120.0" class="nlab" text-anchor="middle">quality_gate_retry</text><text x="820" y="135.0" class="nsub">29×</text><text x="940" y="135.0" class="nsub" text-anchor="end">0.003s</text></g><g class="gnode ok guard"><title>beida_fabao_gate | 执行 7 次 / avg 0.0s</title><rect x="972" y="48.0" width="132" height="40" rx="7"/><text x="1038.0" y="68.0" class="nlab" text-anchor="middle">beida_fabao_gate</text><text x="978" y="83.0" class="nsub">7×</text><text x="1098" y="83.0" class="nsub" text-anchor="end">0.0s</text></g><g class="gnode ok"><title>credit_check | 执行 7 次 / avg 0.006s</title><rect x="1130" y="48.0" width="132" height="40" rx="7"/><text x="1196.0" y="68.0" class="nlab" text-anchor="middle">credit_check</text><text x="1136" y="83.0" class="nsub">7×</text><text x="1256" y="83.0" class="nsub" text-anchor="end">0.006s</text></g><g class="gnode ok"><title>context_pack | 执行 7 次 / avg 0.002s</title><rect x="1288" y="48.0" width="132" height="40" rx="7"/><text x="1354.0" y="62.0" class="nlab" text-anchor="middle">context_pack</text><text x="1354.0" y="75.0" class="nlab" text-anchor="middle">(出口分流)</text><text x="1294" y="83.0" class="nsub">7×</text><text x="1414" y="83.0" class="nsub" text-anchor="end">0.002s</text></g><g class="gnode idle"><title>__end_ret__ | 未执行</title><rect x="1446" y="100.0" width="132" height="40" rx="7"/><text x="1512.0" y="120.0" class="nlab" text-anchor="middle">END</text><text x="1452" y="135.0" class="nsub">0×</text></g></svg></div>
+<div class="card"><h3>④ 合同合规子图 (输入归一化 + 三子图编排)</h3><svg viewBox="0 0 1146 220" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,110.0 C169.0,110.0 169.0,58.0 176,58.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="169" y="78" class="elab">有文档</text><path d="M156,110.0 C169.0,110.0 169.0,162.0 176,162.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="169" y="130" class="elab">纯文本</text><path d="M314,58.0 L334,58.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,58.0 C485.0,58.0 485.0,110.0 492,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="485" y="78" class="elab">pass</text><path d="M472,58.0 C722.0,58.0 722.0,110.0 966,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="722" y="78" class="elab">block</text><path d="M314,162.0 C406.0,162.0 406.0,110.0 492,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="406" y="130" class="elab">pass</text><path d="M314,162.0 C643.0,162.0 643.0,110.0 966,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="643" y="130" class="elab">block</text><path d="M630,110.0 L650,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M788,110.0 L808,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M946,110.0 L966,110.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode ok guard"><title>input_source_router | 执行 3 次 / avg 0.012s</title><rect x="24" y="90.0" width="132" height="40" rx="7"/><text x="90.0" y="110.0" class="nlab" text-anchor="middle">input_source_router</text><text x="30" y="125.0" class="nsub">3×</text><text x="150" y="125.0" class="nsub" text-anchor="end">0.012s</text></g><g class="gnode idle"><title>doc_extract | 未执行</title><rect x="182" y="38.0" width="132" height="40" rx="7"/><text x="248.0" y="58.0" class="nlab" text-anchor="middle">doc_extract</text><text x="188" y="73.0" class="nsub">0×</text></g><g class="gnode idle guard"><title>doc_empty_guard | 未执行</title><rect x="340" y="38.0" width="132" height="40" rx="7"/><text x="406.0" y="58.0" class="nlab" text-anchor="middle">doc_empty_guard</text><text x="346" y="73.0" class="nsub">0×</text></g><g class="gnode ok guard"><title>text_recognize | 执行 3 次 / avg 0.002s</title><rect x="182" y="142.0" width="132" height="40" rx="7"/><text x="248.0" y="162.0" class="nlab" text-anchor="middle">text_recognize</text><text x="188" y="177.0" class="nsub">3×</text><text x="308" y="177.0" class="nsub" text-anchor="end">0.002s</text></g><g class="gnode ok"><title>preprocess | 执行 2 次 / avg 0.015s</title><rect x="498" y="90.0" width="132" height="40" rx="7"/><text x="564.0" y="110.0" class="nlab" text-anchor="middle">preprocess 子图</text><text x="504" y="125.0" class="nsub">2×</text><text x="624" y="125.0" class="nsub" text-anchor="end">0.015s</text></g><g class="gnode ok"><title>cc_retrieval | 执行 1 次 / avg 0.019s</title><rect x="656" y="90.0" width="132" height="40" rx="7"/><text x="722.0" y="110.0" class="nlab" text-anchor="middle">cc_retrieval 子图</text><text x="662" y="125.0" class="nsub">1×</text><text x="782" y="125.0" class="nsub" text-anchor="end">0.019s</text></g><g class="gnode ok"><title>dual_review | 执行 1 次 / avg 0.006s</title><rect x="814" y="90.0" width="132" height="40" rx="7"/><text x="880.0" y="110.0" class="nlab" text-anchor="middle">dual_review 子图</text><text x="820" y="125.0" class="nsub">1×</text><text x="940" y="125.0" class="nsub" text-anchor="end">0.006s</text></g><g class="gnode idle"><title>__end_cc__ | 未执行</title><rect x="972" y="90.0" width="132" height="40" rx="7"/><text x="1038.0" y="110.0" class="nlab" text-anchor="middle">END</text><text x="978" y="125.0" class="nsub">0×</text></g></svg></div>
+<div class="card"><h3>⑤ 预处理子图 (5 节点)</h3><svg viewBox="0 0 830 130" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,65.0 L176,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M314,65.0 L334,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,65.0 L492,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,65.0 L650,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode ok"><title>party_identify | 执行 2 次 / avg 6.542s</title><rect x="24" y="45.0" width="132" height="40" rx="7"/><text x="90.0" y="65.0" class="nlab" text-anchor="middle">party_identify</text><text x="30" y="80.0" class="nsub">2×</text><text x="150" y="80.0" class="nsub" text-anchor="end">6.542s</text></g><g class="gnode ok"><title>contract_classify | 执行 2 次 / avg 6.132s</title><rect x="182" y="45.0" width="132" height="40" rx="7"/><text x="248.0" y="65.0" class="nlab" text-anchor="middle">contract_classify</text><text x="188" y="80.0" class="nsub">2×</text><text x="308" y="80.0" class="nsub" text-anchor="end">6.132s</text></g><g class="gnode ok"><title>full_text_segment | 执行 2 次 / avg 0.003s</title><rect x="340" y="45.0" width="132" height="40" rx="7"/><text x="406.0" y="65.0" class="nlab" text-anchor="middle">full_text_segment</text><text x="346" y="80.0" class="nsub">2×</text><text x="466" y="80.0" class="nsub" text-anchor="end">0.003s</text></g><g class="gnode bottleneck"><title>numeric_extract | 瓶颈 max=417.954s</title><rect x="498" y="45.0" width="132" height="40" rx="7"/><text x="564.0" y="65.0" class="nlab" text-anchor="middle">numeric_extract</text><text x="504" y="80.0" class="nsub">2×</text><text x="624" y="80.0" class="nsub" text-anchor="end">209.949s</text></g><g class="gnode bottleneck"><title>llm_query_extract | 瓶颈 max=102.383s</title><rect x="656" y="45.0" width="132" height="40" rx="7"/><text x="722.0" y="65.0" class="nlab" text-anchor="middle">llm_query_extract</text><text x="662" y="80.0" class="nsub">2×</text><text x="782" y="80.0" class="nsub" text-anchor="end">51.191s</text></g></svg></div>
+<div class="card"><h3>⑥ 双审子图 (合同双审 / 合规单审)</h3><svg viewBox="0 0 830 170" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,85.0 C169.0,85.0 169.0,33.0 176,33.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="169" y="53" class="elab">contract_review</text><path d="M156,85.0 L334,85.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="248" y="79" class="elab">compliance_review</text><path d="M314,33.0 C327.0,33.0 327.0,85.0 334,85.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,85.0 L492,85.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,85.0 L650,85.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode ok"><title>parallel_dual_review | 执行 1 次 / avg 12.787s</title><rect x="24" y="65.0" width="132" height="40" rx="7"/><text x="90.0" y="79.0" class="nlab" text-anchor="middle">parallel_dual_review</text><text x="90.0" y="92.0" class="nlab" text-anchor="middle">(线程内并发)</text><text x="30" y="100.0" class="nsub">1×</text><text x="150" y="100.0" class="nsub" text-anchor="end">12.787s</text></g><g class="gnode idle guard"><title>conflict_resolution | 未执行</title><rect x="182" y="13.0" width="132" height="40" rx="7"/><text x="248.0" y="27.0" class="nlab" text-anchor="middle">conflict_resolution</text><text x="248.0" y="40.0" class="nlab" text-anchor="middle">(仅合同审核)</text><text x="188" y="48.0" class="nsub">0×</text></g><g class="gnode ok"><title>numeric_validate | 执行 1 次 / avg 0.089s</title><rect x="340" y="65.0" width="132" height="40" rx="7"/><text x="406.0" y="85.0" class="nlab" text-anchor="middle">numeric_validate</text><text x="346" y="100.0" class="nsub">1×</text><text x="466" y="100.0" class="nsub" text-anchor="end">0.089s</text></g><g class="gnode ok"><title>risk_aggregate | 执行 1 次 / avg 0.0s</title><rect x="498" y="65.0" width="132" height="40" rx="7"/><text x="564.0" y="85.0" class="nlab" text-anchor="middle">risk_aggregate</text><text x="504" y="100.0" class="nsub">1×</text><text x="624" y="100.0" class="nsub" text-anchor="end">0.0s</text></g><g class="gnode ok"><title>final_delivery | 执行 1 次 / avg 0.001s</title><rect x="656" y="65.0" width="132" height="40" rx="7"/><text x="722.0" y="85.0" class="nlab" text-anchor="middle">final_delivery</text><text x="662" y="100.0" class="nsub">1×</text><text x="782" y="100.0" class="nsub" text-anchor="end">0.001s</text></g></svg></div>
+<div class="card"><h3>⑦ 文书生成子图 (澄清守卫 + 双路并发检索)</h3><svg viewBox="0 0 1304 200" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,100.0 C169.0,100.0 169.0,48.0 176,48.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="169" y="68" class="elab">continue</text><path d="M156,100.0 L1124,100.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><text x="643" y="94" class="elab">clarify</text><path d="M314,48.0 L334,48.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,48.0 L492,48.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,48.0 L650,48.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M788,48.0 L808,48.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M946,48.0 L966,48.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M1104,48.0 C1117.0,48.0 1117.0,100.0 1124,100.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode ok"><title>doc_case_analyze | 执行 1 次 / avg 11.857s</title><rect x="24" y="80.0" width="132" height="40" rx="7"/><text x="90.0" y="100.0" class="nlab" text-anchor="middle">doc_case_analyze</text><text x="30" y="115.0" class="nsub">1×</text><text x="150" y="115.0" class="nsub" text-anchor="end">11.857s</text></g><g class="gnode idle"><title>doc_template_match | 未执行</title><rect x="182" y="28.0" width="132" height="40" rx="7"/><text x="248.0" y="48.0" class="nlab" text-anchor="middle">doc_template_match</text><text x="188" y="63.0" class="nsub">0×</text></g><g class="gnode idle"><title>doc_query_plan | 未执行</title><rect x="340" y="28.0" width="132" height="40" rx="7"/><text x="406.0" y="48.0" class="nlab" text-anchor="middle">doc_query_plan</text><text x="346" y="63.0" class="nsub">0×</text></g><g class="gnode idle"><title>doc_parallel_retrieve | 未执行</title><rect x="498" y="28.0" width="132" height="40" rx="7"/><text x="564.0" y="42.0" class="nlab" text-anchor="middle">doc_parallel_retrieve</text><text x="564.0" y="55.0" class="nlab" text-anchor="middle">(并发法条+类案)</text><text x="504" y="63.0" class="nsub">0×</text></g><g class="gnode idle"><title>doc_clause_fill | 未执行</title><rect x="656" y="28.0" width="132" height="40" rx="7"/><text x="722.0" y="48.0" class="nlab" text-anchor="middle">doc_clause_fill</text><text x="662" y="63.0" class="nsub">0×</text></g><g class="gnode idle"><title>doc_risk_analysis | 未执行</title><rect x="814" y="28.0" width="132" height="40" rx="7"/><text x="880.0" y="48.0" class="nlab" text-anchor="middle">doc_risk_analysis</text><text x="820" y="63.0" class="nsub">0×</text></g><g class="gnode idle"><title>doc_final_delivery | 未执行</title><rect x="972" y="28.0" width="132" height="40" rx="7"/><text x="1038.0" y="48.0" class="nlab" text-anchor="middle">doc_final_delivery</text><text x="978" y="63.0" class="nsub">0×</text></g><g class="gnode idle"><title>__end_doc__ | 未执行</title><rect x="1130" y="80.0" width="132" height="40" rx="7"/><text x="1196.0" y="100.0" class="nlab" text-anchor="middle">END</text><text x="1136" y="115.0" class="nsub">0×</text></g></svg></div>
+<div class="card"><h3>⑧ 小红书子图</h3><svg viewBox="0 0 830 130" class="gsvg" preserveAspectRatio="xMinYMin meet"><defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9aa4b2"/></marker></defs><path d="M156,65.0 L176,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M314,65.0 L334,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M472,65.0 L492,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><path d="M630,65.0 L650,65.0" fill="none" stroke="#9aa4b2" stroke-width="1.4" marker-end="url(#ar)"/><g class="gnode idle"><title>text_generate | 未执行</title><rect x="24" y="45.0" width="132" height="40" rx="7"/><text x="90.0" y="65.0" class="nlab" text-anchor="middle">text_generate</text><text x="30" y="80.0" class="nsub">0×</text></g><g class="gnode idle"><title>image_generate | 未执行</title><rect x="182" y="45.0" width="132" height="40" rx="7"/><text x="248.0" y="65.0" class="nlab" text-anchor="middle">image_generate</text><text x="188" y="80.0" class="nsub">0×</text></g><g class="gnode idle guard"><title>xhs_check_text_image | 未执行</title><rect x="340" y="45.0" width="132" height="40" rx="7"/><text x="406.0" y="65.0" class="nlab" text-anchor="middle">check_text_image</text><text x="346" y="80.0" class="nsub">0×</text></g><g class="gnode idle"><title>xhs_auto_publish | 未执行</title><rect x="498" y="45.0" width="132" height="40" rx="7"/><text x="564.0" y="65.0" class="nlab" text-anchor="middle">auto_publish</text><text x="504" y="80.0" class="nsub">0×</text></g><g class="gnode idle"><title>generate_markdown | 未执行</title><rect x="656" y="45.0" width="132" height="40" rx="7"/><text x="722.0" y="65.0" class="nlab" text-anchor="middle">generate_markdown</text><text x="662" y="80.0" class="nsub">0×</text></g></svg></div>
+<div class="card"><h3>节点累计耗时 Top 12（定位链路瓶颈）</h3><table><tr><th>节点</th><th>所属子图</th><th class="c">执行次数</th><th class="c">累计(s)</th><th class="c">平均(s)</th><th class="c">最大(s)</th><th style="width:190px">耗时占比</th><th class="c">出错</th></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">29</td><td class="c">971.203</td><td class="c">33.49</td><td class="c">237.527</td><td><div class="bar"><i class="bad" style="width:100.0%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">30</td><td class="c">496.98</td><td class="c">16.566</td><td class="c">198.473</td><td><div class="bar"><i class="bad" style="width:51.2%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">2</td><td class="c">419.898</td><td class="c">209.949</td><td class="c">417.954</td><td><div class="bar"><i class="bad" style="width:43.2%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">2</td><td class="c">102.383</td><td class="c">51.191</td><td class="c">102.383</td><td><div class="bar"><i class="bad" style="width:10.5%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">2</td><td class="c">13.084</td><td class="c">6.542</td><td class="c">13.067</td><td><div class="bar"><i class="" style="width:1.3%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">1</td><td class="c">12.787</td><td class="c">12.787</td><td class="c">12.787</td><td><div class="bar"><i class="" style="width:1.3%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">2</td><td class="c">12.264</td><td class="c">6.132</td><td class="c">12.264</td><td><div class="bar"><i class="" style="width:1.3%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">2</td><td class="c">12.087</td><td class="c">6.043</td><td class="c">9.718</td><td><div class="bar"><i class="" style="width:1.2%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">1</td><td class="c">11.857</td><td class="c">11.857</td><td class="c">11.857</td><td><div class="bar"><i class="" style="width:1.2%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">10</td><td class="c">0.102</td><td class="c">0.01</td><td class="c">0.027</td><td><div class="bar"><i class="" style="width:0.0%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">1</td><td class="c">0.089</td><td class="c">0.089</td><td class="c">0.089</td><td><div class="bar"><i class="" style="width:0.0%"></i></div></td><td class="c">—</td></tr>
+<tr><td class="mono"></td><td class="mut"></td><td class="c">29</td><td class="c">0.084</td><td class="c">0.003</td><td class="c">0.017</td><td><div class="bar"><i class="" style="width:0.0%"></i></div></td><td class="c">—</td></tr>
+</table></div>
+<h2>④ Badcase 用例矩阵</h2>
+<div class="card"><table><tr><th>ID</th><th>严重级</th><th>任务</th><th>场景</th><th class="c">执行</th><th class="c">业务</th><th class="c">路由</th><th class="c">延迟(s)</th><th class="c">引用</th><th class="c">重试</th><th class="c">P@5</th><th class="c">R@10</th><th class="c">MRR</th><th class="c">人工修改</th></tr>
+<tr><td class="mono"><b>BC-01</b></td><td><span class="sev s-P1">P1</span></td><td class="mut">首页问答</td><td>个保法·处理个人信息的合法性基础</td><td class="c">✅</td><td class="c">❌</td><td class="c">✅</td><td class="c">186.07</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+<tr><td class="mono"><b>BC-02</b></td><td><span class="sev s-P1">P1</span></td><td class="mut">法规查询</td><td>个人独资企业法·设立条件(纯法规三源)</td><td class="c">✅</td><td class="c">❌</td><td class="c">✅</td><td class="c">114.68</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+<tr><td class="mono"><b>BC-03</b></td><td><span class="sev s-P0">P0</span></td><td class="mut">法规查询</td><td>信用卡解释·恶意透支数额标准(数值型)</td><td class="c">✅</td><td class="c">❌</td><td class="c">✅</td><td class="c">119.65</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+<tr><td class="mono"><b>BC-04</b></td><td><span class="sev s-P0">P0</span></td><td class="mut">案例检索</td><td>类案检索·违法解除赔偿金(单源直查)</td><td class="c">✅</td><td class="c">❌</td><td class="c">✅</td><td class="c">244.39</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+<tr><td class="mono"><b>BC-05</b></td><td><span class="sev s-P0">P0</span></td><td class="mut">案例检索</td><td>类案检索·房屋租赁违约金(负样本/库外)</td><td class="c">✅</td><td class="c">✅</td><td class="c">✅</td><td class="c">124.15</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">否</td></tr>
+<tr><td class="mono"><b>BC-06</b></td><td><span class="sev s-P0">P0</span></td><td class="mut">合同审核</td><td>合同审核·房屋租赁合同(全链路+行业标准挂载)</td><td class="c">❌</td><td class="c">❌</td><td class="c">❌</td><td class="c">600.02</td><td class="c">0</td><td class="c">0</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+<tr><td class="mono"><b>BC-07</b></td><td><span class="sev s-P1">P1</span></td><td class="mut">合规审查</td><td>合规审查·人脸信息单独同意</td><td class="c">✅</td><td class="c">❌</td><td class="c">✅</td><td class="c">201.32</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+<tr><td class="mono"><b>BC-08</b></td><td><span class="sev s-P2">P2</span></td><td class="mut">合同审核</td><td>合同审核·非合同短输入(守卫拦截)</td><td class="c">✅</td><td class="c">✅</td><td class="c">✅</td><td class="c">0.04</td><td class="c">0</td><td class="c">0</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">否</td></tr>
+<tr><td class="mono"><b>BC-09</b></td><td><span class="sev s-P1">P1</span></td><td class="mut">文书生成</td><td>文书生成·缺当事人(澄清守卫)</td><td class="c">✅</td><td class="c">✅</td><td class="c">✅</td><td class="c">11.89</td><td class="c">0</td><td class="c">0</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">否</td></tr>
+<tr><td class="mono"><b>BC-10</b></td><td><span class="sev s-P0">P0</span></td><td class="mut">首页问答</td><td>跨库复合查询·建设工程质保期 + 房屋租赁期限</td><td class="c">✅</td><td class="c">❌</td><td class="c">✅</td><td class="c">228.81</td><td class="c">0</td><td class="c">3</td><td class="c">0.000</td><td class="c">0.000</td><td class="c">0.000</td><td class="c"><b>是</b></td></tr>
+</table></div>
+<h2>⑤ 逐用例详情（轨迹 · 归因 · 证据）</h2>
+<div class="card"><details open>
+<summary>BC-01 · 首页问答 · [P1] 个保法·处理个人信息的合法性基础 &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">186.07s · 引用 0 · 重试 3 · LLM 5 · ¥0.004132</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">intent_router_node (LLM 分类 → legal_qa)</li>
+<li class="mono">qa_intent_classify (Level3 二分类: 是否法律相关)</li>
+<li class="mono">retrieval_intent_decompose_node._detect_retrieval_intents (多分面意图)</li>
+<li class="mono">retrieval_entity_recall_node._graph_entity_recall (ENTITY_MATCH)</li>
+</ul>
+<div class="note"><b>预判：</b>意图应判为 condition(条件/情形)。主风险不在路由, 而在 ENTITY_MATCH: 图谱召回用 `e.name CONTAINS kw`, 而库内实体名是法条文本片段 (如&#x27;取得个人的同意&#x27;&#x27;处理目的、处理方式和处理的个人信息种类发生变更&#x27;), LLM 抽出的关键词(&#x27;个人信息&#x27;&#x27;单独同意&#x27;&#x27;合法性基础&#x27;)未必是片段的超串, ENTITY_MATCH(100/90/60 分)可能整体落空, 只剩 FULLTEXT(40 分)兜底。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.027s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.003s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_intent_classify"><b>qa_intent_classify</b><span>2.369s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>20.909s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>37.641s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.005s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>9.32s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>33.424s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.429s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>33.516s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>12.746s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>33.632s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_check"><b>credit_check</b><span>0.009s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::context_pack"><b>context_pack</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval"><b>qa_retrieval</b><span>0.024s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::legal_qa_final_answer"><b>legal_qa_final_answer</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa"><b>qa</b><span>0.005s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+qa::qa_intent_classify
+qa::qa_retrieval::retrieval_intent_decompose
+qa::qa_retrieval::credit_precheck
+qa::qa_retrieval::retrieval_entity_recall
+qa::qa_retrieval::retrieval_precision_filter
+qa::qa_retrieval::retrieval_fusion_ranking
+qa::qa_retrieval::quality_gate_retry
+qa::qa_retrieval::beida_fabao_gate
+qa::qa_retrieval::credit_check
+qa::qa_retrieval::context_pack
+qa::qa_retrieval
+qa::legal_qa_final_answer
+qa</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">retry_not_wasted</td><td>major</td><td>质量门重试 3 次才放行 (quality_score=20.0)。每次重试会重跑 intent_decompose(LLM) + entity_recall(Neo4j+FAISS) + precision_filter(embedding) → 成本/延迟近似 ×4</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+<tr><td class="mono"><b>quality_gate_retry</b></td><td class="mono">nodes/retrieval_nodes/quality_gate_retry_node.py</td><td class="mono">quality_gate_retry_node / _expand_keywords</td><td>质量门重试 3 次, 每次重跑 intent_decompose→entity_recall→precision_filter→fusion, 成本与延迟近似 ×4</td><td class="mut">state[&#x27;quality_retry_count&#x27;] 与节点轨迹中 retrieval_intent_decompose 出现次数</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">个人信息</td><td class="c">122</td><td class="c"><span class="hit1">122</span></td><td class="c">0</td><td class="mut mono">{&quot;laws&quot;: 122}</td></tr>
+<tr><td class="mono">同意</td><td class="c">22</td><td class="c"><span class="hit1">19</span></td><td class="c"><span class="orphan">3</span></td><td class="mut mono">{&quot;laws&quot;: 18, &quot;regulations&quot;: 1, &quot;industry_sources&quot;: 3}</td></tr>
+<tr><td class="mono">个人信息处理者</td><td class="c">7</td><td class="c"><span class="hit1">7</span></td><td class="c">0</td><td class="mut mono">{&quot;laws&quot;: 7}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</span> ｜ 有效命中 <b>148</b> ｜ 孤儿命中 <b>3</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>抱歉, 当前法律知识库未检索到与您问题相关的权威依据, 无法给出有据可查的回答。
+
+建议您:
+1. 补充更具体的法律场景、主体或法规名称;
+2. 咨询专业律师获取针对性法律意见。
+
+*(法智引擎仅基于检索结果作答, 未检索到依据时不编造法条。)*</pre>
+</div></details></div>
+<div class="card"><details open>
+<summary>BC-02 · 法规查询 · [P1] 个人独资企业法·设立条件(纯法规三源) &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">114.68s · 引用 0 · 重试 3 · LLM 4 · ¥0.003192</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">retrieval_intent_decompose_node._build_source_mounts (legal_research 固定 3 源, 不做关键词追加)</li>
+<li class="mono">retrieval_entity_recall_node (laws/regulations/interpretations 三源轮询)</li>
+<li class="mono">retrieval_fusion_ranking_node (多源 weighted 融合, 阈值 60)</li>
+</ul>
+<div class="note"><b>预判：</b>legal_research 的 domain 固定为 [&#x27;laws&#x27;,&#x27;regulations&#x27;,&#x27;interpretations&#x27;], 且代码显式跳过 KEYWORD_RULES 追加 —— 因此 industry_sources 永不挂载, 属预期行为。真正的风险是**多源融合下的源间挤压**: laws 基础权威 1.0 &gt; regulations 0.9 &gt; interpretations 0.85, authority 权重占 0.20, 会让&#x27;个人独资企业法第八条&#x27;之外的法规/解释条目挤进 Top-12, 压低 P@5。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.009s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.005s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.751s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.274s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.007s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.607s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.182s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.994s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.279s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.401s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.145s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_check"><b>credit_check</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::context_pack"><b>context_pack</b><span>0.003s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval"><b>r_retrieval</b><span>0.014s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+r_retrieval::retrieval_intent_decompose
+r_retrieval::credit_precheck
+r_retrieval::retrieval_entity_recall
+r_retrieval::retrieval_precision_filter
+r_retrieval::retrieval_fusion_ranking
+r_retrieval::quality_gate_retry
+r_retrieval::beida_fabao_gate
+r_retrieval::credit_check
+r_retrieval::context_pack
+r_retrieval</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">retry_not_wasted</td><td>major</td><td>质量门重试 3 次才放行 (quality_score=20.0)。每次重试会重跑 intent_decompose(LLM) + entity_recall(Neo4j+FAISS) + precision_filter(embedding) → 成本/延迟近似 ×4</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+<tr><td class="mono"><b>quality_gate_retry</b></td><td class="mono">nodes/retrieval_nodes/quality_gate_retry_node.py</td><td class="mono">quality_gate_retry_node / _expand_keywords</td><td>质量门重试 3 次, 每次重跑 intent_decompose→entity_recall→precision_filter→fusion, 成本与延迟近似 ×4</td><td class="mut">state[&#x27;quality_retry_count&#x27;] 与节点轨迹中 retrieval_intent_decompose 出现次数</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">设立</td><td class="c">16</td><td class="c"><span class="hit1">16</span></td><td class="c">0</td><td class="mut mono">{&quot;laws&quot;: 16}</td></tr>
+<tr><td class="mono">条件</td><td class="c">14</td><td class="c"><span class="hit1">9</span></td><td class="c"><span class="orphan">5</span></td><td class="mut mono">{&quot;laws&quot;: 8, &quot;regulations&quot;: 1, &quot;industry_sources&quot;: 5}</td></tr>
+<tr><td class="mono">营业执照</td><td class="c">8</td><td class="c"><span class="hit1">8</span></td><td class="c">0</td><td class="mut mono">{&quot;laws&quot;: 8}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;]</span> ｜ 有效命中 <b>33</b> ｜ 孤儿命中 <b>5</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>## 检索结果
+
+**查询**: 设立个人独资企业应当具备哪些法定条件？登记机关多久要做出是否登记的决定？
+
+**质量分**: 20.0/100
+
+**命中总数**: 0 条
+
+
+⚠️ 未检索到相关结果, 建议调整关键词重试.</pre>
+</div></details></div>
+<div class="card"><details open>
+<summary>BC-03 · 法规查询 · [P0] 信用卡解释·恶意透支数额标准(数值型) &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">119.65s · 引用 0 · 重试 3 · LLM 4 · ¥0.003346</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">retrieval_entity_recall_node._graph_entity_recall (interpretations 源)</li>
+<li class="mono">_INTENT_PREFERRED_REL (penalty/liability 偏置)</li>
+<li class="mono">retrieval_precision_filter_node._precision_gate (法条类永不硬删)</li>
+</ul>
+<div class="note"><b>预判：</b>数值型查询是 ENTITY_MATCH 失效最典型的场景: 库内实体名是&#x27;数额在五十万元以上不满五百万元&#x27;&#x27;伪造的信用卡内存款余额、透支额度单独或者合计数额在一百万元以上的&#x27;这类**整句片段**, 而查询关键词是&#x27;恶意透支&#x27;&#x27;数额较大&#x27;。`e.name CONTAINS &#x27;恶意透支&#x27;` 对以上片段全部为 False → ENTITY_MATCH 归零, 只能靠 FULLTEXT(a.content CONTAINS kw) 命中, base_score 被钉在 40 分, precision_score 起步即 0.4×0.55, 排序被语义重排主导。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.005s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.94s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.175s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>8.212s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.265s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.575s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.214s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>4.905s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>25.319s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_check"><b>credit_check</b><span>0.004s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::context_pack"><b>context_pack</b><span>0.003s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval"><b>r_retrieval</b><span>0.014s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+r_retrieval::retrieval_intent_decompose
+r_retrieval::credit_precheck
+r_retrieval::retrieval_entity_recall
+r_retrieval::retrieval_precision_filter
+r_retrieval::retrieval_fusion_ranking
+r_retrieval::quality_gate_retry
+r_retrieval::beida_fabao_gate
+r_retrieval::credit_check
+r_retrieval::context_pack
+r_retrieval</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">retry_not_wasted</td><td>major</td><td>质量门重试 3 次才放行 (quality_score=20.0)。每次重试会重跑 intent_decompose(LLM) + entity_recall(Neo4j+FAISS) + precision_filter(embedding) → 成本/延迟近似 ×4</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+<tr><td class="mono"><b>quality_gate_retry</b></td><td class="mono">nodes/retrieval_nodes/quality_gate_retry_node.py</td><td class="mono">quality_gate_retry_node / _expand_keywords</td><td>质量门重试 3 次, 每次重跑 intent_decompose→entity_recall→precision_filter→fusion, 成本与延迟近似 ×4</td><td class="mut">state[&#x27;quality_retry_count&#x27;] 与节点轨迹中 retrieval_intent_decompose 出现次数</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">恶意透支</td><td class="c">3</td><td class="c"><span class="hit1">3</span></td><td class="c">0</td><td class="mut mono">{&quot;interpretations&quot;: 3}</td></tr>
+<tr><td class="mono">数额较大</td><td class="c">2</td><td class="c"><span class="hit1">2</span></td><td class="c">0</td><td class="mut mono">{&quot;interpretations&quot;: 2}</td></tr>
+<tr><td class="mono">信用卡</td><td class="c">72</td><td class="c"><span class="hit1">72</span></td><td class="c">0</td><td class="mut mono">{&quot;interpretations&quot;: 72}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;]</span> ｜ 有效命中 <b>77</b> ｜ 孤儿命中 <b>0</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>## 检索结果
+
+**查询**: 恶意透支信用卡，透支多少钱会被认定为数额较大、数额巨大、数额特别巨大？
+
+**质量分**: 20.0/100
+
+**命中总数**: 0 条
+
+
+⚠️ 未检索到相关结果, 建议调整关键词重试.</pre>
+</div></details></div>
+<div class="card"><details open>
+<summary>BC-04 · 案例检索 · [P0] 类案检索·违法解除赔偿金(单源直查) &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">244.39s · 引用 0 · 重试 3 · LLM 4 · ¥0.00322</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">retrieval_fusion_ranking_node.skip_fusion 分支 (len(domain_sources)&lt;=1)</li>
+<li class="mono">SINGLE_SOURCE_THRESHOLD=50 vs quality_gate_retry.QUALITY_GATE_THRESHOLD=60</li>
+<li class="mono">quality_gate_retry_node._expand_keywords (无 case_search 词表)</li>
+</ul>
+<div class="note"><b>预判：</b>**阈值冲突(确定性 bug)**: fusion 用 SINGLE_SOURCE_THRESHOLD=50 判定 quality_gate_passed, 而 quality_gate_retry 用 QUALITY_GATE_THRESHOLD=60 再判一次。当单源质量分落在 [50, 60) 区间时, fusion 说通过、quality_gate 说不通过 → 回边重试。而 _KEYWORD_EXPANSION_MAP 只覆盖 contract_review/compliance_review/legal_qa, case_search 无词表 → expanded 与 current_keywords 等长 → expanded_kw=None → **连关键词都不变, 3 次重试完全等价, 纯烧钱**。预期 quality_retry_count=3。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.005s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>4.328s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>8.467s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.007s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.022s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>8.455s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.791s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>8.786s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn bottleneck" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>198.473s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>9.008s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_check"><b>credit_check</b><span>0.007s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::context_pack"><b>context_pack</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval"><b>r_retrieval</b><span>0.021s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+r_retrieval::retrieval_intent_decompose
+r_retrieval::credit_precheck
+r_retrieval::retrieval_entity_recall
+r_retrieval::retrieval_precision_filter
+r_retrieval::retrieval_fusion_ranking
+r_retrieval::quality_gate_retry
+r_retrieval::beida_fabao_gate
+r_retrieval::credit_check
+r_retrieval::context_pack
+r_retrieval</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">retry_not_wasted</td><td>major</td><td>质量门重试 3 次才放行 (quality_score=20.0)。每次重试会重跑 intent_decompose(LLM) + entity_recall(Neo4j+FAISS) + precision_filter(embedding) → 成本/延迟近似 ×4</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+<tr><td class="mono"><b>quality_gate_retry</b></td><td class="mono">nodes/retrieval_nodes/quality_gate_retry_node.py</td><td class="mono">quality_gate_retry_node / _expand_keywords</td><td>质量门重试 3 次, 每次重跑 intent_decompose→entity_recall→precision_filter→fusion, 成本与延迟近似 ×4</td><td class="mut">state[&#x27;quality_retry_count&#x27;] 与节点轨迹中 retrieval_intent_decompose 出现次数</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">违法解除</td><td class="c">7</td><td class="c"><span class="hit1">7</span></td><td class="c">0</td><td class="mut mono">{&quot;cases&quot;: 7}</td></tr>
+<tr><td class="mono">赔偿金</td><td class="c">9</td><td class="c"><span class="hit1">7</span></td><td class="c"><span class="orphan">2</span></td><td class="mut mono">{&quot;interpretations&quot;: 2, &quot;cases&quot;: 7}</td></tr>
+<tr><td class="mono">劳动合同</td><td class="c">27</td><td class="c"><span class="hit1">13</span></td><td class="c"><span class="orphan">14</span></td><td class="mut mono">{&quot;laws&quot;: 2, &quot;interpretations&quot;: 12, &quot;cases&quot;: 13}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;cases&quot;]</span> ｜ 有效命中 <b>27</b> ｜ 孤儿命中 <b>16</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>## 检索结果
+
+**查询**: 公司违法解除劳动合同，员工可以要求支付多少赔偿金？法院一般怎么判？
+
+**质量分**: 20.0/100
+
+**命中总数**: 0 条
+
+
+⚠️ 未检索到相关结果, 建议调整关键词重试.</pre>
+</div></details></div>
+<div class="card"><details>
+<summary>BC-05 · 案例检索 · [P0] 类案检索·房屋租赁违约金(负样本/库外) &nbsp; <span class="st st-pass">业务通过</span> &nbsp; <span class="mut">124.15s · 引用 0 · 重试 3 · LLM 4 · ¥0.00335</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">检索子图空结果链路 (entity_recall=[] → precision=[] → citations=[] → quality=20)</li>
+<li class="mono">legal_qa_final_answer_node / retrieval_output_pack_node 的&#x27;无依据&#x27;兜底</li>
+<li class="mono">幻觉风险: 模型是否编造不存在的案号/判决</li>
+</ul>
+<div class="note"><b>预判：</b>**负样本, 检索就该为空**。该用例专测&#x27;系统会不会硬编&#x27;。代码路径上 retrieval_output_pack_node 会输出&#x27;⚠️ 未检索到相关结果, 建议调整关键词重试&#x27;, 属正确兜底。真正的失败判据是: ① 是否编造案号/法院/判决结果; ② 空结果时是否仍重试 3 次(空转); ③ quality_retry_count 是否把基础设施故障与&#x27;库里真没有&#x27;区分开(当前无法区分)。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.012s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.009s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.167s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>9.08s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>32.485s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>9.12s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>48.118s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>8.936s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>5.308s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>8.886s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::credit_check"><b>credit_check</b><span>0.007s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval::context_pack"><b>context_pack</b><span>0.003s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="r_retrieval"><b>r_retrieval</b><span>0.013s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+r_retrieval::retrieval_intent_decompose
+r_retrieval::credit_precheck
+r_retrieval::retrieval_entity_recall
+r_retrieval::retrieval_precision_filter
+r_retrieval::retrieval_fusion_ranking
+r_retrieval::quality_gate_retry
+r_retrieval::beida_fabao_gate
+r_retrieval::credit_check
+r_retrieval::context_pack
+r_retrieval</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">房屋租赁</td><td class="c">8</td><td class="c"><span class="hit0">0</span></td><td class="c"><span class="orphan">8</span></td><td class="mut mono">{&quot;industry_sources&quot;: 8}</td></tr>
+<tr><td class="mono">违约金</td><td class="c">1</td><td class="c"><span class="hit0">0</span></td><td class="c"><span class="orphan">1</span></td><td class="mut mono">{&quot;industry_sources&quot;: 1}</td></tr>
+<tr><td class="mono">提前退租</td><td class="c">0</td><td class="c"><span class="hit0">0</span></td><td class="c">0</td><td class="mut mono">{}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;cases&quot;]</span> ｜ 有效命中 <b>0</b> ｜ 孤儿命中 <b>9</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>## 检索结果
+
+**查询**: 房屋租赁合同纠纷，承租人提前退租，合同约定的违约金过高，法院会怎么调整？
+
+**质量分**: 20.0/100
+
+**命中总数**: 0 条
+
+
+⚠️ 未检索到相关结果, 建议调整关键词重试.</pre>
+</div></details></div>
+<div class="card"><details open>
+<summary>BC-06 · 合同审核 · [P0] 合同审核·房屋租赁合同(全链路+行业标准挂载) &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">600.02s · 引用 0 · 重试 0 · LLM 0 · ¥0.0</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">text_recognize_node._score_contract_likeness (规则评分, 预期 ≥3 直接放行)</li>
+<li class="mono">preprocess 子图 5 节点 (party_identify/contract_classify/full_text_segment/numeric_extract/llm_query_extract)</li>
+<li class="mono">retrieval_intent_decompose_node.KEYWORD_RULES (industry_sources 触发)</li>
+<li class="mono">dual_review 子图 (conflict_resolution → numeric_validate → risk_aggregate → final_delivery)</li>
+</ul>
+<div class="note"><b>预判：</b>**规则-数据不对称**: 合同正文大量出现&#x27;房屋租赁&#x27;&#x27;租赁期限&#x27;&#x27;租金&#x27;&#x27;押金&#x27;, 但 KEYWORD_RULES 的 industry_sources 触发词只有三组 —— 建设工程类(建设工程/工程款/承包人/施工/...)、金融类(金融借款/放款/催收/...)、房产开发类(商品房买卖/预售/房地产开发/容积率/住建部/物业管理/...)。&#x27;房屋租赁&#x27;不在任何一组 → industry_sources **不会被挂载** → 已入库的《城市房屋租赁管理办法》第四条(租期≤20年)在本次审核中完全不可达, 25 年租期这一高风险点必然漏检。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::input_source_router"><b>input_source_router</b><span>0.011s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::text_recognize"><b>text_recognize</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::party_identify"><b>party_identify</b><span>0.017s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::contract_classify"><b>contract_classify</b><span>12.264s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::full_text_segment"><b>full_text_segment</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn bottleneck" title="contract_compliance::preprocess::numeric_extract"><b>numeric_extract</b><span>417.954s</span></div>
+<span class="arrow">→</span>
+<div class="tn bottleneck" title="contract_compliance::preprocess::llm_query_extract"><b>llm_query_extract</b><span>102.383s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess"><b>preprocess</b><span>0.021s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>13.608s</span></div>
+<span class="arrow">→</span>
+<div class="tn err" title="contract_compliance::cc_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn bottleneck" title="contract_compliance::cc_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>237.527s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.011s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="contract_compliance::cc_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>38.428s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+contract_compliance::input_source_router
+contract_compliance::text_recognize
+contract_compliance::preprocess::party_identify
+contract_compliance::preprocess::contract_classify
+contract_compliance::preprocess::full_text_segment
+contract_compliance::preprocess::numeric_extract
+contract_compliance::preprocess::llm_query_extract
+contract_compliance::preprocess
+contract_compliance::cc_retrieval::retrieval_intent_decompose
+contract_compliance::cc_retrieval::credit_precheck</pre>
+<p><b>路径断言：</b><span class="st st-fail">失败</span> <span class="mut">路径符合预期 | 未执行节点 `contract_compliance::dual_review::parallel_dual_review`; 未执行节点 `contract_compliance::dual_review::conflict_resolution`; 未执行节点 `contract_compliance::dual_review::final_delivery`</span></p>
+<h3>状态字段断言失败</h3><table><tr><th>字段</th><th>断言</th><th>期望</th><th>实际</th></tr>
+<tr><td class="mono">task_type</td><td>eq</td><td>contract_review</td><td class="mono">None</td></tr>
+<tr><td class="mono">text_recognize_flag</td><td>eq</td><td>pass</td><td class="mono">None</td></tr>
+<tr><td class="mono">is_contract_input</td><td>eq</td><td>True</td><td class="mono">None</td></tr>
+<tr><td class="mono">doc_text</td><td>nonempty</td><td>None</td><td class="mono">None</td></tr>
+<tr><td class="mono">doc_segments</td><td>min_len</td><td>3</td><td class="mono">None</td></tr>
+<tr><td class="mono">contract_type</td><td>nonempty</td><td>None</td><td class="mono">None</td></tr>
+<tr><td class="mono">output</td><td>nonempty</td><td>None</td><td class="mono">None</td></tr>
+</table>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">risk_items_nonempty</td><td>major</td><td>合同/合规审查未产出任何风险项 → 报告对用户无价值</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">房屋租赁</td><td class="c">8</td><td class="c"><span class="hit0">0</span></td><td class="c"><span class="orphan">8</span></td><td class="mut mono">{&quot;industry_sources&quot;: 8}</td></tr>
+<tr><td class="mono">租赁期限</td><td class="c">1</td><td class="c"><span class="hit0">0</span></td><td class="c"><span class="orphan">1</span></td><td class="mut mono">{&quot;industry_sources&quot;: 1}</td></tr>
+<tr><td class="mono">违约金</td><td class="c">1</td><td class="c"><span class="hit0">0</span></td><td class="c"><span class="orphan">1</span></td><td class="mut mono">{&quot;industry_sources&quot;: 1}</td></tr>
+<tr><td class="mono">押金</td><td class="c">0</td><td class="c"><span class="hit0">0</span></td><td class="c">0</td><td class="mut mono">{}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</span> ｜ 有效命中 <b>0</b> ｜ 孤儿命中 <b>10</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>异常</h3><pre class="mono">执行超过 600s 未完成</pre>
+</div></details></div>
+<div class="card"><details open>
+<summary>BC-07 · 合规审查 · [P1] 合规审查·人脸信息单独同意 &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">201.32s · 引用 0 · 重试 3 · LLM 7 · ¥0.009608</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">text_recognize_node (compliance_review 直接 pass, 0 次 LLM, is_contract_input=False)</li>
+<li class="mono">contract_classify_node (非合同输入应写 &#x27;&#x27;, 不瞎编合同类型)</li>
+<li class="mono">dual_review 子图 (_after_parallel_review → 跳过 conflict_resolution)</li>
+<li class="mono">敏感个人信息单独同意 (个保法第二十八/二十九条)</li>
+</ul>
+<div class="note"><b>预判：</b>compliance_review 直通分支本身是**省成本的正确设计**。风险点在下游: contract_classify 若未严格按 is_contract_input=False 写空串, 会给出一个&#x27;劳动合同&#x27;之类的臆测类型, 污染 llm_query_extract 的检索查询;另外合规审查走单审(跳过 conflict_resolution), 风险项只来自 compliance 一路, 覆盖面天然比合同审核窄。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.009s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::input_source_router"><b>input_source_router</b><span>0.012s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::text_recognize"><b>text_recognize</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::party_identify"><b>party_identify</b><span>13.067s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::contract_classify"><b>contract_classify</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::full_text_segment"><b>full_text_segment</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::numeric_extract"><b>numeric_extract</b><span>1.944s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess::llm_query_extract"><b>llm_query_extract</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::preprocess"><b>preprocess</b><span>0.01s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>18.12s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::credit_precheck"><b>credit_precheck</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="contract_compliance::cc_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>36.592s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.014s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.401s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="contract_compliance::cc_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>36.005s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0.012s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.416s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="contract_compliance::cc_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>36.779s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.766s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="contract_compliance::cc_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>36.24s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::credit_check"><b>credit_check</b><span>0.004s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval::context_pack"><b>context_pack</b><span>0.004s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::cc_retrieval"><b>cc_retrieval</b><span>0.019s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::dual_review::parallel_dual_review"><b>parallel_dual_review</b><span>12.787s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::dual_review::numeric_validate"><b>numeric_validate</b><span>0.089s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::dual_review::risk_aggregate"><b>risk_aggregate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::dual_review::final_delivery"><b>final_delivery</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::dual_review"><b>dual_review</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance"><b>contract_compliance</b><span>0.006s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+contract_compliance::input_source_router
+contract_compliance::text_recognize
+contract_compliance::preprocess::party_identify
+contract_compliance::preprocess::contract_classify
+contract_compliance::preprocess::full_text_segment
+contract_compliance::preprocess::numeric_extract
+contract_compliance::preprocess::llm_query_extract
+contract_compliance::preprocess
+contract_compliance::cc_retrieval::retrieval_intent_decompose
+contract_compliance::cc_retrieval::credit_precheck
+contract_compliance::cc_retrieval::retrieval_entity_recall
+contract_compliance::cc_retrieval::retrieval_precision_filter
+contract_compliance::cc_retrieval::retrieval_fusion_ranking
+contract_compliance::cc_retrieval::quality_gate_retry
+contract_compliance::cc_retrieval::beida_fabao_gate
+contract_compliance::cc_retrieval::credit_check
+contract_compliance::cc_retrieval::context_pack
+contract_compliance::cc_retrieval
+contract_compliance::dual_review::parallel_dual_review
+contract_compliance::dual_review::numeric_validate
+contract_compliance::dual_review::risk_aggregate
+contract_compliance::dual_review::final_delivery
+contract_compliance::dual_review
+contract_compliance</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">retry_not_wasted</td><td>major</td><td>质量门重试 3 次才放行 (quality_score=20.0)。每次重试会重跑 intent_decompose(LLM) + entity_recall(Neo4j+FAISS) + precision_filter(embedding) → 成本/延迟近似 ×4</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+<tr><td class="mono"><b>quality_gate_retry</b></td><td class="mono">nodes/retrieval_nodes/quality_gate_retry_node.py</td><td class="mono">quality_gate_retry_node / _expand_keywords</td><td>质量门重试 3 次, 每次重跑 intent_decompose→entity_recall→precision_filter→fusion, 成本与延迟近似 ×4</td><td class="mut">state[&#x27;quality_retry_count&#x27;] 与节点轨迹中 retrieval_intent_decompose 出现次数</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">个人信息</td><td class="c">122</td><td class="c"><span class="hit1">122</span></td><td class="c">0</td><td class="mut mono">{&quot;laws&quot;: 122}</td></tr>
+<tr><td class="mono">单独同意</td><td class="c">5</td><td class="c"><span class="hit1">5</span></td><td class="c">0</td><td class="mut mono">{&quot;laws&quot;: 5}</td></tr>
+<tr><td class="mono">人脸识别</td><td class="c">0</td><td class="c"><span class="hit0">0</span></td><td class="c">0</td><td class="mut mono">{}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</span> ｜ 有效命中 <b>127</b> ｜ 孤儿命中 <b>0</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre># 法智引擎 - 合规审查报告
+
+## 📋 基本信息
+
+- **合同类型**: 未识别
+- **甲方**: 未识别
+- **乙方**: 未识别
+- **用户立场**: Unknown方
+
+## ⚠️ 风险评估
+
+- **综合评分**: 85.0/100
+- **风险等级**: 中风险
+- **签约结论**: ❌ 不得签约
+  &gt; ⚡ **合规审查否决**: 存在违反强制性法律规定的风险, 建议**不得签约**
+- **处置建议**: 可自动输出, 建议关注标注风险项
+
+## 📝 风险清单(共1项)
+
+### 1. [严重] 公司在办公场所安装人脸识别门禁采集员工人脸信息用于考勤，未单独告知员工且未取得单独同意。人脸信息属于敏感个人信息，处理敏感个人信息需具有特定目的和充分必要性，并取得个人的单独同意，同时应当履行告知义务。该行为违反个人信息保护法关于敏感个人信息处理的强制性规定，构成违法处理个人信息。
+- **来源**: 冲突消解
+- **相关条款**: 全文/总体
+- **法律依据**: 《中华人民共和国个人信息保护法》第13条、第14条、第26条、第28条、第29条、第30条
+- **修改建议**: 立即停止违法采集行为；重新按照个人信息保护法要求，向员工履行告知义务（告知处理目的、方式、保存期限等），并取得员工单独书面同意；如员工拒绝，应提供替代考勤方式（如刷卡、密码等）；对已采集的人脸信息进行删除或匿名化处理；必要时开展个人信息保护影响评估并留存记录。
+
+## ⚖️ 律师转介
+
+&gt; 本合同风险较低, 可直接使用。如需进一步法律意见, 可一键转接专业律师。
+
+---
+*本报告由法智引擎AI生成, 仅供参考, 不构成法律意见。*</pre>
+</div></details></div>
+<div class="card"><details>
+<summary>BC-08 · 合同审核 · [P2] 合同审核·非合同短输入(守卫拦截) &nbsp; <span class="st st-pass">业务通过</span> &nbsp; <span class="mut">0.04s · 引用 0 · 重试 0 · LLM 0 · ¥0.0</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">text_recognize_node._score_contract_likeness (短请求负分 → block)</li>
+<li class="mono">contract_compliance_subgraph.after_text_recognize (block → END)</li>
+<li class="mono">need_user_confirm=True + output 提示文案</li>
+</ul>
+<div class="note"><b>预判：</b>输入 16 字、以&#x27;帮我&#x27;开头、无条款/无甲乙/无要素 → 规则评分: n&lt;100 且命中 _REQUEST_PREFIXES → -3; n&lt;50 → -2; 无加分项 → 得分 -5 ≤ 0 → **直接 block, 不调 LLM**。预期: 不进 preprocess/cc_retrieval/dual_review, output 为 _NOT_CONTRACT_MESSAGE, need_user_confirm=True。这条用例是**守卫正确性**的正向验证, 期望全绿; 若它失败说明守卫被改坏了。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.008s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.004s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::input_source_router"><b>input_source_router</b><span>0.013s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance::text_recognize"><b>text_recognize</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="contract_compliance"><b>contract_compliance</b><span>0.007s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+contract_compliance::input_source_router
+contract_compliance::text_recognize
+contract_compliance</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">合同</td><td class="c">40</td><td class="c"><span class="hit1">29</span></td><td class="c"><span class="orphan">11</span></td><td class="mut mono">{&quot;laws&quot;: 4, &quot;interpretations&quot;: 12, &quot;industry_sources&quot;: 11, &quot;cases&quot;: 13}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</span> ｜ 有效命中 <b>29</b> ｜ 孤儿命中 <b>11</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>⚠️ 您选择了「合同审核」，但当前输入看起来不是合同正文。
+
+合同审核需要拿到**合同全文**才能逐条分析风险，否则只能凭空推测，反而会给出不可靠的结论。
+
+请任选一种方式重新提交：
+1. 将合同全文直接粘贴到输入框；
+2. 上传合同文件（支持 PDF / DOCX / TXT）。
+
+如果您只是想咨询某个法律问题（而非审核某份具体合同），可以直接在首页或智能问答页面提问，我会按法律问答为您解答。</pre>
+</div></details></div>
+<div class="card"><details>
+<summary>BC-09 · 文书生成 · [P1] 文书生成·缺当事人(澄清守卫) &nbsp; <span class="st st-pass">业务通过</span> &nbsp; <span class="mut">11.89s · 引用 0 · 重试 0 · LLM 1 · ¥0.002602</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">doc_case_analyze_node (LLM 抽 parties + need_clarify)</li>
+<li class="mono">docgen_subgraph._clarify_router (need_clarify → END)</li>
+<li class="mono">output 是否为追问文案而非残缺文书</li>
+</ul>
+<div class="note"><b>预判：</b>原告/被告确实缺失(只有&#x27;公司&#x27;, 无具体名称), LLM 大概率判 need_clarify=True → _clarify_router 走 clarify 分支直接 END, 后续 template_match/query_plan/clause_fill/risk_analysis/final_delivery 全部不执行, output 为追问文案。**注意**: 该断言依赖 LLM 判定, 存在不稳定性; 若 LLM 把&#x27;公司&#x27;当成被告名, 会一路生成到 final_delivery, 产出当事人为&#x27;原告/公司&#x27;的残缺文书 —— 这本身就是要捕捉的 badcase, 两种结果都有价值。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.016s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.003s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="docgen::doc_case_analyze"><b>doc_case_analyze</b><span>11.857s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="docgen"><b>docgen</b><span>0.004s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+docgen::doc_case_analyze
+docgen</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">违法解除</td><td class="c">7</td><td class="c"><span class="hit1">7</span></td><td class="c">0</td><td class="mut mono">{&quot;cases&quot;: 7}</td></tr>
+<tr><td class="mono">赔偿金</td><td class="c">9</td><td class="c"><span class="hit1">9</span></td><td class="c">0</td><td class="mut mono">{&quot;interpretations&quot;: 2, &quot;cases&quot;: 7}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</span> ｜ 有效命中 <b>16</b> ｜ 孤儿命中 <b>0</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>请提供原告和被告的准确全称、住所地、违法解除的具体时间和方式、实际工作年限及月平均工资，以便确定赔偿金数额及管辖法院。</pre>
+</div></details></div>
+<div class="card"><details open>
+<summary>BC-10 · 首页问答 · [P0] 跨库复合查询·建设工程质保期 + 房屋租赁期限 &nbsp; <span class="st st-fail">业务失败</span> &nbsp; <span class="mut">228.81s · 引用 0 · 重试 3 · LLM 6 · ¥0.01357</span></summary>
+<div class="body">
+<h3>针对的节点 / 状态</h3><ul>
+<li class="mono">retrieval_intent_decompose_node.KEYWORD_RULES (半挂载: &#x27;建设工程&#x27;命中, &#x27;租赁期限&#x27;不命中)</li>
+<li class="mono">_detect_retrieval_intents (&#x27;多久&#x27;不是 marker → general, 无偏好关系偏置)</li>
+<li class="mono">quality_gate_retry_node (复合查询质量分易低 → 重试放大)</li>
+</ul>
+<div class="note"><b>预判：</b>**挂载不对称的确证用例**: &#x27;建设工程&#x27; 命中 KEYWORD_RULES 第 1 组 → industry_sources 被挂载; 但 &#x27;房屋租赁期限&#x27; 未命中任何组。也就是说《城市房屋租赁管理办法》能被召回, **完全是因为同一句话里碰巧出现了&#x27;建设工程&#x27;四个字** —— 语义上毫无关系。把&#x27;建设工程的最低保修期限是多久？&#x27;删掉, 第二问就 100% 召回不到。这个&#x27;借光式挂载&#x27;是最容易被忽略、也最难排查的一类 badcase。同时复合查询意图会判为 general(无 marker 命中), Stage1 的 recall×1.3 偏置与 Stage2 的 +0.1 加成双双失效。</div>
+<h3>实际状态流转轨迹</h3><div class="track">
+<div class="tn ok" title="xiaohongshu_publish_intent"><b>xiaohongshu_publish_intent</b><span>0.005s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="intent_router"><b>intent_router</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_intent_classify"><b>qa_intent_classify</b><span>9.718s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>7.216s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>44.506s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.011s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>28.399s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>44.039s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0.017s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>3.857s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>44.292s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_intent_decompose"><b>retrieval_intent_decompose</b><span>2.288s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_precheck"><b>credit_precheck</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn slow" title="qa::qa_retrieval::retrieval_entity_recall"><b>retrieval_entity_recall</b><span>44.419s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_precision_filter"><b>retrieval_precision_filter</b><span>0.001s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::retrieval_fusion_ranking"><b>retrieval_fusion_ranking</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::quality_gate_retry"><b>quality_gate_retry</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::beida_fabao_gate"><b>beida_fabao_gate</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::credit_check"><b>credit_check</b><span>0.006s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval::context_pack"><b>context_pack</b><span>0.002s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::qa_retrieval"><b>qa_retrieval</b><span>0.02s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa::legal_qa_final_answer"><b>legal_qa_final_answer</b><span>0s</span></div>
+<span class="arrow">→</span>
+<div class="tn ok" title="qa"><b>qa</b><span>0.006s</span></div>
+</div>
+<pre class="mono">xiaohongshu_publish_intent
+intent_router
+qa::qa_intent_classify
+qa::qa_retrieval::retrieval_intent_decompose
+qa::qa_retrieval::credit_precheck
+qa::qa_retrieval::retrieval_entity_recall
+qa::qa_retrieval::retrieval_precision_filter
+qa::qa_retrieval::retrieval_fusion_ranking
+qa::qa_retrieval::quality_gate_retry
+qa::qa_retrieval::beida_fabao_gate
+qa::qa_retrieval::credit_check
+qa::qa_retrieval::context_pack
+qa::qa_retrieval
+qa::legal_qa_final_answer
+qa</pre>
+<p><b>路径断言：</b><span class="st st-pass">通过</span> <span class="mut">路径符合预期 | 完整路径符合预期</span></p>
+<h3>质量缺陷</h3><table><tr><th>规则</th><th>级别</th><th>详情</th></tr>
+<tr><td class="mono">retry_not_wasted</td><td>major</td><td>质量门重试 3 次才放行 (quality_score=20.0)。每次重试会重跑 intent_decompose(LLM) + entity_recall(Neo4j+FAISS) + precision_filter(embedding) → 成本/延迟近似 ×4</td></tr>
+<tr><td class="mono">retrieval_nonempty</td><td>blocker</td><td>检索结果为空 (citation_count=0), 输出只能是&#x27;无依据&#x27;兜底文案 → 本次交付对用户无价值, 必须人工介入或补充语料</td></tr>
+</table>
+<h3>失败归因（定位到节点/函数）</h3><table><tr><th>节点</th><th>文件</th><th>函数</th><th>原因</th><th>如何确认</th></tr>
+<tr><td class="mono"><b>retrieval_entity_recall</b></td><td class="mono">nodes/retrieval_nodes/retrieval_entity_recall_node.py</td><td class="mono">_graph_entity_recall / _faiss_semantic_recall</td><td>召回结果为空 → 下游 precision/fusion 全链路空转</td><td class="mut">看该节点日志里 &#x27;召回汇总(两通道): 图谱=0, FAISS=0&#x27; 或 &#x27;[WARNING] 图谱召回[...]失败&#x27;</td></tr>
+<tr><td class="mono"><b>quality_gate_retry</b></td><td class="mono">nodes/retrieval_nodes/quality_gate_retry_node.py</td><td class="mono">quality_gate_retry_node / _expand_keywords</td><td>质量门重试 3 次, 每次重跑 intent_decompose→entity_recall→precision_filter→fusion, 成本与延迟近似 ×4</td><td class="mut">state[&#x27;quality_retry_count&#x27;] 与节点轨迹中 retrieval_intent_decompose 出现次数</td></tr>
+</table>
+<h3>关键词可达性（挂载感知）</h3><table><tr><th>关键词</th><th class="c">全库实体命中</th><th class="c">已挂载源内命中</th><th class="c">孤儿命中<br><span class="mut">(落在未挂载源)</span></th><th>命中分布</th></tr>
+<tr><td class="mono">建设工程</td><td class="c">10</td><td class="c"><span class="hit1">10</span></td><td class="c">0</td><td class="mut mono">{&quot;industry_sources&quot;: 10}</td></tr>
+<tr><td class="mono">质量保修</td><td class="c">2</td><td class="c"><span class="hit1">2</span></td><td class="c">0</td><td class="mut mono">{&quot;industry_sources&quot;: 2}</td></tr>
+<tr><td class="mono">租赁期限</td><td class="c">1</td><td class="c"><span class="hit1">1</span></td><td class="c">0</td><td class="mut mono">{&quot;industry_sources&quot;: 1}</td></tr>
+</table>
+<p class="mut">挂载源：<span class="mono">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;, &quot;industry_sources&quot;]</span> ｜ 有效命中 <b>13</b> ｜ 孤儿命中 <b>0</b><br>"孤儿命中"= 该关键词明明在库里有实体，但因为该知识源<b>未被挂载</b>，本次检索永远查不到 —— 这是"看起来库里有、实际查不到"的根因。</p>
+<h3>输出预览</h3><pre>抱歉, 当前法律知识库未检索到与您问题相关的权威依据, 无法给出有据可查的回答。
+
+建议您:
+1. 补充更具体的法律场景、主体或法规名称;
+2. 咨询专业律师获取针对性法律意见。
+
+*(法智引擎仅基于检索结果作答, 未检索到依据时不编造法条。)*</pre>
+</div></details></div>
+<h2>⑥ 证据层</h2>
+<div class="card"><h3>关键词 × 知识源 实体命中热力表</h3><p class="mut">召回硬约束 <span class="mono">e.name CONTAINS kw</span>：关键词必须<b>逐字</b>是实体名的子串，ENTITY_MATCH(100/90/60 分) 才能生效。命中 0 表示该关键词在图谱通道上完全不可达，只能靠 FULLTEXT(固定 40 分) 兜底。</p><table><tr><th>关键词</th><th>说明</th><th class="c">合计</th>
+<th class="c">laws</th>
+<th class="c">regulations</th>
+<th class="c">interpretations</th>
+<th class="c">industry_sources</th>
+<th class="c">cases</th>
+</tr>
+<tr><td class="mono"><b>个人信息</b></td><td class="mut">BC-01/BC-07 核心概念</td><td class="c"><span class="hit1">122</span></td>
+<td class="c" style="background:#e8f5e9">122</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>同意</b></td><td class="mut">BC-01/BC-07 核心概念</td><td class="c"><span class="hit1">22</span></td>
+<td class="c" style="background:#e8f5e9">18</td>
+<td class="c" style="background:#fff8e1">1</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">3</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>单独同意</b></td><td class="mut">BC-07 个保法第29条关键词</td><td class="c"><span class="hit1">5</span></td>
+<td class="c" style="background:#e8f5e9">5</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>人脸识别</b></td><td class="mut">BC-07 业务词(法条中无此字面)</td><td class="c"><span class="hit0">0</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>设立</b></td><td class="mut">BC-02 个独法第8条</td><td class="c"><span class="hit1">16</span></td>
+<td class="c" style="background:#e8f5e9">16</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>条件</b></td><td class="mut">BC-02 意图词</td><td class="c"><span class="hit1">14</span></td>
+<td class="c" style="background:#e8f5e9">8</td>
+<td class="c" style="background:#fff8e1">1</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#e8f5e9">5</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>恶意透支</b></td><td class="mut">BC-03 信用卡解释第8条核心概念</td><td class="c"><span class="hit1">3</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">3</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>数额较大</b></td><td class="mut">BC-03 数值标准词</td><td class="c"><span class="hit1">2</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">2</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>信用卡</b></td><td class="mut">BC-03 主题词</td><td class="c"><span class="hit1">72</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#e8f5e9">72</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>违法解除</b></td><td class="mut">BC-04 案由词</td><td class="c"><span class="hit1">7</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#e8f5e9">7</td>
+</tr>
+<tr><td class="mono"><b>赔偿金</b></td><td class="mut">BC-04 诉求词</td><td class="c"><span class="hit1">9</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">2</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#e8f5e9">7</td>
+</tr>
+<tr><td class="mono"><b>房屋租赁</b></td><td class="mut">BC-05/BC-06 核心场景</td><td class="c"><span class="hit1">8</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#e8f5e9">8</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>租赁期限</b></td><td class="mut">BC-06/BC-10 城市房屋租赁办法第4条</td><td class="c"><span class="hit1">1</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">1</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>违约金</b></td><td class="mut">BC-06 住建部标准第5条</td><td class="c"><span class="hit1">1</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">1</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>建设工程</b></td><td class="mut">BC-10 行业源触发词</td><td class="c"><span class="hit1">10</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#e8f5e9">10</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+<tr><td class="mono"><b>质量保修</b></td><td class="mut">BC-10 住建部标准第3条</td><td class="c"><span class="hit1">2</span></td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fafafa">·</td>
+<td class="c" style="background:#fff8e1">2</td>
+<td class="c" style="background:#fafafa">·</td>
+</tr>
+</table>
+<p class="mut">1/16 个代表性关键词在全部 5 个源的实体名上命中数为 0 → ENTITY_MATCH(e.name CONTAINS kw) 对这些关键词完全失效, 只能靠 FULLTEXT(a.content CONTAINS kw, 固定 40 分)兜底。</p>
+</div>
+<div class="card"><h3>挂载感知可达性（最关键的诊断）</h3><p class="mut">左表按用例汇总：有效命中 = 关键词在<b>已挂载源</b>上的实体命中数；孤儿命中 = 命中全部落在<b>未挂载源</b>上的部分。</p><table><tr><th>用例</th><th>任务</th><th>已挂载源</th><th class="c">有效命中</th><th class="c">孤儿命中</th><th>判定</th></tr>
+<tr><td class="mono"><b>BC-01</b></td><td class="mut">legal_qa</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</td><td class="c"><b>148</b></td><td class="c">3</td><td><span class='orphan'>部分命中丢失</span></td></tr>
+<tr><td class="mono"><b>BC-02</b></td><td class="mut">legal_research</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;]</td><td class="c"><b>33</b></td><td class="c">5</td><td><span class='orphan'>部分命中丢失</span></td></tr>
+<tr><td class="mono"><b>BC-03</b></td><td class="mut">legal_research</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;]</td><td class="c"><b>77</b></td><td class="c">0</td><td><span class='hit1'>可达</span></td></tr>
+<tr><td class="mono"><b>BC-04</b></td><td class="mut">case_search</td><td class="mono" style="font-size:11px">[&quot;cases&quot;]</td><td class="c"><b>27</b></td><td class="c">16</td><td><span class='orphan'>部分命中丢失</span></td></tr>
+<tr><td class="mono"><b>BC-05</b></td><td class="mut">case_search</td><td class="mono" style="font-size:11px">[&quot;cases&quot;]</td><td class="c"><b>0</b></td><td class="c">9</td><td><span class='hit0'>图谱实体通道完全不可达</span></td></tr>
+<tr><td class="mono"><b>BC-06</b></td><td class="mut">contract_review</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</td><td class="c"><b>0</b></td><td class="c">10</td><td><span class='hit0'>图谱实体通道完全不可达</span></td></tr>
+<tr><td class="mono"><b>BC-07</b></td><td class="mut">compliance_review</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</td><td class="c"><b>127</b></td><td class="c">0</td><td><span class='hit1'>可达</span></td></tr>
+<tr><td class="mono"><b>BC-08</b></td><td class="mut">contract_review</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</td><td class="c"><b>29</b></td><td class="c">11</td><td><span class='orphan'>部分命中丢失</span></td></tr>
+<tr><td class="mono"><b>BC-09</b></td><td class="mut">legal_document_gen</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;]</td><td class="c"><b>16</b></td><td class="c">0</td><td><span class='hit1'>可达</span></td></tr>
+<tr><td class="mono"><b>BC-10</b></td><td class="mut">legal_qa</td><td class="mono" style="font-size:11px">[&quot;laws&quot;, &quot;regulations&quot;, &quot;interpretations&quot;, &quot;cases&quot;, &quot;industry_sources&quot;]</td><td class="c"><b>13</b></td><td class="c">0</td><td><span class='hit1'>可达</span></td></tr>
+</table>
+<div class="warnbox"><b>核心结论：</b>BC-06（房屋租赁合同审核）的 4 个核心关键词「房屋租赁 / 租赁期限 / 违约金 / 押金」在库内<b>总共 10 个实体命中，全部落在 industry_sources</b>；而 <span class="mono">KEYWORD_RULES</span> 的 industry 触发词只有「建设工程 / 工程款 / 承包人 / 施工 / …」「商品房买卖 / 预售 / 房地产开发 / 容积率 / 住建部 / 物业管理 / …」「金融借款 / 放款 / 催收 / …」三组，<b>不含"房屋租赁"</b> → industry_sources 未挂载 → 该合同审核中《城市房屋租赁管理办法》第四条（租期≤20 年）在结构上<b>永远不可能被召回</b>。<br>反观 BC-10 因为句中含有"建设工程"四个字而意外挂载了 industry_sources，"租赁期限"才拿到 1 个有效命中 —— 这就是典型的<b>借光式挂载</b>：能否召回取决于同一句话里有没有碰巧出现无关的行业关键词。</div>
+</div>
+<div class="card"><h3>探针结论（可直接转优化项）</h3><table><tr><th>级别</th><th>ID</th><th>节点</th><th>问题</th><th>证据</th><th>影响</th></tr>
+<tr><td><span class="sev s-P0">P0</span></td><td class="mono">F1</td><td class="mono">retrieval_entity_recall (通道1a/1b)</td><td><b>Neo4j 不可用 → 两通道召回静默归零</b></td><td class="mut mono" style="font-size:11px">[connect] ServiceUnavailable: Couldn&#x27;t connect to localhost:7687 (resolved to (&#x27;[::1]:7687&#x27;, &#x27;127.0.0.1:7687&#x27;)):
+Failed to establish connection to ResolvedIPv6Address((&#x27;::1&#x27;, 7687, 0, 0)) (reason [WinError 10061] 由于目标计算机积极拒绝，无法连接。)
+Failed to establish connection to ResolvedIPv4Address((&#x27;127.0.0.1&#x27;, </td><td class="mut">_graph_entity_recall 与 _faiss_semantic_recall(反向 Cypher) 都把数据库异常catch 后 print WARNING 并 return [], state 中不会留下任何&#x27;通道故障&#x27;标记。下游 precision/fusion 拿到空池 → quality_score=20 → quality_gate 判不通过 → 回边重试 3 次 → 3 轮重试全部等价空转 → 最终 legal_qa 走&#x27;无依据&#x27;兜底。用户侧看到的&#x27;未检索到相关依据&#x27;与&#x27;库里真的没有&#x27;完全无法区分。</td></tr>
+<tr><td><span class="sev s-P0">P0</span></td><td class="mono">F3</td><td class="mono">数据层 (图谱构建)</td><td><b>声明入库文件与实际抽取结果不一致</b></td><td class="mut mono" style="font-size:11px">声明但未入库: [&#x27;cases/case_698be5cb1791f068.txt&#x27;]; 已入库但未声明: [&#x27;cases/case_2508534f19bc95b2.txt&#x27;]</td><td class="mut">用该文件的条款构造 golden set 会得到 100% 假阴性 —— 测试集的失败不来自代码, 而来自数据未入库。必须以探针结论为准修正 golden。</td></tr>
+<tr><td><span class="sev s-P0">P0</span></td><td class="mono">F4-C1</td><td class="mono">quality_gate_retry / retrieval_fusion_ranking</td><td><b>单源阈值与质量门阈值不一致</b></td><td class="mut mono" style="font-size:11px">retrieval_fusion_ranking_node.SINGLE_SOURCE_THRESHOLD=50 用于判定 quality_gate_passed; quality_gate_retry_node.QUALITY_GATE_THRESHOLD=60 用于决定是否回边重试。单源(case_search)质量分落在 [50, 60) 时, fusion 判通过、quality_gate 判不通过 → 必然回边重试。</td><td class="mut">case_search 每次命中该分数区间都会空转重试 3 次</td></tr>
+<tr><td><span class="sev s-P0">P0</span></td><td class="mono">F4-C2</td><td class="mono">quality_gate_retry / retrieval_fusion_ranking</td><td><b>关键词扩展词表未覆盖全部 task_type</b></td><td class="mut mono" style="font-size:11px">_KEYWORD_EXPANSION_MAP 仅覆盖 [&#x27;compliance_review&#x27;, &#x27;contract_review&#x27;, &#x27;legal_qa&#x27;], 缺 [&#x27;case_search&#x27;, &#x27;legal_research&#x27;, &#x27;legal_document_gen&#x27;]。这些任务重试时 _expand_keywords 返回与原关键词等长的列表, quality_gate_retry_node 判定 len(expanded) &gt; len(current) 为 False → expanded_kw=None → 连关键词都不更新。</td><td class="mut">重试完全等价, 3 轮 LLM+FAISS+Neo4j 开销换 0 增益</td></tr>
+<tr><td><span class="sev s-P0">P0</span></td><td class="mono">F5</td><td class="mono">retrieval_entity_recall / retrieval_output_pack</td><td><b>citation 缺失 law_name + title 语义错位 → 引用不可溯源、分类失效</b></td><td class="mut mono" style="font-size:11px">Cypher 已 SELECT law_name=True, 返回字段=[&#x27;article_no&#x27;, &#x27;content&#x27;, &#x27;entity_name&#x27;, &#x27;entity_type&#x27;, &#x27;graph_path&#x27;, &#x27;recall_score&#x27;, &#x27;recall_source&#x27;, &#x27;relation_type&#x27;, &#x27;source&#x27;, &#x27;source_id&#x27;, &#x27;title&#x27;]</td><td class="mut">Cypher 已 SELECT law.name AS law_name, 但组装 recall_results 时未写入 → citation 丢失法律名, 用户看到的引用形如【违约金 第七条】无法溯源到具体法律; 同时 retrieval_output_pack_node 按 title 猜分类(含&#x27;法规/法律/法典&#x27;), 而 title 实际是实体名/概念名 → 分类几乎 100% 落&#x27;其他&#x27;。</td></tr>
+</table></div>
+<div class="card"><h3>跨模块常量一致性</h3><table><tr><th>常量</th><th class="c">值</th></tr>
+<tr><td class="mono">expansion_map_tasks</td><td class="c">[&#x27;compliance_review&#x27;, &#x27;contract_review&#x27;, &#x27;legal_qa&#x27;]</td></tr>
+<tr><td class="mono">fusion_single_source_threshold</td><td class="c">50</td></tr>
+<tr><td class="mono">fusion_multi_threshold</td><td class="c">60</td></tr>
+<tr><td class="mono">quality_gate_threshold</td><td class="c">60</td></tr>
+<tr><td class="mono">max_quality_retries</td><td class="c">3</td></tr>
+</table></div>
+</div></body></html>
